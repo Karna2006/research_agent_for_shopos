@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+
+  # ── Python FastAPI backend ──────────────────────────────────────────────────
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Required
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      # Optional — blank → SQLite / in-memory cache
+      - DATABASE_URL=${DATABASE_URL:-}
+      - UPSTASH_REDIS_URL=${UPSTASH_REDIS_URL:-}
+      - UPSTASH_REDIS_TOKEN=${UPSTASH_REDIS_TOKEN:-}
+      - PAGESPEED_API_KEY=${PAGESPEED_API_KEY:-}
+      # Internal security key shared with Mastra
+      - INTERNAL_SECRET_KEY=${INTERNAL_SECRET_KEY:-dev-internal-key-change-in-prod}
+      # Tell Python where Mastra lives (Docker service name resolves internally)
+      - MASTRA_URL=http://mastra:4111
+    volumes:
+      - ./shopos.db:/app/shopos.db
+      - ./output:/app/output
+      - ./demo:/app/demo
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Mastra AI orchestration layer ──────────────────────────────────────────
+  mastra:
+    build: ./mastra
+    ports:
+      - "4111:4111"   # Mastra server + playground UI at http://localhost:4111/mastra
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      # Internal URL for Mastra → Python calls (uses Docker service name)
+      - PYTHON_API_URL=http://api:8000
+      # Same secret as the api service — authenticates internal calls
+      - INTERNAL_SECRET_KEY=${INTERNAL_SECRET_KEY:-dev-internal-key-change-in-prod}
+      # LibSQL storage for brand memory (persisted via volume)
+      - LIBSQL_URL=file:/data/brand_memory.db
+    volumes:
+      - mastra_data:/data   # persistent brand memory + Mastra storage
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4111/api/workflows"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s   # Mastra takes longer to boot (Node.js cold start)
+
+volumes:
+  mastra_data:

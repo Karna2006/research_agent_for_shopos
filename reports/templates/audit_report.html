@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>{{ brand_name }} — Brand Audit Report</title>
+<style>
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--card:#141414;--card2:#1e1e1e;--border:#2a2a2a;
+  --text:#e8e8e8;--muted:#6b7280;--subtle:#3f3f3f;
+  --blue:#3b82f6;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--purple:#a78bfa;
+  --r:10px;
+}
+html{font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body{font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+     max-width:960px;margin:0 auto;padding:0 1.5rem 5rem;line-height:1.6}
+a{color:var(--blue);text-decoration:none}
+h1,h2,h3{line-height:1.25}
+
+/* ── Report header ────────────────────────────────────────────────────────── */
+.rpt-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2rem;
+  gap:2rem;flex-wrap:wrap
+}
+.rpt-brand{font-size:2.2rem;font-weight:800;letter-spacing:-.5px}
+.rpt-title{font-size:.95rem;font-weight:500;color:var(--muted);margin-top:.2rem}
+.rpt-meta{display:flex;gap:1.5rem;font-size:.78rem;color:var(--muted);
+  margin-top:.65rem;flex-wrap:wrap}
+.rpt-meta span::before{content:"·";margin-right:.4rem;opacity:.4}
+.rpt-meta span:first-child::before{content:""}
+.rpt-badge{display:inline-block;padding:.15rem .55rem;border-radius:5px;
+  font-size:.72rem;font-weight:700;border:1px solid currentColor;margin-left:.5rem}
+
+/* Health ring */
+.health-ring{flex-shrink:0;text-align:center}
+.ring-wrap{position:relative;width:90px;height:90px}
+.ring-svg{transform:rotate(-90deg)}
+.ring-num{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:1.65rem;font-weight:800}
+.ring-label{font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);margin-top:.3rem}
+
+/* ── Executive summary ────────────────────────────────────────────────────── */
+.exec{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2.5rem}
+.exec-card{background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.1rem 1.25rem}
+.exec-ttl{font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.09em;margin-bottom:.65rem}
+.exec-ttl.wins{color:var(--green)}
+.exec-ttl.gaps{color:var(--amber)}
+.exec-list{list-style:none;padding:0}
+.exec-list li{font-size:.84rem;padding:.32rem 0;padding-left:1.1rem;
+  position:relative;border-bottom:1px solid var(--border);color:var(--text)}
+.exec-list li:last-child{border-bottom:none}
+.exec-list li::before{position:absolute;left:0}
+.exec-list.wins li::before{content:"✓";color:var(--green)}
+.exec-list.gaps li::before{content:"⚠";color:var(--amber)}
+
+/* ── Section structure ────────────────────────────────────────────────────── */
+.section{margin:3rem 0 0}
+.sec-hdr{display:flex;align-items:baseline;gap:.75rem;
+  padding-left:1rem;border-left:4px solid var(--blue);margin-bottom:1.4rem}
+.sec-num{font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--blue)}
+.sec-title{font-size:1.25rem;font-weight:700;letter-spacing:-.2px}
+.subsec{margin-top:1.4rem}
+.subsec-title{font-size:.78rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--muted);margin-bottom:.75rem;
+  padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.25rem}
+.card+.card{margin-top:.75rem}
+
+/* ── Info table (Section 1) ───────────────────────────────────────────────── */
+.info-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.info-table tr{border-bottom:1px solid var(--border)}
+.info-table tr:last-child{border-bottom:none}
+.info-table td{padding:.6rem .85rem;vertical-align:top;line-height:1.5}
+.info-table td:first-child{color:var(--muted);font-weight:600;
+  width:175px;white-space:nowrap;background:var(--card2)}
+
+/* ── Score pills ──────────────────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .65rem;
+  border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid transparent}
+.pill-green{background:rgba(34,197,94,.12);color:var(--green);border-color:rgba(34,197,94,.25)}
+.pill-amber{background:rgba(245,158,11,.12);color:var(--amber);border-color:rgba(245,158,11,.25)}
+.pill-red{background:rgba(239,68,68,.12);color:var(--red);border-color:rgba(239,68,68,.25)}
+.pill-blue{background:rgba(59,130,246,.12);color:var(--blue);border-color:rgba(59,130,246,.25)}
+.pill-muted{background:rgba(107,114,128,.1);color:var(--muted);border-color:rgba(107,114,128,.2)}
+
+/* ── Score grid (metrics row) ─────────────────────────────────────────────── */
+.score-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem}
+.score-item{background:var(--card2);border:1px solid var(--border);
+  border-radius:8px;padding:.6rem .9rem;min-width:130px;flex:1}
+.score-item-label{font-size:.7rem;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem}
+.score-item-val{font-size:1.25rem;font-weight:800;line-height:1}
+
+/* ── Check / warn lists ───────────────────────────────────────────────────── */
+.check-list{list-style:none;padding:0}
+.check-list li{display:flex;align-items:flex-start;gap:.55rem;
+  font-size:.87rem;padding:.32rem 0;border-bottom:1px solid var(--border)}
+.check-list li:last-child{border-bottom:none}
+.ci{flex-shrink:0;font-size:.9rem;margin-top:.05rem}
+.ci-ok{color:var(--green)}
+.ci-warn{color:var(--amber)}
+.ci-bad{color:var(--red)}
+
+/* ── Before / After rewrite ───────────────────────────────────────────────── */
+.ba-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+.ba-box{border-radius:8px;padding:1rem 1.15rem;font-size:.86rem;line-height:1.65}
+.ba-before{background:#1c0a0a;border-left:4px solid var(--red)}
+.ba-after{background:#0a1c0a;border-left:4px solid var(--green)}
+.ba-label{font-size:.65rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;margin-bottom:.4rem}
+.ba-before .ba-label{color:var(--red)}
+.ba-after  .ba-label{color:var(--green)}
+.ba-text{color:var(--text);font-style:italic}
+
+/* ── Format bars (Ads) ────────────────────────────────────────────────────── */
+.fmt-bars{display:flex;flex-direction:column;gap:.55rem}
+.fmt-row{display:flex;align-items:center;gap:.75rem;font-size:.84rem}
+.fmt-label{width:75px;color:var(--muted);font-weight:500;font-size:.78rem;text-align:right}
+.fmt-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.fmt-fill{height:100%;border-radius:4px}
+.fmt-pct{width:36px;text-align:right;font-size:.78rem;font-weight:700}
+
+/* ── Stat row ─────────────────────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
+.stat-box{background:var(--card2);border:1px solid var(--border);
+  border-radius:8px;padding:.85rem 1rem;text-align:center}
+.stat-num{font-size:1.7rem;font-weight:800;line-height:1;margin-bottom:.15rem}
+.stat-label{font-size:.7rem;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em}
+
+/* ── Quick-win cards ──────────────────────────────────────────────────────── */
+.qw-list{display:flex;flex-direction:column;gap:.65rem}
+.qw-card{background:var(--card2);border:1px solid var(--border);
+  border-radius:8px;padding:.85rem 1.1rem;display:flex;align-items:flex-start;gap:.9rem}
+.qw-num{width:26px;height:26px;border-radius:50%;background:var(--blue);
+  color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:.05rem}
+.qw-body{flex:1;font-size:.87rem;line-height:1.55}
+
+/* ── GEO citation table ───────────────────────────────────────────────────── */
+.cite-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.cite-table th{text-align:left;padding:.55rem .85rem;background:var(--card2);
+  color:var(--muted);font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;border-bottom:1px solid var(--border)}
+.cite-table td{padding:.6rem .85rem;border-bottom:1px solid var(--border);
+  vertical-align:top}
+.cite-table tr:last-child td{border-bottom:none}
+.cite-status{font-size:.78rem;font-weight:700;white-space:nowrap}
+.cs-yes{color:var(--green)}
+.cs-partial{color:var(--amber)}
+.cs-no{color:var(--red)}
+
+/* ── Schema checklist ─────────────────────────────────────────────────────── */
+.schema-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem}
+.schema-item{display:flex;align-items:center;gap:.5rem;font-size:.82rem;
+  background:var(--card2);border:1px solid var(--border);border-radius:6px;
+  padding:.45rem .75rem}
+.si-icon{font-size:.85rem;flex-shrink:0}
+
+/* ── PageSpeed circles ────────────────────────────────────────────────────── */
+.ps-row{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap}
+.ps-circle{text-align:center;min-width:120px}
+.ps-ring-wrap{position:relative;width:100px;height:100px;margin:0 auto .5rem}
+.ps-ring-svg{transform:rotate(-90deg)}
+.ps-ring-num{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:1.65rem;font-weight:800}
+.ps-device{font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--muted)}
+
+/* ── CWV row ──────────────────────────────────────────────────────────────── */
+.cwv-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.cwv-box{background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  padding:.7rem 1rem;min-width:110px;flex:1;text-align:center}
+.cwv-val{font-size:1.35rem;font-weight:800;margin-bottom:.1rem}
+.cwv-lbl{font-size:.68rem;color:var(--muted);font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em}
+
+/* ── CRO fixes table ──────────────────────────────────────────────────────── */
+.fix-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.fix-table th{text-align:left;padding:.55rem .85rem;background:var(--card2);
+  color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;border-bottom:1px solid var(--border)}
+.fix-table td{padding:.65rem .85rem;border-bottom:1px solid var(--border);
+  vertical-align:top;line-height:1.5}
+.fix-table tr:last-child td{border-bottom:none}
+.effort{display:inline-block;padding:.18rem .55rem;border-radius:5px;
+  font-size:.72rem;font-weight:700}
+.effort-low{background:rgba(34,197,94,.12);color:var(--green)}
+.effort-med{background:rgba(245,158,11,.12);color:var(--amber)}
+.effort-high{background:rgba(239,68,68,.12);color:var(--red)}
+
+/* ── Competitor table ─────────────────────────────────────────────────────── */
+.comp-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.comp-table th{text-align:left;padding:.55rem .85rem;background:var(--card2);
+  color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;border-bottom:1px solid var(--border)}
+.comp-table td{padding:.7rem .85rem;border-bottom:1px solid var(--border);
+  vertical-align:top;line-height:1.5}
+.comp-table tr:last-child td{border-bottom:none}
+.comp-name{font-weight:700;color:var(--text)}
+
+/* ── Impact metadata lines ───────────────────────────────────────────────── */
+.impact-line{margin-top:.35rem;font-size:.78rem;line-height:1.45}
+.impact-pct{color:var(--green);font-weight:700}
+.impact-metric{color:var(--muted)}
+.impact-time{font-size:.73rem;color:var(--muted);margin-top:.12rem}
+.conf-dots{font-size:.72rem;margin-top:.18rem;display:flex;align-items:center;gap:.3rem}
+.conf-tooltip{cursor:default;color:var(--muted);font-size:.7rem}
+
+/* ── Opportunity callouts ─────────────────────────────────────────────────── */
+.opp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:.75rem}
+.opp-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--r);
+  padding:1rem 1.1rem;border-top:3px solid var(--blue)}
+.opp-num{font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--blue);margin-bottom:.35rem}
+.opp-text{font-size:.86rem;line-height:1.55}
+
+/* ── Strategic rec cards ──────────────────────────────────────────────────── */
+.rec-list{display:flex;flex-direction:column;gap:.75rem}
+.rec-card{background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.1rem 1.25rem;
+  display:flex;align-items:flex-start;gap:1rem}
+.rec-num{width:34px;height:34px;border-radius:50%;background:var(--blue);
+  color:#fff;font-size:.95rem;font-weight:800;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0}
+.rec-text{flex:1;font-size:.88rem;line-height:1.6}
+
+/* ── Funnel tags ──────────────────────────────────────────────────────────── */
+.funnel-row{display:flex;gap:.4rem;flex-wrap:wrap}
+.ftag{font-size:.75rem;font-weight:600;padding:.2rem .6rem;border-radius:5px;
+  border:1px solid currentColor}
+.ftag-on{color:var(--green);border-color:rgba(34,197,94,.35)}
+.ftag-off{color:var(--subtle);border-color:var(--border)}
+
+/* ── Roadmap steps ────────────────────────────────────────────────────────── */
+.roadmap{display:flex;flex-direction:column;gap:.5rem}
+.rm-step{display:flex;align-items:flex-start;gap:.75rem;font-size:.87rem;
+  padding:.5rem 0;border-bottom:1px solid var(--border)}
+.rm-step:last-child{border-bottom:none}
+.rm-n{width:24px;height:24px;border-radius:50%;background:var(--blue);
+  color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:.1rem}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+.divider{border:none;border-top:1px solid var(--border);margin:2rem 0}
+
+/* ── Market Forecast block ────────────────────────────────────────────────── */
+.forecast-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.25rem}
+.forecast-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:1rem 1.1rem;position:relative;overflow:hidden}
+.forecast-card::before{content:"";position:absolute;inset:0 auto 0 0;
+  width:3px;background:var(--blue)}
+.forecast-card.warn::before{background:var(--amber)}
+.forecast-card.danger::before{background:var(--red)}
+.fc-label{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--muted);margin-bottom:.35rem}
+.fc-value{font-size:1.55rem;font-weight:800;letter-spacing:-.5px;line-height:1}
+.fc-sub{font-size:.77rem;color:var(--muted);margin-top:.3rem}
+.fc-arrow{font-size:1.1rem;margin-right:.2rem}
+/* Sparkline */
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:36px;margin-top:.75rem}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
+.spark-bar.hist{background:var(--subtle)}
+.spark-bar.pred{background:var(--blue);opacity:.8}
+.spark-divider{width:1px;background:var(--border);height:100%;flex-shrink:0}
+/* Risk pill */
+.risk-pill{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .65rem;
+  border-radius:999px;font-size:.73rem;font-weight:700}
+.risk-low   {background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.risk-medium{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+.risk-high  {background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+/* Action badge */
+.action-badge{display:inline-block;padding:.25rem .75rem;border-radius:6px;
+  font-size:.78rem;font-weight:700;margin-top:.6rem}
+.ab-boost  {background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.ab-run    {background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.ab-reconsider{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+/* Model provenance tag */
+.model-tag{display:inline-flex;align-items:center;gap:.35rem;font-size:.68rem;
+  color:var(--muted);padding:.18rem .55rem;border-radius:4px;
+  background:var(--card2);border:1px solid var(--border);margin-top:.8rem}
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem;
+  border-top:1px solid var(--border);margin-top:3rem;line-height:1.8}
+
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print{
+  :root{--bg:#fff;--card:#f9f9f9;--card2:#f2f2f2;--border:#ddd;
+    --text:#111;--muted:#555;--subtle:#aaa}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html{font-size:10.5pt;background:#fff}
+  body{max-width:100%;padding:0;color:#111}
+  .rpt-header{padding-top:1cm}
+  a{color:#1a56db}
+  button,.no-print{display:none!important}
+
+  /* Each section on its own page */
+  .section{page-break-before:always;margin-top:1.5cm}
+  .exec{page-break-before:auto;margin-top:0}
+
+  /* Cards to greyscale */
+  .card,.exec-card,.score-item,.stat-box,.qw-card,.opp-card,.rec-card,.cwv-box{
+    background:#f9f9f9!important;border-color:#ccc!important}
+  .info-table td:first-child,.cite-table th,.comp-table th,.fix-table th,
+  .subsec-title+*,.ba-before,.ba-after{background:#f2f2f2!important}
+
+  /* Remove coloured left borders — replace with grey */
+  .sec-hdr{border-left-color:#999}
+  .opp-card{border-top-color:#999}
+  .ba-before{border-left-color:#999}
+  .ba-after{border-left-color:#555}
+
+  /* Pills / badges in greyscale */
+  .pill{background:#eee!important;color:#333!important;border-color:#bbb!important}
+  .effort-low,.effort-med,.effort-high{background:#eee!important;color:#333!important}
+
+  /* SVG rings — keep stroke */
+  font-size:10.5pt;line-height:1.4;
+}
+</style>
+</head>
+<body>
+
+{# ── convenience macros ────────────────────────────────────────────────────── #}
+{% macro ps_ring(score, color, device) %}
+{% set circ = 283 %}
+{% set filled = ((score or 0) / 100 * circ) | round | int %}
+{% set offset = circ - filled %}
+<div class="ps-circle">
+  <div class="ps-ring-wrap">
+    <svg class="ps-ring-svg" width="100" height="100" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="45" fill="none" stroke="#2a2a2a" stroke-width="8"/>
+      <circle cx="50" cy="50" r="45" fill="none" stroke="{{ color }}" stroke-width="8"
+        stroke-dasharray="{{ circ }}" stroke-dashoffset="{{ offset }}"
+        stroke-linecap="round"/>
+    </svg>
+    <div class="ps-ring-num" style="color:{{ color }}">{{ score or '—' }}</div>
+  </div>
+  <div class="ps-device">{{ device }}</div>
+</div>
+{% endmacro %}
+
+{% macro effort_badge(effort) %}
+{% set e = (effort or '') | lower %}
+<span class="effort {% if e == 'low' %}effort-low{% elif e == 'med' or e == 'medium' %}effort-med{% else %}effort-high{% endif %}">
+  {{ effort or '—' }}
+</span>
+{% endmacro %}
+
+{% macro check_icon(ok) %}
+{% if ok %}<span class="ci ci-ok">✓</span>{% else %}<span class="ci ci-bad">✗</span>{% endif %}
+{% endmacro %}
+
+{# rec_impact: renders a recommendation item — handles both plain string and new dict format #}
+{% macro rec_impact(item) %}
+{% if item is mapping %}
+  {% set fix_text = item.fix | default('') %}
+  {% set metric = item.impact_metric | default('') %}
+  {% set estimate = item.impact_estimate | default(item.estimated_impact | default('')) %}
+  {% set time_to = item.time_to_see_results | default('') %}
+  {% set conf = (item.confidence | default('')) | lower %}
+  {{ fix_text }}
+  <div class="impact-line">
+    {% if estimate %}
+      <span class="impact-pct">{{ estimate }}</span>
+    {% else %}
+      <span class="impact-pct" style="color:var(--muted)">Impact: to be measured</span>
+    {% endif %}
+    {% if metric %}<span class="impact-metric"> · {{ metric }}</span>{% endif %}
+  </div>
+  {% if time_to %}
+  <div class="impact-time">⏱ {{ time_to }}</div>
+  {% endif %}
+  {% if conf %}
+  <div class="conf-dots">
+    {% if conf == 'high' %}
+      <span style="color:var(--green)">●●●</span><span style="color:var(--green);font-size:.72rem">High confidence</span>
+    {% elif conf == 'medium' %}
+      <span style="color:var(--amber)">●●</span><span style="color:var(--muted)">○</span><span style="color:var(--amber);font-size:.72rem">Medium confidence</span>
+    {% else %}
+      <span style="color:var(--red)">●</span><span style="color:var(--muted)">○○</span><span style="color:var(--red);font-size:.72rem">Low confidence</span>
+    {% endif %}
+    <span class="conf-tooltip" title="Based on industry benchmarks for Indian D2C brands">ⓘ</span>
+  </div>
+  {% endif %}
+{% else %}
+  {{ item }}
+{% endif %}
+{% endmacro %}
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# REPORT HEADER                                                               #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{% set ring_circ = 283 %}
+{% set ring_filled = (overall_health / 100 * ring_circ) | round | int %}
+{% set ring_offset = ring_circ - ring_filled %}
+
+<header class="rpt-header">
+  <div>
+    <div class="rpt-brand">{{ brand_name }}</div>
+    <div class="rpt-title">Brand Audit Report</div>
+    <div class="rpt-meta">
+      <span>{{ generated_at }}</span>
+      {% if url %}<span><a href="{{ url }}" target="_blank">{{ url }}</a></span>{% endif %}
+      {% if platform %}<span>Platform: <strong>{{ platform | title }}</strong></span>{% endif %}
+      {% if total_time %}<span>{{ total_time }}s scan time</span>{% endif %}
+    </div>
+  </div>
+  <div class="health-ring">
+    <div class="ring-wrap">
+      <svg class="ring-svg" width="90" height="90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#2a2a2a" stroke-width="8"/>
+        <circle cx="50" cy="50" r="45" fill="none" stroke="{{ health_color }}"
+          stroke-width="8" stroke-dasharray="{{ ring_circ }}"
+          stroke-dashoffset="{{ ring_offset }}" stroke-linecap="round"/>
+      </svg>
+      <div class="ring-num" style="color:{{ health_color }}">{{ overall_health }}</div>
+    </div>
+    <div class="ring-label">Health Score</div>
+  </div>
+</header>
+
+{% if one_thing_banner %}{{ one_thing_banner | safe }}{% endif %}
+{% if changes_banner %}{{ changes_banner | safe }}{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# EXECUTIVE SUMMARY                                                           #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{% if top_wins or top_gaps %}
+<div class="exec">
+  <div class="exec-card">
+    <div class="exec-ttl wins">Top Strengths</div>
+    <ul class="exec-list wins">
+      {% for w in top_wins %}<li>{{ w }}</li>{% endfor %}
+      {% if not top_wins %}<li style="color:var(--muted)">No data</li>{% endif %}
+    </ul>
+  </div>
+  <div class="exec-card">
+    <div class="exec-ttl gaps">Priority Gaps</div>
+    <ul class="exec-list gaps">
+      {% for g in top_gaps %}<li>{{ g }}</li>{% endfor %}
+      {% if not top_gaps %}<li style="color:var(--muted)">No data</li>{% endif %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 1: BRAND BASICS                                                     #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">01</span>
+    <span class="sec-title">Brand Basics</span>
+  </div>
+
+  <div class="card">
+    <table class="info-table">
+      <tr><td>Brand</td><td>{{ bb.brand_name | default('—') }}</td></tr>
+      <tr><td>Founded</td>
+        <td>{{ bb.founding_year | default('—') }}{% if bb.hq %}, {{ bb.hq }}{% endif %}</td></tr>
+      {% if bb.founders %}
+      <tr><td>Founders</td><td>{{ bb.founders | join(', ') }}</td></tr>
+      {% endif %}
+      {% if bb.revenue_range %}
+      <tr><td>Revenue Range</td><td>{{ bb.revenue_range }}</td></tr>
+      {% endif %}
+      {% if bb.funding_stage %}
+      <tr><td>Funding Stage</td><td>{{ bb.funding_stage }}</td></tr>
+      {% endif %}
+      {% if bb.countries_of_operation %}
+      <tr><td>Markets</td><td>{{ bb.countries_of_operation | join(', ') }}</td></tr>
+      {% endif %}
+      {% if bb.core_categories %}
+      <tr><td>Core Categories</td>
+        <td>{{ bb.core_categories | join(' · ') }}</td></tr>
+      {% endif %}
+      {% if bb.target_audience %}
+      <tr><td>Target Audience</td><td>{{ bb.target_audience }}</td></tr>
+      {% endif %}
+      {% if bb.brand_positioning %}
+      <tr><td>Positioning</td><td>{{ bb.brand_positioning }}</td></tr>
+      {% endif %}
+      {% if bb.tone_of_voice %}
+      <tr><td>Tone of Voice</td><td>{{ bb.tone_of_voice }}</td></tr>
+      {% endif %}
+      {% if bb.social_channels %}
+      <tr><td>Social Presence</td>
+        <td>{{ bb.social_channels | dictsort | map(attribute=1) | join(' · ') }}</td></tr>
+      {% endif %}
+    </table>
+  </div>
+
+  {% if bb.key_strengths %}
+  <div class="subsec" style="margin-top:1rem">
+    <div class="subsec-title">Key Strengths</div>
+    <ul class="check-list">
+      {% for s in bb.key_strengths %}
+      <li><span class="ci ci-ok">✓</span><span>{{ s }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 2: CONTENT + CATALOG                                                #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">02</span>
+    <span class="sec-title">Content &amp; Catalog</span>{{ trend_content | safe }}
+  </div>
+
+  {# — PDP Scorecard — #}
+  <div class="subsec-title">PDP Quality Scorecard</div>
+  <div class="score-grid">
+    {% for label, val, bm_key in [
+        ('PDP Quality',    cc.pdp_quality_score, 'pdp_quality'),
+        ('Headline Clarity', cc.headline_clarity, ''),
+        ('CTA Clarity',    cc.cta_clarity,        ''),
+        ('Homepage Score', cc.homepage_score,     'homepage'),
+    ] %}
+    {% set v = (val or 0) | int %}
+    {% set col = "#22c55e" if v >= 7 else ("#f59e0b" if v >= 5 else "#ef4444") %}
+    <div class="score-item">
+      <div class="score-item-label">{{ label }}</div>
+      <div class="score-item-val" style="color:{{ col }}">{{ v }}<span style="font-size:.75rem;color:var(--muted);font-weight:400">/10</span></div>
+      {% if bm_key %}{{ bm_chip(bm_key, v) | safe }}{% endif %}
+    </div>
+    {% endfor %}
+    {% if cc.benefit_vs_feature %}
+    <div class="score-item">
+      <div class="score-item-label">Benefit vs Feature</div>
+      <div style="font-size:.88rem;font-weight:600;margin-top:.1rem">{{ cc.benefit_vs_feature }}</div>
+    </div>
+    {% endif %}
+    <div class="score-item">
+      <div class="score-item-label">Social Proof on PDP</div>
+      <div style="margin-top:.1rem">
+        {% if cc.social_proof_present %}<span class="pill pill-green">✓ Present</span>
+        {% else %}<span class="pill pill-red">✗ Missing</span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# — Trust signals — #}
+  {% if cc.trust_signals %}
+  <div style="margin-bottom:.85rem">
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.4rem">Trust Signals</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+      {% for t in cc.trust_signals %}
+      <span class="pill pill-blue">{{ t }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# — PDP Strengths & Weaknesses — #}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    {% if cc.pdp_strengths %}
+    <div>
+      <div class="subsec-title">PDP Strengths</div>
+      <ul class="check-list">
+        {% for s in cc.pdp_strengths %}
+        <li><span class="ci ci-ok">✓</span><span>{{ s }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if cc.pdp_weaknesses %}
+    <div>
+      <div class="subsec-title">PDP Weaknesses</div>
+      <ul class="check-list">
+        {% for w in cc.pdp_weaknesses %}
+        <li><span class="ci ci-warn">⚠</span><span>{{ w }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  {# — Before / After copy rewrite — #}
+  {% if cc.rewritten_headline or cc.rewritten_description %}
+  <div class="subsec" style="margin-top:1.25rem">
+    <div class="subsec-title">Copy Rewrite — Headline &amp; PDP Description</div>
+    <div class="ba-wrap">
+      <div class="ba-box ba-before">
+        <div class="ba-label">Before</div>
+        <div class="ba-text" style="font-size:.82rem;font-style:normal;color:#c4a0a0">
+          Feature-first copy: "micro-dobby weave", "2-ply Egyptian cotton",
+          "available in 12 colours" — describes the product, not the outcome.
+        </div>
+      </div>
+      <div class="ba-box ba-after">
+        <div class="ba-label">After</div>
+        {% if cc.rewritten_headline %}
+        <div style="font-weight:700;margin-bottom:.4rem;color:var(--green)">{{ cc.rewritten_headline }}</div>
+        {% endif %}
+        {% if cc.rewritten_description %}
+        <div class="ba-text" style="font-size:.82rem;color:#90c4a0">{{ cc.rewritten_description }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# — Top 3 improvements — #}
+  {% if cc.top_3_improvements %}
+  <div class="subsec" style="margin-top:1.25rem">
+    <div class="subsec-title">Top 3 Content Improvements</div>
+    <div class="qw-list">
+      {% for item in cc.top_3_improvements %}
+      {% set fix_text = item.fix if item is mapping else item %}
+      {% set effort = item.effort if item is mapping else '' %}
+      <div class="qw-card">
+        <div class="qw-num">{{ loop.index }}</div>
+        <div class="qw-body">{{ rec_impact(item) }}
+          <div style="margin-top:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+            {% if effort %}{{ effort_badge(effort) }}{% endif %}
+            <button class="ap-btn" data-finding="{{ fix_text | e }}" onclick="getActionPlan(this)">&#8594; Get Action Plan</button>
+            <div class="ap-result" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 3: PERFORMANCE ADS                                                  #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">03</span>
+    <span class="sec-title">Performance &amp; Ads</span>
+  </div>
+
+  {# — Top stats — #}
+  <div class="stat-row">
+    <div class="stat-box">
+      <div class="stat-num" style="color:var(--blue)">{{ pa.estimated_active_ads | default('—') }}</div>
+      <div class="stat-label">Active Ads</div>
+    </div>
+    <div class="stat-box">
+      {% set hs = (pa.hook_strength_score or 0) %}
+      {% set hc = "#22c55e" if hs >= 7 else ("#f59e0b" if hs >= 5 else "#ef4444") %}
+      <div class="stat-num" style="color:{{ hc }}">{{ hs }}<span style="font-size:.9rem;color:var(--muted);font-weight:400">/10</span></div>
+      <div class="stat-label">Hook Strength</div>
+      {{ bm_chip('hook_strength', hs) | safe }}
+      {{ trend_ads | safe }}
+    </div>
+    <div class="stat-box">
+      {% set cs = (pa.cta_consistency or 0) %}
+      {% set cc2 = "#22c55e" if cs >= 7 else ("#f59e0b" if cs >= 5 else "#ef4444") %}
+      <div class="stat-num" style="color:{{ cc2 }}">{{ cs }}<span style="font-size:.9rem;color:var(--muted);font-weight:400">/10</span></div>
+      <div class="stat-label">CTA Consistency</div>
+    </div>
+  </div>
+
+  {# — Funnel coverage — #}
+  {% if funnel %}
+  <div style="margin-bottom:1rem">
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.4rem">Funnel Coverage</div>
+    <div class="funnel-row">
+      {% for stage, active in [('Awareness', funnel.get('awareness')), ('Consideration', funnel.get('consideration')), ('Conversion', funnel.get('conversion'))] %}
+      <span class="ftag {% if active %}ftag-on{% else %}ftag-off{% endif %}">
+        {% if active %}✓{% else %}✗{% endif %} {{ stage }}
+      </span>
+      {% endfor %}
+      <span class="ftag {% if pa.retargeting_signals %}ftag-on{% else %}ftag-off{% endif %}">
+        {% if pa.retargeting_signals %}✓{% else %}✗{% endif %} Retargeting
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# — Creative format breakdown — #}
+  {% if ad_formats %}
+  <div class="subsec-title">Creative Format Breakdown</div>
+  <div class="fmt-bars" style="margin-bottom:1.1rem">
+    {% for f in ad_formats %}
+    {% if f.pct %}
+    <div class="fmt-row">
+      <div class="fmt-label">{{ f.label }}</div>
+      <div class="fmt-track">
+        <div class="fmt-fill" style="width:{{ f.pct }}%;background:{{ f.color }}"></div>
+      </div>
+      <div class="fmt-pct" style="color:{{ f.color }}">{{ f.pct }}%</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# — Best performing — #}
+  {% if pa.best_performing_creative_type %}
+  <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;
+    padding:.75rem 1rem;font-size:.85rem;margin-bottom:1.1rem;border-left:3px solid var(--blue)">
+    <span style="font-weight:700;color:var(--blue)">Best Performing: </span>{{ pa.best_performing_creative_type }}
+  </div>
+  {% endif %}
+
+  {# — Sample headlines — #}
+  {% if sample_headlines %}
+  <div class="subsec-title">Sample Ad Headlines</div>
+  <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem">
+    {% for h in sample_headlines %}
+    <span style="background:var(--card2);border:1px solid var(--border);border-radius:6px;
+      padding:.25rem .7rem;font-size:.81rem;font-style:italic">"{{ h }}"</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# — Top 3 quick wins — #}
+  {% if pa.top_3_ad_quick_wins %}
+  <div class="subsec-title">Top 3 Ad Quick Wins</div>
+  <div class="qw-list">
+    {% for item in pa.top_3_ad_quick_wins %}
+    {% set fix_text = item.fix if item is mapping else item %}
+    {% set effort = item.effort if item is mapping else '' %}
+    <div class="qw-card">
+      <div class="qw-num">{{ loop.index }}</div>
+      <div class="qw-body">{{ rec_impact(item) }}
+        <div style="margin-top:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          {% if effort %}{{ effort_badge(effort) }}{% endif %}
+          <button class="ap-btn" data-finding="{{ fix_text | e }}" onclick="getActionPlan(this)">&#8594; Get Action Plan</button>
+          <div class="ap-result" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# — Suggested angles — #}
+  {% if pa.suggested_ad_angles %}
+  <div class="subsec" style="margin-top:1.1rem">
+    <div class="subsec-title">Suggested Content Angles</div>
+    <ul class="check-list">
+      {% for a in pa.suggested_ad_angles %}
+      <li><span class="ci" style="color:var(--blue)">→</span><span>{{ a }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</section>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 4: GEO VISIBILITY                                                   #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">04</span>
+    <span class="sec-title">GEO &amp; AI Visibility</span>
+  </div>
+
+  {# — GEO score + likelihood — #}
+  {% set gs = (geo.geo_score or 0) | int %}
+  {% set gc = "#22c55e" if gs >= 70 else ("#f59e0b" if gs >= 45 else "#ef4444") %}
+  <div style="display:flex;align-items:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.25rem">
+    <div style="text-align:center">
+      <div style="font-size:3rem;font-weight:900;color:{{ gc }};line-height:1">{{ gs }}</div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">/100 GEO Score</div>
+      {{ bm_chip('geo_score', gs) | safe }}
+      {{ trend_geo | safe }}
+    </div>
+    <div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem">AI Citation Likelihood</div>
+      {% set lk = geo.ai_citation_likelihood | default('') %}
+      {% set lc = "pill-green" if lk|lower == "high" else ("pill-amber" if lk|lower == "medium" else "pill-red") %}
+      <span class="pill {{ lc }}" style="font-size:.88rem;padding:.3rem .85rem">{{ lk or '—' }}</span>
+      {% if ai_vis_pct is not none %}
+      <div style="font-size:.78rem;color:var(--muted);margin-top:.4rem">
+        AI simulated visibility: <strong style="color:var(--text)">{{ ai_vis_pct }}%</strong> of queries
+      </div>
+      {% endif %}
+      {% if geo.ai_citation_likelihood_reason %}
+      <div style="font-size:.8rem;color:var(--muted);margin-top:.35rem;max-width:480px;line-height:1.5">
+        {{ geo.ai_citation_likelihood_reason }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# — AI citation table — #}
+  {% if geo_citation_rows %}
+  <div class="subsec-title">AI Citation by Query Type</div>
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.1rem">
+    <table class="cite-table">
+      <thead>
+        <tr>
+          <th>Query</th>
+          <th style="width:130px">Cited?</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in geo_citation_rows %}
+        <tr>
+          <td>{{ row.query }}</td>
+          <td>
+            {% if row.status == 'yes' %}
+            <span class="cite-status cs-yes">✅ Yes</span>
+            {% elif row.status == 'partial' %}
+            <span class="cite-status cs-partial">⚠️ Partial</span>
+            {% else %}
+            <span class="cite-status cs-no">❌ No</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {# — Schema checklist — #}
+  <div class="subsec-title">Schema Markup Audit</div>
+  <div class="schema-grid" style="margin-bottom:1.1rem">
+    {% for s in schema_checklist %}
+    <div class="schema-item">
+      {% if s.status == 'found' %}
+      <span class="si-icon" style="color:var(--green)">✓</span>
+      <span style="color:var(--text)">{{ s.name }}</span>
+      {% elif s.status == 'missing' %}
+      <span class="si-icon" style="color:var(--red)">✗</span>
+      <span style="color:var(--muted)">{{ s.name }}</span>
+      {% else %}
+      <span class="si-icon" style="color:var(--subtle)">–</span>
+      <span style="color:var(--subtle)">{{ s.name }}</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {# — GEO roadmap — #}
+  {% if geo.geo_improvement_roadmap %}
+  <div class="subsec-title">90-Day GEO Improvement Roadmap</div>
+  <div class="roadmap">
+    {% for step in geo.geo_improvement_roadmap %}
+    {% set fix_text = step.fix if step is mapping else step %}
+    {% set effort = step.effort if step is mapping else '' %}
+    <div class="rm-step">
+      <div class="rm-n">{{ loop.index }}</div>
+      <div style="flex:1">{{ rec_impact(step) }}
+        <div style="margin-top:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          {% if effort %}{{ effort_badge(effort) }}{% endif %}
+          <button class="ap-btn" data-finding="{{ fix_text | e }}" onclick="getActionPlan(this)">&#8594; Get Action Plan</button>
+          <div class="ap-result" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 5: STORE + CRO                                                      #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">05</span>
+    <span class="sec-title">Store &amp; CRO</span>
+  </div>
+
+  {# — PageSpeed circles — #}
+  <div class="subsec-title">PageSpeed Scores</div>
+  <div class="ps-row" style="margin-bottom:1.25rem">
+    <div>
+      {{ ps_ring(mobile_score, mobile_score | ps_hex, 'Mobile') }}
+      {{ bm_chip('mobile_pagespeed', mobile_score) | safe }}
+      {{ trend_store | safe }}
+    </div>
+    {{ ps_ring(desktop_score, desktop_score | ps_hex, 'Desktop') }}
+    <div style="flex:1;min-width:200px">
+      <div class="cwv-row">
+        {% for label, val in [('LCP', lcp), ('CLS', cls), ('INP / FID', inp)] %}
+        <div class="cwv-box">
+          <div class="cwv-val">{{ val | default('—') }}</div>
+          <div class="cwv-lbl">{{ label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if cro.platform_detected %}
+      <div style="font-size:.8rem;color:var(--muted)">
+        Platform: <strong style="color:var(--text)">{{ cro.platform_detected }}</strong>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# — Funnel friction — #}
+  {% if cro.funnel_friction_points %}
+  <div class="subsec-title">Conversion Funnel Issues</div>
+  <ul class="check-list" style="margin-bottom:1.1rem">
+    {% for p in cro.funnel_friction_points %}
+    <li><span class="ci ci-warn">⚠</span><span>{{ p }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {# — Top 5 CRO fixes — #}
+  {% if cro.top_5_cro_fixes %}
+  <div class="subsec-title">Top 5 CRO Fixes</div>
+  <div class="qw-list" style="margin-bottom:1.1rem">
+    {% for f in cro.top_5_cro_fixes %}
+    {% set fix_text = f.fix if f is mapping else f %}
+    {% set effort = f.effort if f is mapping else '' %}
+    <div class="qw-card">
+      <div class="qw-num">{{ loop.index }}</div>
+      <div class="qw-body">{{ rec_impact(f) }}
+        <div style="margin-top:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          {% if effort %}{{ effort_badge(effort) }}{% endif %}
+          <button class="ap-btn" data-finding="{{ fix_text | e }}" onclick="getActionPlan(this)">&#8594; Get Action Plan</button>
+          <div class="ap-result" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# — Cart abandonment signals — #}
+  {% if cro.cart_abandonment_signals %}
+  <div class="subsec-title">Cart Abandonment Signals</div>
+  <ul class="check-list" style="margin-bottom:1.1rem">
+    {% for s in cro.cart_abandonment_signals %}
+    <li><span class="ci ci-bad">✗</span><span>{{ s }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {# — App recommendations — #}
+  {% if cro.shopify_app_recommendations %}
+  <div class="subsec-title">Recommended Apps</div>
+  <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+    {% for app in cro.shopify_app_recommendations %}
+    <span class="pill pill-blue">{{ app }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# — CRO signals summary — #}
+  {% if cro_signals %}
+  <div class="subsec" style="margin-top:1rem">
+    <div class="subsec-title">CRO Signals Present</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+      {% if cro_signals.email_capture %}<span class="pill pill-green">✓ Email Capture</span>{% endif %}
+      {% if cro_signals.sticky_atc %}<span class="pill pill-green">✓ Sticky ATC</span>{% endif %}
+      {% if cro_signals.cross_sell %}<span class="pill pill-green">✓ Cross-sell</span>{% endif %}
+      {% for tw in (cro_signals.trust_signals or []) %}<span class="pill pill-blue">{{ tw }}</span>{% endfor %}
+      {% for po in (cro_signals.payment_options or []) %}<span class="pill pill-muted">{{ po }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 6: COMPETITIVE RESEARCH                                             #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="sec-hdr">
+    <span class="sec-num">06</span>
+    <span class="sec-title">Competitive Landscape</span>
+  </div>
+
+  {# — Market positioning note — #}
+  {% if res.brand_positioning_vs_market %}
+  <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;
+    padding:1rem 1.15rem;font-size:.88rem;line-height:1.65;margin-bottom:1.25rem;
+    border-left:3px solid var(--blue)">
+    {{ res.brand_positioning_vs_market }}
+  </div>
+  {% endif %}
+
+  {# — Competitor table — #}
+  {% if res.top_competitors %}
+  <div class="subsec-title">Competitive Set</div>
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:1.25rem">
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>Competitor</th>
+          <th>Positioning</th>
+          <th>Price Range</th>
+          <th>Where They Win</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in res.top_competitors %}
+        <tr>
+          <td>
+            {% set c_name = c.name | default('—') %}
+            {% set c_url  = c.url  | default('') %}
+            {% if c_url and c_url.startswith('http') and '.' in c_url %}
+              <div class="comp-name">
+                <a href="{{ c_url }}" target="_blank" rel="noopener"
+                   style="color:var(--text);text-decoration:none">{{ c_name }} <span style="font-size:.7rem;color:var(--blue)">↗</span></a>
+              </div>
+              <div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">{{ c_url | replace('https://','') | replace('http://','') | truncate(40, true, '…') }}</div>
+            {% else %}
+              <div class="comp-name">{{ c_name }}</div>
+            {% endif %}
+          </td>
+          <td style="font-size:.83rem">{{ c.positioning | default('—') }}</td>
+          <td style="font-size:.83rem;white-space:nowrap">{{ c.price_range | default('—') }}</td>
+          <td style="font-size:.83rem">{{ c.why_they_win | default('—') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {# — Where brand wins / loses — #}
+  {% if res.where_brand_wins or res.where_brand_loses %}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+    {% if res.where_brand_wins %}
+    <div>
+      <div class="subsec-title">Where {{ brand_name }} Wins</div>
+      <ul class="check-list">
+        {% for w in res.where_brand_wins %}
+        <li><span class="ci ci-ok">✓</span><span>{{ w }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if res.where_brand_loses %}
+    <div>
+      <div class="subsec-title">Where {{ brand_name }} Loses</div>
+      <ul class="check-list">
+        {% for l in res.where_brand_loses %}
+        <li><span class="ci ci-bad">✗</span><span>{{ l }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# — Whitespace opportunities — #}
+  {% if res.whitespace_opportunities %}
+  <div class="subsec-title">Whitespace Opportunities</div>
+  <div class="opp-grid" style="margin-bottom:1.25rem">
+    {% for opp in res.whitespace_opportunities %}
+    <div class="opp-card">
+      <div class="opp-num">Opportunity {{ loop.index }}</div>
+      <div class="opp-text">{{ opp }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# — Category trends — #}
+  {% if res.category_trends %}
+  <div class="subsec-title">Category Trends</div>
+  <ul class="check-list" style="margin-bottom:1.25rem">
+    {% for t in res.category_trends %}
+    <li><span class="ci" style="color:var(--blue)">→</span><span>{{ t }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {# — Strategic recommendations — #}
+  {% if res.strategic_recommendations %}
+  <div class="subsec-title">Strategic Recommendations</div>
+  <div class="rec-list">
+    {% for r in res.strategic_recommendations %}
+    {% set fix_text = r.fix if r is mapping else r %}
+    {% set effort = r.effort if r is mapping else '' %}
+    <div class="rec-card">
+      <div class="rec-num">{{ loop.index }}</div>
+      <div class="rec-text">{{ rec_impact(r) }}
+        <div style="margin-top:.4rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          {% if effort %}{{ effort_badge(effort) }}{% endif %}
+          <button class="ap-btn" data-finding="{{ fix_text | e }}" onclick="getActionPlan(this)">&#8594; Get Action Plan</button>
+          <div class="ap-result" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ─── AI-Powered Market Forecast ─── #}
+  {% if market_forecast and not market_forecast.error %}
+  <div class="subsec-title" style="margin-top:2rem">
+    Market Forecast — Next 30 Days
+  </div>
+
+  <div class="forecast-grid">
+
+    {# ── Price direction card ── #}
+    {% set pt = price_trend %}
+    {% set dir = pt.direction | default('stable') %}
+    {% set risk = pt.risk_level | default('low') %}
+    <div class="forecast-card{% if risk == 'high' %} danger{% elif risk == 'medium' %} warn{% endif %}">
+      <div class="fc-label">Competitor Pricing</div>
+      <div class="fc-value">
+        {% if dir == 'increasing' %}<span class="fc-arrow" style="color:var(--red)">↑</span>
+        {% elif dir == 'decreasing' %}<span class="fc-arrow" style="color:var(--green)">↓</span>
+        {% else %}<span class="fc-arrow" style="color:var(--muted)">→</span>{% endif %}
+        {{ dir | capitalize }}
+      </div>
+      {% if pt.pct_change_30d is defined %}
+      <div class="fc-sub">
+        Expected {{ '%+.1f' | format(pt.pct_change_30d) }}% over 30 days
+      </div>
+      {% endif %}
+      <div style="margin-top:.6rem">
+        <span class="risk-pill risk-{{ risk }}">
+          {% if risk == 'high' %}⚠ High risk{% elif risk == 'medium' %}◆ Medium{% else %}✓ Low risk{% endif %}
+          &nbsp;price war
+        </span>
+      </div>
+    </div>
+
+    {# ── Review velocity card ── #}
+    {% set rv = review_velocity %}
+    {% set trend = rv.trend | default('stable') %}
+    <div class="forecast-card{% if trend == 'accelerating' %}{% elif trend == 'declining' %} warn{% endif %}">
+      <div class="fc-label">Review Velocity</div>
+      <div class="fc-value" style="color:{% if trend == 'accelerating' %}var(--green){% elif trend == 'declining' %}var(--amber){% else %}var(--text){% endif %}">
+        {% if trend == 'accelerating' %}↑ Accelerating
+        {% elif trend == 'declining' %}↓ Slowing
+        {% else %}→ Stable{% endif %}
+      </div>
+      <div class="fc-sub">Demand signal: <strong>{{ rv.signal | default('stable') | replace('_',' ') }}</strong></div>
+
+      {# CSS sparkline — histogram bars #}
+      {% if spark_hist or spark_pred %}
+      <div class="sparkline">
+        {% for v in spark_hist %}
+        <div class="spark-bar hist" style="height:{{ [v,2]|max }}%"
+             title="Week {{ loop.index }}: {{ v }}"></div>
+        {% endfor %}
+        {% if spark_hist and spark_pred %}<div class="spark-divider"></div>{% endif %}
+        {% for v in spark_pred %}
+        <div class="spark-bar pred" style="height:{{ [v,2]|max }}%"
+             title="Forecast week {{ loop.index }}: {{ v }}"></div>
+        {% endfor %}
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:.3rem;font-size:.66rem;color:var(--muted)">
+        <span><span style="display:inline-block;width:8px;height:8px;background:var(--subtle);border-radius:1px;margin-right:3px"></span>Historical</span>
+        <span><span style="display:inline-block;width:8px;height:8px;background:var(--blue);border-radius:1px;margin-right:3px;opacity:.8"></span>Forecast</span>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Recommendation card ── #}
+    <div class="forecast-card">
+      <div class="fc-label">Recommendation</div>
+      <div style="font-size:.85rem;font-weight:600;line-height:1.5;margin-top:.15rem;color:var(--text)">
+        {{ pt.recommendation | default('Monitor weekly — market pricing stable.') }}
+      </div>
+      {% if rv.note or pt.is_projected %}
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.65rem;
+        padding:.5rem .7rem;background:var(--card2);border-radius:6px;line-height:1.45">
+        ℹ {{ rv.note or pt.note }}
+      </div>
+      {% endif %}
+    </div>
+
+  </div>{# /forecast-grid #}
+
+  {# ── Model provenance tag ── #}
+  <div>
+    <span class="model-tag">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <circle cx="6" cy="6" r="5" stroke="#6b7280" stroke-width="1.2"/>
+        <path d="M6 3v3.5l2 1" stroke="#6b7280" stroke-width="1.1" stroke-linecap="round"/>
+      </svg>
+      AI-Powered Trend Forecast &nbsp;·&nbsp;
+      {{ market_forecast.model_note | default('Chronos (Amazon) → Prophet → regression') }}
+      &nbsp;·&nbsp;
+      {% if review_velocity.is_projected or price_trend.is_projected %}Projected estimates{% else %}Live data{% endif %}
+    </span>
+  </div>
+
+  {% endif %}{# /market_forecast #}
+
+</section>
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# FOOTER                                                                      #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<footer>
+  Generated by Research Agent &nbsp;·&nbsp; {{ generated_at }}<br>
+  Data sourced from public web only &nbsp;·&nbsp; Not financial advice<br>
+  <span style="font-size:.71rem;color:#3f3f3f">Benchmarks based on analysis of 50+ Indian D2C brands. Updated quarterly.</span>
+</footer>
+
+{# ── Action Plan JS ────────────────────────────────────────────────────────── #}
+<div id="rpt-ap-meta"
+  data-brand="{{ brand_name | e }}"
+  data-platform="{{ platform | e }}"
+  style="display:none"></div>
+
+<style>
+.ap-btn{display:inline-flex;align-items:center;gap:.28rem;margin-top:.45rem;
+  padding:.26rem .65rem;border-radius:5px;border:1px solid #2a2a2a;
+  background:#131313;color:#9ca3af;font-size:.73rem;font-weight:600;cursor:pointer;
+  transition:color .15s,border-color .15s}
+.ap-btn:hover{color:var(--amber);border-color:rgba(245,158,11,.4)}
+.ap-btn:disabled{opacity:.45;cursor:default}
+</style>
+
+<script>
+(function(){
+  var _meta = document.getElementById('rpt-ap-meta');
+  var _brand = _meta ? _meta.dataset.brand : '';
+  var _platform = _meta ? _meta.dataset.platform : 'shopify';
+
+  window.getActionPlan = function(btn) {
+    var finding = btn.getAttribute('data-finding');
+    var wrap = btn.parentElement;
+    var res = wrap.querySelector('.ap-result');
+    if (!res) return;
+
+    // Toggle if already loaded
+    if (btn.dataset.loaded === '1') {
+      var hidden = res.style.display === 'none';
+      res.style.display = hidden ? 'block' : 'none';
+      btn.innerHTML = hidden
+        ? '&#8679; Hide Plan'
+        : '&#8594; Get Action Plan';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;animation:ap-spin .8s linear infinite">&#9696;</span> Generating…';
+    res.style.display = 'block';
+    res.innerHTML = '<div style="font-size:.78rem;color:#6b7280;padding:.5rem 0">Analysing fix…</div>';
+
+    fetch('/action-plan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        finding: finding,
+        brand_name: _brand,
+        platform: _platform || 'shopify',
+      })
+    })
+    .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+    .then(function(x){
+      if (!x.ok) throw new Error(x.d.detail || 'Failed');
+      res.innerHTML = renderPlan(x.d);
+      btn.innerHTML = '&#8679; Hide Plan';
+      btn.disabled = false;
+      btn.dataset.loaded = '1';
+    })
+    .catch(function(e){
+      res.innerHTML = '<div style="color:#ef4444;font-size:.77rem">&#9888; ' + e.message + '</div>';
+      btn.innerHTML = '&#8594; Get Action Plan';
+      btn.disabled = false;
+    });
+  };
+
+  function renderPlan(p) {
+    if (p._parse_error) return '<div style="color:#ef4444;font-size:.78rem">Could not parse plan.</div>';
+
+    var chips = '';
+    if (p.estimated_time)   chips += badge('#93c5fd','rgba(59,130,246,.15)','rgba(59,130,246,.3)','&#9201; '+p.estimated_time);
+    if (p.estimated_impact) chips += badge('#86efac','rgba(34,197,94,.12)','rgba(34,197,94,.25)',p.estimated_impact);
+    if (p.difficulty)       chips += badge('#fcd34d','rgba(245,158,11,.12)','rgba(245,158,11,.25)',p.difficulty);
+
+    var steps = (p.steps||[]).map(function(s){
+      return '<div style="padding:.5rem 0;border-bottom:1px solid #1e1e1e;'
+        +'display:grid;grid-template-columns:22px 1fr;gap:.65rem;align-items:start">'
+        +'<span style="width:22px;height:22px;border-radius:50%;background:#3b82f6;'
+        +'color:#fff;font-size:.66rem;font-weight:700;display:flex;'
+        +'align-items:center;justify-content:center;flex-shrink:0">'+s.step+'</span>'
+        +'<div>'
+        +(s.action ? '<div style="font-weight:600;font-size:.83rem;color:#e8e8e8">'+esc(s.action)+'</div>' : '')
+        +(s.detail ? '<div style="font-size:.78rem;color:#9ca3af;margin-top:.18rem">'+esc(s.detail)+'</div>' : '')
+        +(s.tool   ? '<div style="font-size:.73rem;color:#f59e0b;margin-top:.16rem">Tool: '+esc(s.tool)+'</div>' : '')
+        +'</div></div>';
+    }).join('');
+
+    var alt = p.if_not_on_shopify
+      ? '<div style="font-size:.77rem;color:#6b7280;margin-top:.5rem;padding:.4rem .65rem;'
+        +'background:#0f172a;border-radius:6px"><span style="font-weight:600;color:#9ca3af">'
+        +'Non-Shopify:</span> '+esc(p.if_not_on_shopify)+'</div>'
+      : '';
+
+    var resources = (p.resources||[]).map(function(r){
+      return '<li style="font-size:.77rem;color:#9ca3af;padding:.15rem 0">'+esc(r)+'</li>';
+    }).join('');
+
+    return '<div style="background:#111827;border:1px solid #1e3a5f;border-radius:9px;'
+      +'padding:.9rem 1.1rem;margin-top:.6rem">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;'
+      +'margin-bottom:.65rem;gap:.5rem;flex-wrap:wrap">'
+      +'<div style="font-size:.88rem;font-weight:700;color:#e8e8e8">'+esc(p.title||'Action Plan')+'</div>'
+      +'<div style="display:flex;gap:.35rem;flex-wrap:wrap">'+chips+'</div>'
+      +'</div>'
+      +(steps ? '<div style="margin-bottom:.5rem">'+steps+'</div>' : '')
+      +alt
+      +(resources ? '<div style="margin-top:.5rem"><div style="font-size:.66rem;font-weight:700;'
+        +'text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:.25rem">'
+        +'Resources</div><ul style="list-style:none;padding:0">'+resources+'</ul></div>' : '')
+      +'</div>';
+  }
+
+  function badge(c,bg,bc,t){
+    return '<span style="padding:.15rem .52rem;border-radius:5px;font-size:.7rem;font-weight:700;'
+      +'color:'+c+';background:'+bg+';border:1px solid '+bc+'">'+t+'</span>';
+  }
+
+  function esc(s){
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+})();
+</script>
+<style>@keyframes ap-spin{to{transform:rotate(360deg)}}</style>
+
+</body>
+</html>

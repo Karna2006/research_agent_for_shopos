@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Virality Score — {{ product_name }}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#252525;
+  --text:#ededed;--muted:#777;--radius:14px;
+  --score-color:{{ grade_color }};
+}
+html{font-size:15px;background:var(--bg);color:var(--text)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+     max-width:680px;margin:0 auto;padding:2rem 1.25rem 3rem;line-height:1.6}
+h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
+   letter-spacing:.1em;margin-bottom:.75rem}
+.card{background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);padding:1.4rem;margin-bottom:1.25rem}
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.vc-header{text-align:center;margin-bottom:1.75rem}
+.brand-tag{display:inline-block;background:rgba(255,255,255,.06);
+  border:1px solid var(--border);border-radius:6px;
+  font-size:.72rem;font-weight:700;letter-spacing:.08em;
+  padding:.2rem .6rem;color:var(--muted);margin-bottom:.75rem}
+.product-name{font-size:1.6rem;font-weight:800;letter-spacing:-.5px;
+  margin-bottom:.25rem}
+.product-url{font-size:.8rem;color:var(--muted)}
+/* ── Score ring ───────────────────────────────────────────────────────────── */
+.score-section{display:flex;flex-direction:column;align-items:center;
+  padding:2rem 1rem 1.5rem;position:relative}
+.ring-wrap{position:relative;width:160px;height:160px;margin-bottom:1rem}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-number{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.ring-number .num{font-size:3.2rem;font-weight:900;color:var(--score-color);
+  line-height:1}
+.ring-number .denom{font-size:.9rem;color:var(--muted)}
+.grade-badge{display:inline-block;padding:.45rem 1.4rem;border-radius:999px;
+  font-size:.85rem;font-weight:700;letter-spacing:.04em;
+  background:var(--score-color);color:#000;margin-bottom:.5rem}
+.grade-subtitle{font-size:.82rem;color:var(--muted)}
+/* ── Dimension bars ───────────────────────────────────────────────────────── */
+.dim-row{margin-bottom:.85rem}
+.dim-header{display:flex;justify-content:space-between;
+  align-items:baseline;margin-bottom:.3rem}
+.dim-label{font-size:.88rem;font-weight:500}
+.dim-score{font-size:.88rem;font-weight:700;color:var(--score-color)}
+.dim-bar-bg{height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+.dim-bar-fill{height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--score-color)80%,transparent);
+  transition:width .5s ease}
+.dim-reasoning{font-size:.78rem;color:var(--muted);margin-top:.3rem;
+  padding-left:.1rem}
+.dim-signals{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem}
+.dim-signal{font-size:.72rem;background:rgba(255,255,255,.05);
+  border:1px solid var(--border);border-radius:4px;padding:.15rem .45rem;
+  color:var(--muted)}
+/* ── Killer hook ──────────────────────────────────────────────────────────── */
+.hook-box{background:linear-gradient(135deg,#1a1000,#0d0d00);
+  border:1px solid #3d2e00;border-radius:var(--radius);padding:1.25rem 1.5rem;
+  position:relative;overflow:hidden}
+.hook-box::before{content:'"';position:absolute;top:-.3rem;left:.5rem;
+  font-size:6rem;color:rgba(245,158,11,.12);font-family:Georgia,serif;
+  line-height:1}
+.hook-label{font-size:.72rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:#f59e0b;margin-bottom:.5rem}
+.hook-text{font-size:1.15rem;font-weight:600;color:#fde68a;
+  line-height:1.45;position:relative}
+/* ── Viral angles ─────────────────────────────────────────────────────────── */
+.angle-card{background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:1rem;display:flex;gap:.75rem;align-items:flex-start}
+.angle-num{width:28px;height:28px;border-radius:50%;
+  background:var(--score-color);color:#000;font-weight:700;font-size:.8rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.angle-text{font-size:.88rem;line-height:1.5;color:var(--text)}
+/* ── Platform badges ──────────────────────────────────────────────────────── */
+.platform-badges{display:flex;flex-wrap:wrap;gap:.5rem}
+.platform-badge{display:flex;align-items:center;gap:.4rem;
+  padding:.35rem .8rem;border-radius:8px;font-size:.82rem;font-weight:600;
+  border:1px solid var(--border);background:var(--surface2)}
+/* ── Creator profile ──────────────────────────────────────────────────────── */
+.creator-box{background:var(--surface);border-left:3px solid var(--score-color);
+  padding:.75rem 1rem;border-radius:0 8px 8px 0;font-size:.88rem;
+  color:var(--muted);font-style:italic}
+/* ── Risk factors ─────────────────────────────────────────────────────────── */
+ul.risks{list-style:none;padding:0}
+ul.risks li{padding:.3rem 0;padding-left:1.2rem;position:relative;
+  font-size:.87rem;color:var(--muted)}
+ul.risks li::before{content:"⚠";position:absolute;left:0;font-size:.75rem}
+/* ── Comparable products ──────────────────────────────────────────────────── */
+ul.comparables{list-style:none;padding:0}
+ul.comparables li{padding:.3rem 0;padding-left:1.2rem;position:relative;
+  font-size:.87rem}
+ul.comparables li::before{content:"→";position:absolute;left:0;
+  color:var(--score-color)}
+/* ── Footer ───────────────────────────────────────────────────────────────── */
+footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
+  padding-top:1rem;border-top:1px solid var(--border)}
+/* ── Print ────────────────────────────────────────────────────────────────── */
+@media print{
+  :root{--bg:#fff;--surface:#f5f5f5;--surface2:#efefef;--border:#ddd;
+    --text:#111;--muted:#555}
+  body{background:#fff;color:#111}
+  .hook-box{background:#fffde7;border-color:#e6c500}
+  .hook-text{color:#7a5200}
+  .hook-box::before{color:rgba(180,130,0,.15)}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="vc-header">
+  <div class="brand-tag">Research Agent · Virality Predictor</div>
+  <h1 class="product-name">{{ product_name }}</h1>
+  {% if url %}<div class="product-url">{{ url }}</div>{% endif %}
+</div>
+
+<!-- ── Score ring ──────────────────────────────────────────────────────────── -->
+<div class="card score-section">
+  {% set r = 70 %}
+  {% set circ = 2 * 3.14159 * r %}
+  {% set dash = (score / 100) * circ %}
+  <div class="ring-wrap">
+    <svg width="160" height="160" viewBox="0 0 160 160">
+      <circle cx="80" cy="80" r="{{ r }}" fill="none" stroke="#222" stroke-width="12"/>
+      <circle cx="80" cy="80" r="{{ r }}" fill="none"
+        stroke="{{ grade_color }}" stroke-width="12"
+        stroke-dasharray="{{ dash | round(2) }} {{ circ | round(2) }}"
+        stroke-linecap="round"/>
+    </svg>
+    <div class="ring-number">
+      <span class="num">{{ score }}</span>
+      <span class="denom">/100</span>
+    </div>
+  </div>
+  <div class="grade-badge">{{ grade }}</div>
+  <div class="grade-subtitle">Virality Potential Score</div>
+</div>
+
+<!-- ── Dimension bars ─────────────────────────────────────────────────────── -->
+<div class="card">
+  <h2>Score Breakdown</h2>
+  {% for dim in dimensions %}
+  <div class="dim-row">
+    <div class="dim-header">
+      <span class="dim-label">{{ dim.label }}</span>
+      <span class="dim-score">{{ dim.score }}/10</span>
+    </div>
+    <div class="dim-bar-bg">
+      <div class="dim-bar-fill" style="width:{{ dim.pct }}%"></div>
+    </div>
+    {% if dim.reasoning %}
+    <div class="dim-reasoning">{{ dim.reasoning }}</div>
+    {% endif %}
+    {% if dim.signals %}
+    <div class="dim-signals">
+      {% for s in dim.signals %}
+      <span class="dim-signal">{{ s }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ── Killer Hook ─────────────────────────────────────────────────────────── -->
+{% if killer_hook %}
+<div class="hook-box" style="margin-bottom:1.25rem">
+  <div class="hook-label">✦ Killer Hook</div>
+  <div class="hook-text">"{{ killer_hook }}"</div>
+</div>
+{% endif %}
+
+<!-- ── Viral Content Angles ────────────────────────────────────────────────── -->
+{% if viral_angles %}
+<div class="card">
+  <h2>Viral Content Angles</h2>
+  <div style="display:flex;flex-direction:column;gap:.65rem">
+    {% for angle in viral_angles %}
+    <div class="angle-card">
+      <div class="angle-num">{{ loop.index }}</div>
+      <div class="angle-text">{{ angle }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Best Platforms ──────────────────────────────────────────────────────── -->
+{% if best_platforms %}
+<div class="card">
+  <h2>Best Platforms</h2>
+  <div class="platform-badges">
+    {% set platform_icons = {
+      "TikTok": "🎵",
+      "Instagram Reels": "📸",
+      "Pinterest": "📌",
+      "YouTube Shorts": "▶"
+    } %}
+    {% for p in best_platforms %}
+    <div class="platform-badge">
+      {{ platform_icons.get(p, "🌐") }} {{ p }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Ideal Creator Profile ───────────────────────────────────────────────── -->
+{% if ideal_creator %}
+<div style="margin-bottom:1.25rem">
+  <h2 style="margin-bottom:.5rem">Ideal Creator Profile</h2>
+  <div class="creator-box">{{ ideal_creator }}</div>
+</div>
+{% endif %}
+
+<!-- ── Comparable Viral Products ──────────────────────────────────────────── -->
+{% if comparable %}
+<div class="card">
+  <h2>Comparable Viral Products</h2>
+  <ul class="comparables">
+    {% for c in comparable %}<li>{{ c }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- ── Risk Factors ────────────────────────────────────────────────────────── -->
+{% if risk_factors %}
+<div class="card">
+  <h2>Risk Factors</h2>
+  <ul class="risks">
+    {% for r in risk_factors %}<li>{{ r }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<footer>Generated by <strong>Research Agent</strong> &nbsp;•&nbsp; {{ generated_at }}</footer>
+</body>
+</html>

@@ -1,0 +1,80 @@
+:root {
+  --primary: #6c47ff;
+  --bg: #f8f7ff;
+  --card-bg: #fff;
+  --text: #1a1a2e;
+  --muted: #6b7280;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 2rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+header {
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 1rem;
+}
+
+header h1 { font-size: 2rem; color: var(--primary); }
+header .url { font-size: 0.9rem; color: var(--muted); }
+header .timestamp { font-size: 0.8rem; color: var(--muted); }
+
+section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--primary);
+}
+
+pre {
+  background: #f3f0ff;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* Virality card */
+.virality-card { text-align: center; }
+
+.score-ring {
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 1.5rem auto;
+}
+.score-ring span { font-size: 1.5rem; color: var(--muted); }
+
+.verdict {
+  display: inline-block;
+  padding: 0.3rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+.verdict--low { background: #fee2e2; color: #dc2626; }
+.verdict--moderate { background: #fef3c7; color: #d97706; }
+.verdict--high { background: #d1fae5; color: #065f46; }
+.verdict--viral { background: var(--primary); color: #fff; }
+
+.breakdown { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.breakdown th, .breakdown td { padding: 0.5rem 1rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+.breakdown th { font-size: 0.8rem; color: var(--muted); }

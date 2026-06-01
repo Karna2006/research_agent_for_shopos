@@ -1,0 +1,202 @@
+[
+  {
+    "id": "oxford-shirt",
+    "product_name": "Rare Rabbit Classic Oxford Shirt",
+    "url": "https://rarerabbit.in/products/oxford-shirt",
+    "score": 65,
+    "grade": "B (Moderate)",
+    "analysis": {
+      "overall_virality_score": 65,
+      "grade": "B (Moderate)",
+      "product_name": "Rare Rabbit Classic Oxford Shirt",
+      "dimensions": {
+        "emotional_trigger": {
+          "score": 6,
+          "reasoning": "Taps mild aspiration — 'dress better' identity shift — but lacks the visceral emotion of transformation or humor. Appeals to self-improvement but isn't urgent.",
+          "signals": ["Premium self-image", "Aspirational styling", "Professional identity"]
+        },
+        "visual_stopping_power": {
+          "score": 7,
+          "reasoning": "Oxford shirts photograph beautifully — clean lines, rich texture, lifestyle context. The micro-dobby weave catches light in a way that translates to scroll-stopping still images.",
+          "signals": ["Fabric texture close-up", "Lifestyle photography", "12-colour palette grid"]
+        },
+        "transformation_clarity": {
+          "score": 5,
+          "reasoning": "Before/after exists conceptually (casual vs sharp) but isn't dramatised in current content. The product needs a 'get ready with me' or 'styled 3 ways' video to unlock this dimension.",
+          "signals": ["Office-to-evening versatility", "Colour variety unlocks different identities"]
+        },
+        "social_currency": {
+          "score": 8,
+          "reasoning": "Premium Indian menswear carries strong social signalling. A Rare Rabbit shirt at a party or office is a recognisable status marker among the target demographic — peers notice the brand.",
+          "signals": ["Aspirational brand perception", "Recognisable among urban Indian men", "Gift-worthy positioning"]
+        },
+        "trend_alignment": {
+          "score": 6,
+          "reasoning": "Oxford shirts are perennial, not trend-driven — this is a strength for longevity but limits virality peaks tied to trend moments. 'Smart casual' trend post-pandemic helps.",
+          "signals": ["Workleisure trend alignment", "Smart casual wave", "Anti-fast-fashion quality narrative"]
+        },
+        "share_trigger": {
+          "score": 5,
+          "reasoning": "Gifting occasion is the strongest share trigger — 'what to get him for his birthday' search intent is high. Tag-a-friend potential exists but hasn't been activated in creative.",
+          "signals": ["Gift occasion tagging", "Wishlist sharing", "'Send this to your boyfriend' mechanic"]
+        },
+        "hook_strength": {
+          "score": 6,
+          "reasoning": "Current hooks lead with fabric specs. The viral hook exists but is unused: 'The shirt that survived 3 weddings, 2 promotions, and a monsoon.' Storytelling > specifications.",
+          "signals": ["Durability story angle", "Occasion versatility angle", "Value vs luxury angle"]
+        }
+      },
+      "killer_hook": "I've worn this shirt to 3 weddings, 2 job interviews, and one very long flight. It still looks like Day 1.",
+      "viral_content_angles": [
+        "Style challenge: '1 shirt, 5 outfits' — show Oxford styled with chinos, jeans, shorts, blazer, and dhoti for a wedding",
+        "Fabric ASMR: extreme close-up of micro-dobby weave texture with satisfying ironing sounds — high watch-time hook",
+        "Honest comparison: 'I bought this ₹1,800 shirt vs a ₹4,500 mall brand shirt — here's what happened after 50 washes'"
+      ],
+      "ideal_creator_profile": "Urban professional male, 26–35, based in Mumbai/Bangalore/Delhi. Micro-influencer (15K–80K) who creates 'wardrobe essentials' or 'office outfit' content. Authentic tone, not fashion-model polished — believable peer endorsement.",
+      "best_platforms": ["Instagram Reels", "YouTube Shorts", "Pinterest"],
+      "risk_factors": [
+        "Oxford shirts are a crowded category — without a strong differentiating hook, creative blends into the noise",
+        "Price point (₹1,800) sits between fast fashion and international luxury — positioning must be explicit",
+        "No strong exclusivity angle — 12 colours and wide distribution reduces scarcity and urgency"
+      ],
+      "comparable_viral_products": [
+        "Peter England Oxford Shirt — went semi-viral through nostalgia + affordability positioning in 2022",
+        "Snitch 'Linen Shirt' — viral through Gen-Z creator challenge format, 2M+ views",
+        "Bombay Shirt Company — built brand through fabric-storytelling content on Instagram"
+      ]
+    }
+  },
+  {
+    "id": "pink-salt-scrub",
+    "product_name": "Himalayan Pink Salt Body Scrub",
+    "url": "",
+    "score": 82,
+    "grade": "A (Strong Potential)",
+    "analysis": {
+      "overall_virality_score": 82,
+      "grade": "A (Strong Potential)",
+      "product_name": "Himalayan Pink Salt Body Scrub",
+      "dimensions": {
+        "emotional_trigger": {
+          "score": 9,
+          "reasoning": "Self-care ritual products are the highest-converting emotional category on TikTok. The combination of satisfying texture, wellness aspiration, and visible skin transformation creates multiple emotional hooks simultaneously.",
+          "signals": ["Glow transformation", "Self-care ritual identity", "Natural ingredient trust", "Sensory satisfaction"]
+        },
+        "visual_stopping_power": {
+          "score": 9,
+          "reasoning": "Pink salt crystals have extraordinary visual appeal — photogenic, tactile, and distinctive. Scrubbing motions, skin glow reveal, and the product texture create multiple scroll-stopping visual moments.",
+          "signals": ["Pink crystal texture", "Before/after skin glow", "ASMR scrubbing motion", "Himalayan pink aesthetic"]
+        },
+        "transformation_clarity": {
+          "score": 9,
+          "reasoning": "This is the highest-converting content format on TikTok: before/after skin transformation. Dull to glowing skin in a 30-second video is immediately legible, emotionally satisfying, and highly shareable.",
+          "signals": ["Dull → glowing skin", "Visible immediate results", "Before/after format", "Post-scrub skin tone change"]
+        },
+        "social_currency": {
+          "score": 7,
+          "reasoning": "Himalayan salt carries premium, natural, wellness associations. Being seen using it signals health-consciousness and self-care investment — strong social currency among 20–35 female audience.",
+          "signals": ["Wellness lifestyle signalling", "Natural ingredient credibility", "Self-care culture alignment"]
+        },
+        "trend_alignment": {
+          "score": 8,
+          "reasoning": "Clean beauty, natural ingredients, and body care are at peak cultural momentum. #bodyscrub has 8.2B TikTok views. Himalayan salt specifically rides the natural/Ayurvedic wellness trend dominant in Indian and global markets.",
+          "signals": ["#cleanskincare trend", "Ayurvedic wellness wave", "#SkincareTok", "#glow community"]
+        },
+        "share_trigger": {
+          "score": 8,
+          "reasoning": "Strong 'you need to try this' and 'tag your self-care bestie' mechanics. Gift-occasion potential is very high (birthday, Diwali gifting). The before/after result makes people want to share proof.",
+          "signals": ["Gift-able product", "Tag-a-friend skincare discovery", "'Get the glow' peer challenge potential"]
+        },
+        "hook_strength": {
+          "score": 7,
+          "reasoning": "The strongest hook writes itself: 'I tried this Himalayan salt scrub every day for 7 days and here's what happened.' Results-based hook with daily accountability format drives massive completion rates.",
+          "signals": ["7-day challenge format", "Ingredient origin story", "Dermatologist-approval angle"]
+        }
+      },
+      "killer_hook": "I scrubbed my arms with this every night for a week. By Day 4, people were asking me if I'd had a facial.",
+      "viral_content_angles": [
+        "7-day skin transformation challenge: daily selfie showing cumulative glow improvement — high completion rate, built-in accountability loop",
+        "Ingredient origin story: 'This scrub contains salt mined 300m underground in the Himalayas' — authenticity and exoticism drive shares",
+        "ASMR self-care routine: ambient sound of scrubbing, warm steam, candles — 2–5M view potential on TikTok ASMR subcategory",
+        "Honest review comparison: 'I tried 5 body scrubs under ₹800 — here's the one I'm repurchasing'"
+      ],
+      "ideal_creator_profile": "Female skincare creator, 22–32, focused on honest reviews and self-care routines. Mid-tier (50K–300K followers). Authentic bathroom or skincare-shelfie aesthetic. Credibility over aesthetics — audience trusts her because she shows real results, not curated perfection.",
+      "best_platforms": ["TikTok", "Instagram Reels", "YouTube Shorts", "Pinterest"],
+      "risk_factors": [
+        "Crowded category — hundreds of similar pink salt scrubs compete for the same search terms and content niches",
+        "Results-based claims require authentic before/after — staged photos destroy credibility in this category",
+        "Dermatology counter-narrative: some derms warn against physical scrubs for sensitive skin — prepare a 'for body, not face' messaging guide"
+      ],
+      "comparable_viral_products": [
+        "Frank Body Coffee Scrub — built entirely on before/after UGC, generated millions in revenue through Instagram virality (2014–2018 playbook)",
+        "Mamaearth Ubtan Face Scrub — Indian market equivalent, rode Ayurvedic trend to viral status on Instagram",
+        "Tree Hut Sugar Scrub — #treehut has 1.8B TikTok views; closest comparable in mass-market body scrub virality"
+      ]
+    }
+  },
+  {
+    "id": "white-tshirt",
+    "product_name": "Generic White T-Shirt 3-Pack",
+    "url": "",
+    "score": 28,
+    "grade": "D (Unlikely to Spread)",
+    "analysis": {
+      "overall_virality_score": 28,
+      "grade": "D (Unlikely to Spread)",
+      "product_name": "Generic White T-Shirt 3-Pack",
+      "dimensions": {
+        "emotional_trigger": {
+          "score": 2,
+          "reasoning": "White basics carry zero emotional charge. No aspiration, no humor, no identity signalling, no transformation. 'You need a white t-shirt' is the least emotionally compelling fashion pitch possible.",
+          "signals": []
+        },
+        "visual_stopping_power": {
+          "score": 3,
+          "reasoning": "A white t-shirt on a white background is the visual equivalent of a blank page. Nothing about a basic tee stops the scroll — unless you do something wildly unexpected with the photography.",
+          "signals": ["Plain packaging aesthetic (anti-signal)"]
+        },
+        "transformation_clarity": {
+          "score": 2,
+          "reasoning": "Before/after for a white t-shirt is literally: slightly less white shirt → slightly more white shirt. No visible transformation, no life improvement story.",
+          "signals": []
+        },
+        "social_currency": {
+          "score": 2,
+          "reasoning": "Nobody signals identity through a generic 3-pack. The only social currency play would be extreme quality at an unexpected price — but 'generic' signals the opposite.",
+          "signals": []
+        },
+        "trend_alignment": {
+          "score": 4,
+          "reasoning": "Minimalist fashion and 'quiet luxury' trends give basics some cultural relevance, but a 3-pack commodity product doesn't credibly participate in that narrative — that's Everlane or COS territory.",
+          "signals": ["Quiet luxury adjacent (with effort)", "Capsule wardrobe content trend"]
+        },
+        "share_trigger": {
+          "score": 3,
+          "reasoning": "The only share trigger is extreme value ('100 white t-shirts for ₹500') — but that's a race to the bottom. Nobody tags a friend to show them a commodity 3-pack.",
+          "signals": ["Price shock (negative — race to bottom)"]
+        },
+        "hook_strength": {
+          "score": 2,
+          "reasoning": "There is no compelling hook for a generic white t-shirt 3-pack. The most honest opener is also the most fatal: 'You need white t-shirts.' Nobody clicks that.",
+          "signals": []
+        }
+      },
+      "killer_hook": "Brutal truth: there is no killer hook for a generic product. To go viral, you'd need to reframe entirely — 'The last white t-shirt you'll ever buy' only works if the quality claim is extraordinary and provable.",
+      "viral_content_angles": [
+        "The only angle with potential: extreme durability test ('I washed this 100 times — does it stay white?') — but only works if the product genuinely survives it",
+        "Sustainability reframe: '3 shirts, 3 years — fast fashion's white tee replacement cycle vs ours' — requires genuine quality differentiation to be credible"
+      ],
+      "ideal_creator_profile": "This product is not creator-ready in its current form. A brand revamp (premium positioning, quality story, unique detail) would be needed before influencer seeding.",
+      "best_platforms": ["Pinterest"],
+      "risk_factors": [
+        "Commodity positioning with no differentiator — competing on price against Amazon Basics and Jockey is a losing strategy for a D2C brand",
+        "Generic branding means zero brand recall — customers buy once and don't remember who made it",
+        "White t-shirt category is saturated to the point of invisibility on Instagram and TikTok — requires ₹10L+ in paid promotion to gain any traction"
+      ],
+      "comparable_viral_products": [
+        "Everlane The 100% Human Tee — went semi-viral through values-based storytelling, not product specs (proof that basics can spread with a strong 'why')",
+        "Lux Cozi 3-pack — viral only through price deals, not brand building — cautionary tale for commodity positioning"
+      ]
+    }
+  }
+]

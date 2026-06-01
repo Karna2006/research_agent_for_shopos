@@ -1,0 +1,178 @@
+"""Agent 6: Competitive intelligence — rivals, positioning gaps, market opportunities."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from llm.prompts import Prompts
+from scrapers.result import DataResult
+
+if TYPE_CHECKING:
+    from llm.client import GroqClient
+    from scrapers.web_scraper import WebScraper
+    from scrapers.search import SearchAgent as SearchAgentT
+
+_CATEGORY_KEYWORDS = [
+    "clothing", "fashion", "apparel", "menswear", "womenswear",
+    "shoes", "footwear", "bags", "accessories", "jewellery", "jewelry",
+    "skincare", "beauty", "cosmetics", "grooming",
+    "electronics", "gadgets", "furniture", "home decor",
+    "fitness", "sports", "activewear", "food", "nutrition",
+]
+
+
+def _infer_category(text: str) -> str:
+    lower = text.lower()
+    for cat in _CATEGORY_KEYWORDS:
+        if cat in lower:
+            return cat
+    return "ecommerce"
+
+
+def _fmt_block(label: str, results: list[dict], max_chars: int = 900) -> str:
+    lines = [f"- {r.get('title', '')}: {r.get('snippet', '')[:150]}" for r in results]
+    body = "\n".join(lines)[:max_chars]
+    return f"{label} ({len(results)} results):\n{body}"
+
+
+class ResearchAgent:
+    def __init__(
+        self,
+        llm_client: "GroqClient",
+        scraper: "WebScraper",
+        search_agent: "SearchAgentT",
+    ) -> None:
+        self.llm = llm_client
+        self.scraper = scraper
+        self.search = search_agent
+
+    async def run(
+        self,
+        url: str,
+        brand_name: str,
+        prefetched: dict | None = None,
+        context: dict | None = None,
+    ) -> dict:
+        out: dict = {"agent": "research", "url": url}
+        sources: list[DataResult] = []
+
+        try:
+            # Infer category from prefetched homepage or context; fall back to light scrape
+            _pre = prefetched or {}
+            _ctx = context or {}
+            try:
+                if isinstance(_pre.get("homepage"), DataResult):
+                    homepage_result = _pre["homepage"]
+                else:
+                    homepage_result = await self.scraper.scrape_page(url)
+                sources.append(homepage_result)
+                homepage = homepage_result.value or {}
+                # Use context category if provided (from brand_basics), else infer
+                raw_category = _ctx.get("category")
+                if isinstance(raw_category, list):
+                    raw_category = raw_category[0] if raw_category else None
+                category = raw_category or _infer_category(
+                    " ".join(homepage.get("headings", []))
+                    + homepage.get("body_text", "")[:1000]
+                )
+            except Exception:
+                category = "ecommerce"
+
+            # Four targeted searches
+            competitors_results = self.search.search(
+                f"{brand_name} competitors alternative brands India", max_results=8
+            )
+            market_results = self.search.search(
+                f"{brand_name} market position India 2024 2025", max_results=5
+            )
+            trends_results = self.search.search(
+                f"{category} market trends India 2025", max_results=5
+            )
+            reddit_results = self.search.search(
+                f"{brand_name} reviews reddit honest opinion", max_results=5
+            )
+            sources.append(DataResult(
+                value={
+                    "competitors": competitors_results,
+                    "market": market_results,
+                    "trends": trends_results,
+                    "reddit": reddit_results,
+                },
+                source="duckduckgo_search",
+                confidence="inferred",
+            ))
+
+            user_content = f"""BRAND: {brand_name}
+URL: {url}
+INFERRED CATEGORY: {category}
+
+{_fmt_block('COMPETITOR / ALTERNATIVE SEARCH', competitors_results)}
+
+{_fmt_block('MARKET POSITION / GROWTH SIGNALS', market_results)}
+
+{_fmt_block('CATEGORY TRENDS 2025', trends_results)}
+
+{_fmt_block('REDDIT / COMMUNITY SENTIMENT', reddit_results)}"""
+
+            analysis = await self.llm.analyze_structured(
+                system_prompt=Prompts.COMPETITIVE_RESEARCH,
+                user_content=user_content,
+                max_tokens=1800,
+            )
+
+            out["category_inferred"] = category
+            out["search_counts"] = {
+                "competitors": len(competitors_results),
+                "market": len(market_results),
+                "trends": len(trends_results),
+                "reddit": len(reddit_results),
+            }
+            out["analysis"] = analysis
+
+            # ── Market forecast (Chronos → Prophet → numpy) ───────────────────
+            try:
+                from agents.trend_predictor import get_predictor
+                predictor = get_predictor()
+
+                comp_list = analysis.get("top_competitors") or []
+                price_hints: list[float] = []
+                for comp in comp_list[:3]:
+                    pr = comp.get("price_range", "") or ""
+                    import re as _re
+                    nums = _re.findall(r"\d[\d,]*", pr.replace(",", ""))
+                    parsed = [float(n) for n in nums if float(n) > 50]
+                    if parsed:
+                        price_hints.append(sum(parsed) / len(parsed))
+
+                price_pred = predictor.predict_price_trajectory(
+                    price_history=price_hints if len(price_hints) >= 4 else None,
+                    category=category,
+                )
+                review_pred = predictor.predict_review_velocity(category=category)
+                out["market_forecast"] = {
+                    "price_trend": price_pred,
+                    "review_velocity": review_pred,
+                    "category": category,
+                    "label": "AI-Powered Market Forecast (Next 30 Days)",
+                    "model_note": (
+                        "Chronos (Amazon's time-series foundation model) → "
+                        "Prophet → polynomial regression"
+                    ),
+                }
+            except Exception as fex:
+                out["market_forecast"] = {"error": str(fex)}
+
+            fallbacks = [dr.fallback_method for dr in sources if dr.fallback_used and dr.fallback_method]
+            blocked = any(dr.confidence == "unavailable" and dr.source == "homepage_scrape" for dr in sources)
+            out["sources_used"] = [dr.to_dict() for dr in sources]
+            out["status"] = "partial" if blocked else "complete"
+            out["data_coverage"] = "search_only" if blocked else "full"
+            out["fallbacks_used"] = fallbacks
+
+        except Exception as exc:
+            out["error"] = str(exc)
+            out["status"] = "failed"
+            out["sources_used"] = [dr.to_dict() for dr in sources]
+            out["data_coverage"] = "unavailable"
+            out["fallbacks_used"] = []
+
+        return out

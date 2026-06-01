@@ -1,0 +1,51 @@
+# Fly.io deployment config
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# Setup:
+#   fly auth login
+#   fly launch --copy-config          # first time — creates app + provisions VM
+#   fly secrets set GROQ_API_KEY=...  # inject secrets (never in toml)
+#   fly deploy                        # subsequent deploys
+
+app            = "research-agent"
+primary_region = "sin"   # Singapore — lowest latency from India on free tier
+
+[build]
+  # Uses the project Dockerfile automatically
+
+[env]
+  # Non-secret runtime config
+  PORT = "8000"
+
+[http_service]
+  internal_port       = 8000
+  force_https         = true
+  auto_stop_machines  = true   # scale-to-zero on free tier
+  auto_start_machines = true   # cold-start on first request (~2-3s)
+  min_machines_running = 0     # 0 = full scale-to-zero (free tier safe)
+
+  [http_service.concurrency]
+    type       = "requests"
+    soft_limit = 25
+    hard_limit = 50
+
+[[vm]]
+  memory   = "512mb"   # free tier allowance: 256mb shared — bump to 512 for Playwright
+  cpu_kind = "shared"
+  cpus     = 1
+
+# Persistent volume for SQLite DB (1 GB free)
+# Run once: fly volumes create shopos_data --size 1 --region sin
+[[mounts]]
+  source      = "shopos_data"
+  destination = "/app/data"
+
+[checks]
+  [checks.health]
+    grace_period = "10s"
+    interval     = "30s"
+    method       = "GET"
+    path         = "/health"
+    port         = 8000
+    timeout      = "5s"
+    type         = "http"

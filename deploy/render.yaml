@@ -1,0 +1,42 @@
+# Render.com deployment config
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Setup (no CLI needed):
+#   1. Push this repo to GitHub
+#   2. Go to render.com → New → Blueprint
+#   3. Connect your repo — Render auto-detects this file
+#   4. Set GROQ_API_KEY in the Render dashboard → Environment
+#   5. Click Deploy
+
+services:
+  - type: web
+    name: research-agent
+    runtime: docker
+    plan: free           # 512 MB RAM, spins down after 15 min idle (free tier)
+    region: singapore    # closest to India
+
+    dockerfilePath: ./Dockerfile
+
+    healthCheckPath: /health
+
+    # Render free disk (ephemeral — use Neon + Upstash for persistence)
+    disk:
+      name: app-data
+      mountPath: /app/output
+      sizeGB: 1
+
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false          # set manually in Render dashboard — never committed
+
+      - key: DATABASE_URL
+        sync: false          # Neon PostgreSQL connection string (optional)
+
+      - key: UPSTASH_REDIS_URL
+        sync: false          # Upstash Redis REST URL (optional)
+
+      - key: UPSTASH_REDIS_TOKEN
+        sync: false          # Upstash Redis REST token (optional)
+
+      - key: PAGESPEED_API_KEY
+        sync: false          # Google PageSpeed API key (optional)

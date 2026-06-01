@@ -1,0 +1,12 @@
+.env
+*.db
+__pycache__/
+*.pyc
+*.pyo
+output/
+.DS_Store
+node_modules/
+shopos-agent/
+*.egg-info/
+.pytest_cache/
+htmlcov/

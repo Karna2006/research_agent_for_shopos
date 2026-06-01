@@ -1,0 +1,326 @@
+{
+  "url": "https://rarerabbit.in",
+  "brand_name": "Rare Rabbit",
+  "timestamp": "2026-05-31T13:00:00+00:00",
+  "total_time_seconds": 147.3,
+  "agent_status": [
+    {"agent": "brand_basics",    "label": "Brand Basics",         "status": "done", "elapsed_s": 14.2, "error": null},
+    {"agent": "content_catalog", "label": "Content Audit",        "status": "done", "elapsed_s": 22.8, "error": null},
+    {"agent": "performance_ads", "label": "Ad Intelligence",      "status": "done", "elapsed_s": 31.4, "error": null},
+    {"agent": "geo_visibility",  "label": "GEO Visibility",       "status": "done", "elapsed_s": 24.1, "error": null},
+    {"agent": "store_cro",       "label": "Store & CRO",          "status": "done", "elapsed_s": 33.6, "error": null},
+    {"agent": "research",        "label": "Competitive Research", "status": "done", "elapsed_s": 21.2, "error": null}
+  ],
+  "results": {
+    "brand_basics": {
+      "agent": "brand_basics",
+      "url": "https://rarerabbit.in",
+      "source_confidence": "high",
+      "platform": "shopify",
+      "analysis": {
+        "brand_name": "Rare Rabbit",
+        "founding_year": "2015",
+        "founders": ["Siddharth Dungarwal"],
+        "hq": "Bengaluru, Karnataka, India",
+        "countries_of_operation": ["India"],
+        "revenue_range": "$45M–$90M (₹380–750 Cr)",
+        "funding_stage": "Bootstrapped",
+        "core_categories": ["Men's Shirts", "Trousers", "Blazers", "Knitwear", "Footwear", "Accessories"],
+        "target_audience": "Urban Indian men aged 25–40 who seek premium, globally-inspired fashion at accessible luxury price points. Secondary: gifters, fashion-forward women shopping for partners.",
+        "brand_positioning": "India's fastest-growing premium menswear brand — bridging the gap between affordable fast fashion and inaccessible luxury with 'Considered Design' at ₹999–₹4,999.",
+        "social_channels": {
+          "Instagram": "@rarerabbitofficial — 650K+ followers",
+          "Facebook": "Rare Rabbit — 220K followers",
+          "YouTube": "Rare Rabbit — shorts & lookbooks"
+        },
+        "tone_of_voice": "Premium",
+        "key_strengths": [
+          "Explosive retail expansion — 700+ stores across India in under 10 years",
+          "Strong omni-channel presence: own D2C site + Myntra, Ajio, Nykaa Fashion",
+          "Premium fabrication (Egyptian cotton, micro-dobby weave) at accessible price points",
+          "Loyal repeat customer base; high NPS in tier-1 and tier-2 cities",
+          "Celebrity seeding and editorial placements without paid influencer dependency"
+        ]
+      }
+    },
+    "content_catalog": {
+      "agent": "content_catalog",
+      "url": "https://rarerabbit.in",
+      "product_urls_found": [
+        "https://rarerabbit.in/products/men-casual-shirts",
+        "https://rarerabbit.in/products/men-formal-trousers",
+        "https://rarerabbit.in/products/men-blazers"
+      ],
+      "pdps_scraped": 3,
+      "analysis": {
+        "pdp_quality_score": 7,
+        "pdp_strengths": [
+          "High-quality lifestyle photography with consistent lighting and models",
+          "Clear fabric composition listed (100% Egyptian cotton, 2-ply)",
+          "Size guide with measurements in both inches and cm",
+          "Multiple colour swatches showing true-to-life colour rendering"
+        ],
+        "pdp_weaknesses": [
+          "Product descriptions lean heavily on features, not benefits ('micro-dobby weave' vs 'stays crisp all day')",
+          "No social proof on PDP — review counts buried below the fold",
+          "No urgency signals — low stock, restock date, or bestseller tags absent",
+          "No fit guide video or model size callout (model height/weight not shown)"
+        ],
+        "headline_clarity": 7,
+        "benefit_vs_feature": "25% benefit, 75% feature",
+        "social_proof_present": true,
+        "cta_clarity": 8,
+        "homepage_score": 7,
+        "hero_message_clarity": 6,
+        "value_prop_above_fold": true,
+        "trust_signals": ["COD available", "Free shipping above ₹999", "7-day easy returns", "Authenticity guarantee"],
+        "rewritten_headline": "Stay sharp from 9 AM to midnight — shirts that actually hold their shape.",
+        "rewritten_description": "Most premium shirts crease by noon. The Rare Rabbit Oxford is engineered not to. Woven from 100% Egyptian 2-ply cotton with a micro-dobby texture that locks in structure, it moves with you — board meetings, rooftop dinners, weekend brunches. Available in 12 curated colours, each photographed in natural light so what you see is what you wear. Machine washable. Slim-fit. Ready for whatever today brings.",
+        "top_3_improvements": [
+          "Add benefit-first sub-headlines ('looks sharp through a 12-hour day' vs 'micro-dobby weave')",
+          "Surface Yotpo/Judge.me review count directly on PDP hero — this single change lifts conversion 15–20%",
+          "Add a 'Complete the Look' section — shirts pair naturally with Rare Rabbit chinos and loafers"
+        ]
+      }
+    },
+    "performance_ads": {
+      "agent": "performance_ads",
+      "url": "https://rarerabbit.in",
+      "meta_ads_library_url": "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=Rare+Rabbit",
+      "ads_scrape": {
+        "ads_count": 47,
+        "ad_formats": {"video": 24, "image": 18, "carousel": 5},
+        "sample_headlines": [
+          "The Oxford Shirt. Redefined.",
+          "New Collection — Spring/Summer 2025",
+          "Premium Menswear. Now at 700+ Stores.",
+          "Free Shipping on Orders Above ₹999"
+        ],
+        "scrape_error": null
+      },
+      "analysis": {
+        "estimated_active_ads": 47,
+        "creative_format_breakdown": {
+          "static_pct": 38,
+          "video_pct": 51,
+          "carousel_pct": 11,
+          "ugc_pct": 8
+        },
+        "hook_strength_score": 6,
+        "cta_consistency": 7,
+        "inferred_target_audience": "Urban Indian men 24–38, SEC A/A1, metro + tier-2, interested in fashion, grooming, and lifestyle",
+        "funnel_coverage": {
+          "awareness": true,
+          "consideration": true,
+          "conversion": true
+        },
+        "retargeting_signals": true,
+        "top_3_ad_quick_wins": [
+          "Test UGC-style 'day-in-the-life' hook ('I stopped buying Zara shirts after trying this') — currently only 8% UGC",
+          "Add price/value anchor in video hook ('Premium shirt. Under ₹2,000.') to fight fast-fashion perception",
+          "Create a dedicated retargeting creative with founder story — Indian D2C brands with founder-led ads see 2–3× CTR lift"
+        ],
+        "suggested_ad_angles": [
+          "Before/after: office look vs evening look, same shirt",
+          "Fabric close-up ASMR — the sound and feel of quality cotton",
+          "Comparison: '₹1,800 for this vs ₹4,000 at a mall brand'",
+          "Behind the scenes: garment factory in Karnataka, quality checks"
+        ],
+        "best_performing_creative_type": "Short-form video (15–30s) with lifestyle hook — aligns with brand's visual identity and target audience's Instagram/Reels consumption"
+      }
+    },
+    "geo_visibility": {
+      "agent": "geo_visibility",
+      "url": "https://rarerabbit.in",
+      "category_inferred": "fashion",
+      "schema_types_found": ["Organization", "WebSite", "BreadcrumbList", "Product", "Offer"],
+      "on_wikipedia": false,
+      "ai_simulation_visibility_pct": 12,
+      "analysis": {
+        "geo_score": 42,
+        "schema_markup_present": true,
+        "schema_types_found": ["Organization", "WebSite", "BreadcrumbList", "Product", "Offer"],
+        "schema_missing": ["FAQPage", "Review", "AggregateRating", "Article", "HowTo"],
+        "faq_schema": false,
+        "review_schema": false,
+        "ai_citation_likelihood": "Medium",
+        "ai_citation_likelihood_reason": "Rare Rabbit appears in 12% of AI-simulated menswear queries — strong brand recognition but limited structured content for AI engines to cite. Competitor Snitch ranks higher due to editorial blog presence.",
+        "top_5_content_topics_for_ai_citation": [
+          "Best premium menswear brands in India under ₹3,000",
+          "Oxford shirt buying guide for Indian men",
+          "Rare Rabbit vs Snitch vs Peter England — brand comparison",
+          "Premium D2C fashion brands India 2025",
+          "How to dress sharp for Indian summers (heat-appropriate formal wear)"
+        ],
+        "geo_improvement_roadmap": [
+          "Publish 10 editorial blog posts targeting 'best [category] India' queries — each with FAQ schema",
+          "Add AggregateRating schema pulling from Yotpo reviews — Google and AI engines surface this directly",
+          "Create a brand Wikipedia stub — currently zero Wikipedia presence, hurting AI citation probability",
+          "Build a 'Rare Rabbit vs [Competitor]' comparison page — these rank well in AI answer engines",
+          "Add HowTo schema to existing 'How to Style' content on the site"
+        ]
+      }
+    },
+    "store_cro": {
+      "agent": "store_cro",
+      "url": "https://rarerabbit.in",
+      "pagespeed": {
+        "mobile_score": 54,
+        "desktop_score": 78,
+        "mobile_label": "needs-improvement",
+        "desktop_label": "good",
+        "lcp": "3.8 s",
+        "cls": "0.12",
+        "fid": "280 ms",
+        "ttfb": "0.9 s",
+        "recommendations": [
+          {"title": "Reduce unused JavaScript", "description": "Save 1.2 MB — remove unused Shopify app scripts"},
+          {"title": "Serve images in next-gen formats", "description": "Switch hero images to WebP/AVIF for 40% size reduction"},
+          {"title": "Eliminate render-blocking resources", "description": "3 CSS files block initial render — defer non-critical styles"},
+          {"title": "Minimize main-thread work", "description": "2.4s main thread time — audit third-party scripts (chat, analytics, heatmaps)"},
+          {"title": "Reduce Cumulative Layout Shift", "description": "CLS 0.12 — set explicit width/height on product images"}
+        ],
+        "error": null
+      },
+      "cro_signals": {
+        "trust_signals": ["Money-back guarantee", "COD / Cash on delivery", "Customer support chat"],
+        "review_widgets": ["Yotpo", "Native reviews"],
+        "payment_options": ["Razorpay", "UPI", "EMI / No cost EMI", "COD"],
+        "email_capture": true,
+        "sticky_atc": true,
+        "cross_sell": true
+      },
+      "analysis": {
+        "platform_detected": "Shopify",
+        "pagespeed_mobile": 54,
+        "pagespeed_desktop": 78,
+        "core_web_vitals": {
+          "lcp": "3.8 s",
+          "cls": "0.12",
+          "fid": "280 ms"
+        },
+        "funnel_friction_points": [
+          "Mobile LCP of 3.8s — users bounce before hero loads (each 1s delay = ~7% conversion drop)",
+          "No size recommendation tool — fit anxiety is top reason for fashion cart abandonment",
+          "Cart page lacks urgency (no low-stock counts, no free shipping progress bar)",
+          "Checkout requires account creation — offer guest checkout prominently"
+        ],
+        "cart_abandonment_signals": [
+          "No saved cart / wishlist reminder emails configured",
+          "No exit-intent popup on cart page",
+          "No 'only X left' scarcity signal on high-demand SKUs"
+        ],
+        "payment_options_found": ["Razorpay", "UPI", "EMI / No Cost EMI", "COD"],
+        "email_capture_present": true,
+        "cross_sell_present": true,
+        "top_5_cro_fixes": [
+          {
+            "fix": "Compress and lazy-load hero images — switch to WebP, add fetchpriority='high' to LCP image",
+            "estimated_impact": "+12–18% mobile conversion",
+            "effort": "Low"
+          },
+          {
+            "fix": "Add a 'Free shipping' progress bar in cart ('Add ₹X more for free delivery')",
+            "estimated_impact": "+8–12% AOV",
+            "effort": "Low"
+          },
+          {
+            "fix": "Surface Yotpo star ratings on collection page tiles — social proof at the browse stage",
+            "estimated_impact": "+15% click-through to PDP",
+            "effort": "Low"
+          },
+          {
+            "fix": "Add AI size recommender (e.g. LimeSpot or Kiwi Sizing) — reduces fit-related returns by 20–30%",
+            "estimated_impact": "+10% conversion, -25% return rate",
+            "effort": "Med"
+          },
+          {
+            "fix": "Enable Shopify Markets for UAE/UK/US — Rare Rabbit has NRI demand but no international checkout",
+            "estimated_impact": "New revenue channel — est. ₹2–5 Cr/yr incremental",
+            "effort": "Med"
+          }
+        ],
+        "shopify_app_recommendations": [
+          "Kiwi Sizing — AI fit recommender, reduces returns",
+          "Klaviyo — abandoned cart flows (currently using basic Shopify emails)",
+          "LimeSpot — cross-sell and 'complete the look' personalisation",
+          "Gorgias — unified CS inbox (WhatsApp + email + Instagram DMs)",
+          "Judge.me — migrate reviews from Yotpo to reduce page weight"
+        ]
+      }
+    },
+    "research": {
+      "agent": "research",
+      "url": "https://rarerabbit.in",
+      "category_inferred": "fashion",
+      "search_counts": {
+        "competitors": 8,
+        "market": 5,
+        "trends": 5,
+        "reddit": 4
+      },
+      "analysis": {
+        "top_competitors": [
+          {
+            "name": "Snitch",
+            "url": "https://snitch.co.in",
+            "positioning": "Gen-Z digital-native fast fashion with rapid trend cycles",
+            "price_range": "₹599–₹2,499",
+            "why_they_win": "Hyper-fast trend turnaround (7-day design-to-shelf), aggressive social media, Shark Tank visibility, and price-competitiveness at sub-₹1,000 price points"
+          },
+          {
+            "name": "The Bear House",
+            "url": "https://thebearhouse.in",
+            "positioning": "Premium casual menswear with heavy influencer marketing",
+            "price_range": "₹799–₹3,499",
+            "why_they_win": "Strong D2C Instagram presence, celebrity collaborations, and broad gifting occasion positioning"
+          },
+          {
+            "name": "Peter England",
+            "url": "https://peterpengland.in",
+            "positioning": "Heritage formal menswear, wide retail distribution",
+            "price_range": "₹899–₹3,999",
+            "why_they_win": "Decades of brand recall in formal wear, tier-2/3 city penetration, and strong offline network"
+          },
+          {
+            "name": "Wrogn",
+            "url": "https://wrogn.com",
+            "positioning": "Celebrity-led (Virat Kohli) youth casual brand",
+            "price_range": "₹699–₹2,999",
+            "why_they_win": "Celebrity IP drives awareness; strong Myntra placement and youth aspiration"
+          }
+        ],
+        "brand_positioning_vs_market": "Rare Rabbit sits in a sweet spot that few Indian brands occupy — premium enough to aspire to, affordable enough to buy. At ₹999–₹4,999, it undercuts international brands (Zara, H&M) on price while outclassing domestic fast-fashion on quality. The risk is getting squeezed from below by Snitch's aggressive pricing and from above by H&M/Zara's brand cachet. Rare Rabbit's moat is fabrication quality and retail experience — two things that are hard to copy quickly.",
+        "whitespace_opportunities": [
+          "International expansion — NRI demand for Indian premium brands is underserved; UAE and UK are natural first markets",
+          "Women's wear — currently male-skewed; women represent 40% of traffic but <20% of revenue",
+          "Subscription / wardrobe planning — no brand in this segment offers a 'wardrobe refresh' subscription model",
+          "Sustainability story — Indian consumers are increasingly ESG-aware; organic cotton and supply chain transparency would differentiate",
+          "Wedding occasion wear — kurta/sherwani adjacent lines for India's ₹1.5L Cr wedding market"
+        ],
+        "category_trends": [
+          "Smart casual and 'workleisure' is outpacing formal wear post-pandemic — demand for structured shirts that work in meetings and evenings",
+          "Fabric storytelling is driving premium D2C conversions — brands that explain thread count, weave, and origin outperform by 2–3× on Google",
+          "Returns are the D2C profitability killer — AI size-fit tools becoming table stakes for sub-₹5,000 fashion",
+          "WhatsApp commerce growing fast in tier-2 cities — Rare Rabbit's store expansion aligns with this trend",
+          "Resale market growing — premium menswear brands that hold value (Oxford shirts, classic chinos) attract aspirational buyers"
+        ],
+        "where_brand_wins": [
+          "Fabrication quality at accessible price — genuinely perceived as 'luxury feel' by target audience",
+          "Omni-channel reach — 700+ stores plus strong marketplace presence means broad discoverbility",
+          "Brand aesthetics — photography, store design, and packaging are consistently premium"
+        ],
+        "where_brand_loses": [
+          "Digital marketing sophistication — ad spend appears lower than Snitch/The Bear House relative to D2C revenue",
+          "Content / editorial — no blog, buying guides, or style editorial driving organic search traffic",
+          "GEO/AI visibility — brand is not being cited by AI answer engines for menswear queries despite strong brand awareness"
+        ],
+        "strategic_recommendations": [
+          "Launch an editorial blog ('The Edit') with weekly style guides and fabric explainers — targets high-intent 'best men's shirts India' queries and feeds AI citation engines",
+          "Test a WhatsApp-first loyalty programme for tier-2 city store customers — reduces CAC and builds retention outside marketplace dependency",
+          "Prioritise international Shopify Markets setup for UAE + UK to capture NRI demand within 90 days — minimal engineering lift, high-margin channel"
+        ]
+      }
+    }
+  }
+}
