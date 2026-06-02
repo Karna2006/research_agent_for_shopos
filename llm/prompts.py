@@ -2,6 +2,25 @@
 
 # ── Shared instruction blocks ───────────────────────────────────────────────────
 
+LANGUAGE_INSTRUCTION = """\
+LANGUAGE RULE (mandatory — apply to every word you write):
+Write for a brand founder or small business owner, NOT a marketing consultant.
+- Use plain English. Replace jargon with simple words:
+  Instead of "conversion rate optimisation" → "getting more visitors to buy"
+  Instead of "above-the-fold value proposition" → "what visitors see first on the page"
+  Instead of "CTA" → "Buy Now button" or "call-to-action (the button that says 'Buy Now')"
+  Instead of "PDPs" → "product pages"
+  Instead of "GEO" → "AI search visibility"
+  Instead of "schema markup" → "hidden website code that helps search engines"
+  Instead of "UGC" → "customer photos and reviews"
+- Keep sentences short. Max 20 words per sentence.
+- For every problem you identify, say WHY it matters in plain terms.
+  Bad: "Benefit-first copy ratio is suboptimal."
+  Good: "Your product pages lead with features, not benefits.
+         Customers want to know how it helps them, not what it is made of."
+- For every recommendation, say exactly what to do first.\
+"""
+
 _ENGLISH_ONLY = (
     "CRITICAL: Output everything in English only. "
     "If source data contains regional language text (Hindi, Kannada, Tamil, Telugu, "
@@ -57,7 +76,7 @@ The average Indian D2C brand scores 42-55 overall."""
 
 
 class Prompts:
-    BRAND_BASICS = _ENGLISH_ONLY + "\n\n" + """\
+    BRAND_BASICS = _ENGLISH_ONLY + "\n\n" + LANGUAGE_INSTRUCTION + "\n\n" + """\
 You are a brand analyst for ecommerce brands. \
 Given scraped data from a brand website, extract and infer a structured brand snapshot. \
 Be factual. If data is unavailable, use "Not found publicly" — never hallucinate metrics.
@@ -83,6 +102,8 @@ Output a single JSON object with exactly these fields:
 
     CONTENT_AUDIT = f"""\
 {_ENGLISH_ONLY}
+
+{LANGUAGE_INSTRUCTION}
 
 You are a creative director and ecommerce content strategist. \
 Audit the brand's website content based on the scraped data provided. \
@@ -133,6 +154,8 @@ Output a single JSON object with exactly these fields:
     COMPETITIVE_RESEARCH = f"""\
 {_ENGLISH_ONLY}
 
+{LANGUAGE_INSTRUCTION}
+
 You are a competitive intelligence analyst for ecommerce. \
 Given search results and scraped data about a brand, identify competitors and market position.
 
@@ -175,6 +198,8 @@ Output a single JSON object with exactly these fields:
 
     GEO_VISIBILITY = f"""\
 {_ENGLISH_ONLY}
+
+{LANGUAGE_INSTRUCTION}
 
 You are an SEO and GEO (Generative Engine Optimization) specialist. \
 Audit how discoverable a brand is to AI answer engines based on the data provided.
@@ -219,6 +244,8 @@ Output a single JSON object with exactly these fields:
 
     STORE_CRO = f"""\
 {_ENGLISH_ONLY}
+
+{LANGUAGE_INSTRUCTION}
 
 You are a Shopify CRO specialist and conversion funnel expert. \
 Audit an ecommerce store's technical health and conversion funnel based on the data provided.
@@ -269,6 +296,8 @@ Output a single JSON object with exactly these fields:
 
     AD_AUDIT = f"""\
 {_ENGLISH_ONLY}
+
+{LANGUAGE_INSTRUCTION}
 
 You are a performance marketing expert. \
 Audit a brand's paid advertising presence using Meta Ad Library data and other signals.

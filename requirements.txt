@@ -33,6 +33,9 @@ chronos-forecasting>=1.3.0 # Amazon Chronos time-series foundation model
 prophet>=1.1.5             # Meta Prophet seasonality-aware forecasting (fallback)
 numpy>=1.26.0              # polynomial regression fallback — always available
 
+# NLP / ML (rules-based replacements for LLM calls)
+vaderSentiment>=3.3.2     # Review sentiment — replaces LLM sentiment inference
+
 # Utilities
 python-dotenv>=1.0.0
 rich>=13.7.0

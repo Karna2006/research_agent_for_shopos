@@ -9,8 +9,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 # ── Point to in-memory SQLite before any app import touches the DB ─────────────
-os.environ.setdefault("DATABASE_URL", "")          # force SQLite path
-os.environ.setdefault("GEMINI_API_KEY", "test-key")  # silence GroqClient.__init__
+os.environ.setdefault("DATABASE_URL", "")           # force SQLite path
+os.environ.setdefault("GROQ_API_KEY", "test-key")   # silence GroqClient.__init__
+os.environ.setdefault("GEMINI_API_KEY", "test-key")  # kept for compatibility
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 _DEMO_DIR = Path(__file__).parent.parent / "demo"

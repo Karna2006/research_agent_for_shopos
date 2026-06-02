@@ -11,6 +11,7 @@ from httpx import AsyncClient, ASGITransport
 from sqlmodel import SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
+os.environ.setdefault("GROQ_API_KEY", "test-key")
 os.environ.setdefault("GEMINI_API_KEY", "test-key")
 os.environ.setdefault("DATABASE_URL", "")
 

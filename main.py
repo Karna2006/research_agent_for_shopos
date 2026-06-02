@@ -427,6 +427,9 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
     <div id="live-findings" class="findings-feed"></div>
   </div>
 
+  <!-- FIX 4: Sections reveal progressively as each agent completes -->
+  <div id="live-sections" style="display:none"></div>
+
   <div id="a-result"></div>
 
   <!-- FIX 2: Inline report — renders below pipeline on the same page -->
@@ -803,6 +806,8 @@ async function startAudit() {
   // Reset live-experience state
   _dataPoints = 0;
   document.getElementById('live-findings').innerHTML = '';
+  var liveSec0 = document.getElementById('live-sections');
+  if (liveSec0) { liveSec0.innerHTML = ''; liveSec0.style.display = 'none'; }
   var dc = document.getElementById('data-counter');
   if (dc) { dc.style.display = 'none'; }
   var dcn = document.getElementById('data-count-num');
@@ -887,15 +892,30 @@ async function startAudit() {
       // Feature 2: increment counter
       var inc = AGENT_DATA_COUNTS[m.key] || 0;
       if (inc) { _dataPoints += inc; updateDataCounter(); }
+      // FIX 4: progressive section reveal — fetch and append section HTML
+      (function(key, id) {
+        fetch('/report/section/' + id + '/' + key)
+          .then(function(r) { return r.ok ? r.text() : null; })
+          .then(function(html) {
+            if (!html) return;
+            var ls = document.getElementById('live-sections');
+            if (!ls) return;
+            ls.style.display = 'block';
+            ls.insertAdjacentHTML('beforeend', html);
+          })
+          .catch(function() {});
+      })(m.key, auditId);
 
     } else if (m.status === 'complete') {
       document.getElementById('a-prog').style.width = '100%';
       updateDataCounter(true);
       stopInsightsRotator();
       es.close();
-      // Fade out findings feed, show report
+      // Fade out findings feed and live sections, then show full report in iframe
       var feed = document.getElementById('live-findings');
       if (feed) feed.style.display = 'none';
+      var liveSec = document.getElementById('live-sections');
+      if (liveSec) liveSec.style.display = 'none';
       document.getElementById('a-report-frame').src = m.report_url;
       document.getElementById('a-report-wrap').style.display = 'block';
       const cacheBadge = document.getElementById('a-cache-badge');
@@ -1643,7 +1663,8 @@ _SWOT_PROMPT = (
     '  "head_to_head_verdict":"2-3 sentences synthesizing the matchup — cite top differentiating scores"\n'
     '}}\n\n'
     "Each SWOT array must have exactly 3 items. winning_margin: narrow, moderate, or decisive. "
-    "Every point must be specific to the brand matchup — no generic statements."
+    "Every point must be specific to the brand matchup — no generic statements.\n\n"
+    "Output ONLY the JSON. No preamble. Start your response with { and end with }"
 )
 
 
@@ -2095,9 +2116,25 @@ async def _run_compare_bg(
             s.commit()
 
     try:
-        # Sequential — parallel LLM calls exhaust Groq free-tier TPM limit
-        await _orchestrate_if_needed(audit_id_a)
-        await _orchestrate_if_needed(audit_id_b)
+        # Pre-check: skip audits that are already complete (reuse cached results)
+        with S(engine) as s:
+            a_obj = s.get(AuditRun, audit_id_a)
+            b_obj = s.get(AuditRun, audit_id_b)
+            a_complete = a_obj is not None and a_obj.status == "complete"
+            b_complete = b_obj is not None and b_obj.status == "complete"
+
+        print(
+            f"[compare {compare_id}] "
+            f"Brand A #{audit_id_a}: {'complete — reusing' if a_complete else 'needs audit'}  "
+            f"Brand B #{audit_id_b}: {'complete — reusing' if b_complete else 'needs audit'}",
+            flush=True,
+        )
+
+        # Sequential when both need running (parallel exhausts Groq free-tier TPM)
+        if not a_complete:
+            await _orchestrate(audit_id_a)
+        if not b_complete:
+            await _orchestrate(audit_id_b)
     except Exception as exc:
         with S(engine) as s:
             cr = s.get(CompareRun, compare_id)
@@ -2556,6 +2593,25 @@ async def audit_stream(audit_id: int, session: Session = Depends(get_session)):
     )
 
 
+@app.get("/report/section/{audit_id}/{agent_name}", response_class=HTMLResponse)
+async def get_section_html(audit_id: int, agent_name: str, session: Session = Depends(get_session)):
+    """Return the HTML fragment for a single audit section — used by progressive reveal."""
+    from reports.generator import generate_section as _gen_section
+
+    _valid_keys = {"brand_basics", "content_catalog", "performance_ads",
+                   "geo_visibility", "store_cro", "research"}
+    if agent_name not in _valid_keys:
+        raise HTTPException(status_code=400, detail=f"Unknown agent: {agent_name}")
+
+    audit = session.get(AuditRun, audit_id)
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+
+    audit_data = _assemble_audit_data(audit)
+    html = _gen_section(agent_name, audit_data)
+    return HTMLResponse(html)
+
+
 @app.get("/report/{audit_id}", response_class=HTMLResponse)
 async def get_report(audit_id: int, request: Request, session: Session = Depends(get_session)):
     audit = session.get(AuditRun, audit_id)
@@ -2672,6 +2728,24 @@ async def share_compare(token: str):
     return HTMLResponse(cr.compare_html, headers={"Cache-Control": "public, max-age=3600"})
 
 
+def _swot_fallback(brand_a: str, brand_b: str) -> dict:
+    """Structured placeholder returned when LLM cannot generate a parseable SWOT."""
+    placeholder = [
+        {"point": "Analysis could not be generated — audit data may be incomplete", "evidence": "Retry after both audits fully complete"},
+        {"point": "Please retry in a few moments", "evidence": ""},
+        {"point": "Contact support if this persists", "evidence": ""},
+    ]
+    return {
+        "brand_a_swot": {"strengths": placeholder, "weaknesses": placeholder, "opportunities": placeholder, "threats": placeholder},
+        "brand_b_swot": {"strengths": placeholder, "weaknesses": placeholder, "opportunities": placeholder, "threats": placeholder},
+        "overall_winner": brand_a,
+        "winning_margin": "narrow",
+        "match_summary": f"SWOT analysis could not be generated for {brand_a} vs {brand_b}. Please retry.",
+        "head_to_head_verdict": "SWOT generation failed — LLM response could not be parsed. Try again.",
+        "_fallback": True,
+    }
+
+
 @app.post("/compare/{compare_id}/swot")
 async def generate_swot(compare_id: int, session: Session = Depends(get_session)):
     """Generate (and cache) a SWOT analysis for a completed comparison."""
@@ -2717,9 +2791,24 @@ async def generate_swot(compare_id: int, session: Session = Depends(get_session)
         swot = await llm.analyze_structured(
             system_prompt=prompt,
             user_content="Generate the SWOT analysis now.",
-            max_tokens=2000,
+            max_tokens=3000,
         )
-        if isinstance(swot, dict) and not swot.get("_parse_error"):
+
+        print(
+            f"[swot {compare_id}] LLM result: "
+            f"keys={list(swot.keys()) if isinstance(swot, dict) else type(swot).__name__}",
+            flush=True,
+        )
+
+        if isinstance(swot, dict) and swot.get("_parse_error"):
+            raw_text = swot.get("_raw", "")
+            print(
+                f"[swot {compare_id}] Parse error — raw response ({len(raw_text)} chars):\n{raw_text[:800]}",
+                flush=True,
+            )
+            return _swot_fallback(brand_a, brand_b)
+
+        if isinstance(swot, dict) and "brand_a_swot" in swot:
             with S(engine) as s:
                 cr2 = s.get(CompareRun, compare_id)
                 if cr2:
@@ -2727,8 +2816,12 @@ async def generate_swot(compare_id: int, session: Session = Depends(get_session)
                     s.add(cr2)
                     s.commit()
             return swot
-        raise ValueError("LLM returned parse error")
+
+        print(f"[swot {compare_id}] Unexpected structure: {swot}", flush=True)
+        return _swot_fallback(brand_a, brand_b)
+
     except Exception as exc:
+        print(f"[swot {compare_id}] Exception: {exc}", flush=True)
         raise HTTPException(status_code=500, detail=f"SWOT generation failed: {exc}")
 
 

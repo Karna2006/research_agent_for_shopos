@@ -119,6 +119,45 @@ INFERRED CATEGORY: {category}
                 max_tokens=1800,
             )
 
+            # ── Whitespace Score (rules-based, no LLM) ────────────────────────
+            competitors_found = len(analysis.get("top_competitors") or [])
+            research_score    = float(analysis.get("research_score") or 5)
+            # Strong research_score → brand holds its own → more whitespace
+            # More competitors → less whitespace
+            avg_competitor_strength = min(10, research_score * 0.6 + 3)
+            whitespace_raw = (
+                100
+                - (competitors_found * 8)
+                - (avg_competitor_strength * 3)
+            )
+            whitespace_score = max(0, min(100, round(whitespace_raw)))
+            if whitespace_score >= 70:
+                whitespace_zone = "Blue Ocean"
+                whitespace_msg  = (
+                    f"Limited direct competition detected. "
+                    f"{competitors_found} competitor{'s' if competitors_found != 1 else ''} identified. "
+                    "High opportunity to own the positioning."
+                )
+            elif whitespace_score >= 40:
+                whitespace_zone = "Contested"
+                whitespace_msg  = (
+                    f"Several strong players present. "
+                    f"{competitors_found} competitor{'s' if competitors_found != 1 else ''} identified. "
+                    "Differentiation must be crystal clear."
+                )
+            else:
+                whitespace_zone = "Red Ocean"
+                whitespace_msg  = (
+                    f"Crowded market with {competitors_found} identified competitors. "
+                    "Compete on a specific niche or risk being undifferentiated."
+                )
+            out["whitespace"] = {
+                "score":   whitespace_score,
+                "zone":    whitespace_zone,
+                "message": whitespace_msg,
+                "competitors_counted": competitors_found,
+            }
+
             out["category_inferred"] = category
             out["search_counts"] = {
                 "competitors": len(competitors_results),

@@ -12,6 +12,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 # ── Patch env before importing app ────────────────────────────────────────────
+os.environ.setdefault("GROQ_API_KEY", "test-key")
 os.environ.setdefault("GEMINI_API_KEY", "test-key")
 os.environ.setdefault("DATABASE_URL", "")  # force SQLite
 

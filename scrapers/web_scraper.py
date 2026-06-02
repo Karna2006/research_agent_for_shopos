@@ -452,7 +452,36 @@ class WebScraper:
             )
 
     async def detect_platform(self, url: str) -> str:
-        """Return 'shopify' | 'woocommerce' | 'custom' by inspecting headers + HTML."""
+        """Return 'shopify' | 'woocommerce' | 'custom' by inspecting headers + HTML.
+
+        Fast path: check /products.json and response headers via httpx before launching
+        Playwright — saves ~3s on Shopify stores (the majority of our users).
+        """
+        from urllib.parse import urlparse as _up
+        base = f"{_up(url).scheme}://{_up(url).netloc}"
+
+        # ── Fast httpx pre-check (no Playwright needed for Shopify) ──────────
+        try:
+            async with httpx.AsyncClient(
+                timeout=5.0, follow_redirects=True, headers=_BROWSER_HEADERS
+            ) as client:
+                # /products.json is Shopify-exclusive — returns JSON on any store
+                r = await client.get(f"{base}/products.json?limit=1")
+                if r.status_code == 200:
+                    try:
+                        data = r.json()
+                        if "products" in data:
+                            return "shopify"
+                    except Exception:
+                        pass
+                # Also check response headers for Shopify fingerprint
+                for h_key, h_val in r.headers.items():
+                    if "shopify" in h_key.lower() or "shopify" in str(h_val).lower():
+                        return "shopify"
+        except Exception:
+            pass
+
+        # ── Full Playwright detection for WooCommerce / custom ────────────────
         try:
             async with async_playwright() as pw:
                 browser = await pw.chromium.launch(headless=self._headless)

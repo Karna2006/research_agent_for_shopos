@@ -188,8 +188,32 @@ def _bm_chip(bm_key: str, val) -> str:
     )
 
 
-_env.globals["bm_chip"] = _bm_chip
-_env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
+_env.globals["bm_chip"]   = _bm_chip
+_env.filters["tojson"]    = lambda v: json.dumps(v, ensure_ascii=False)
+
+
+def _sparkline_svg(values: list[float], color: str = "#3b82f6", width: int = 80, height: int = 24) -> str:
+    """Return an inline SVG polyline sparkline for a list of values (≥2 required)."""
+    clean = [v for v in (values or []) if v is not None]
+    if len(clean) < 2:
+        return ""
+    max_v = max(clean) or 1
+    min_v = min(clean)
+    span  = (max_v - min_v) or 1
+    n     = len(clean)
+    pts   = " ".join(
+        f"{int(i * width / (n - 1))},{int(height - (v - min_v) / span * (height - 2) + 1)}"
+        for i, v in enumerate(clean)
+    )
+    return (
+        f'<svg width="{width}" height="{height}" style="vertical-align:middle;overflow:visible">'
+        f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>'
+        f'</svg>'
+    )
+
+
+_env.globals["sparkline_svg"] = _sparkline_svg
 
 
 def _worst_score_trigger(results: dict) -> str:
@@ -377,6 +401,44 @@ def extract_native_scores(results: dict) -> dict:
         "store_score":        _f(mobile_score),
         "research_score":     _f(res_raw),
     }
+
+
+def _get_score_series(url: str, limit: int = 8) -> dict[str, list[float]]:
+    """Return the last `limit` non-null values for each score field, oldest first."""
+    try:
+        from db.database import engine
+        from db.models import ScoreHistory
+        from sqlmodel import Session, select
+    except Exception:
+        return {}
+    try:
+        with Session(engine) as s:
+            rows = s.exec(
+                select(ScoreHistory)
+                .where(ScoreHistory.brand_url == url)
+                .order_by(ScoreHistory.timestamp.desc())
+                .limit(limit)
+            ).all()
+    except Exception:
+        return {}
+    if len(rows) < 2:
+        return {}
+
+    rows = list(reversed(rows))  # chronological order
+    fields = [
+        ("content",  "content_score"),
+        ("ads",      "ads_score"),
+        ("geo",      "geo_score"),
+        ("store",    "store_score"),
+        ("research", "research_score"),
+        ("overall",  "overall_score"),
+    ]
+    series: dict[str, list[float]] = {}
+    for key, attr in fields:
+        vals = [getattr(r, attr) for r in rows if getattr(r, attr) is not None]
+        if len(vals) >= 2:
+            series[key] = vals
+    return series
 
 
 def _get_score_trends(url: str) -> dict:
@@ -749,9 +811,36 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
     one_thing_trigger  = _worst_score_trigger(results) if one_thing_sentence else ""
     one_thing_banner   = _render_one_thing_banner(one_thing_sentence, one_thing_trigger)
 
-    # ── Score trend chips (vs previous audit) ─────────────────────────────────
+    # ── Score trend chips + sparklines (vs previous audits) ──────────────────
     audit_url = audit_data.get("url", "")
     _trends   = _get_score_trends(audit_url) if audit_url else {}
+    _series   = _get_score_series(audit_url) if audit_url else {}
+
+    # Pre-render sparkline SVGs for each scored section
+    _spark_color = {
+        "content":  "#22c55e",
+        "ads":      "#a78bfa",
+        "geo":      "#3b82f6",
+        "store":    "#f59e0b",
+        "research": "#ec4899",
+        "overall":  "#ffffff",
+    }
+    sparklines: dict[str, str] = {
+        key: _sparkline_svg(vals, color=_spark_color.get(key, "#3b82f6"))
+        for key, vals in _series.items()
+    }
+
+    # Delta labels for health pulse ("↑ +24 pts since first audit")
+    pulse_labels: dict[str, str] = {}
+    for key, vals in _series.items():
+        if len(vals) >= 2:
+            delta = round(vals[-1] - vals[0], 1)
+            sign  = "+" if delta >= 0 else ""
+            color = "#22c55e" if delta > 0 else ("#ef4444" if delta < 0 else "#6b7280")
+            pulse_labels[key] = (
+                f'<span style="font-size:.68rem;color:{color};font-weight:700">'
+                f'{sign}{delta:g} pts since first audit</span>'
+            )
 
     def _chip(key: str) -> str:
         t = _trends.get(key)
@@ -766,6 +855,18 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
         except (ValueError, TypeError):
             pass
     changes_banner = _render_changes_banner(changes_parsed)
+
+    # ── 30-Day Roadmap ────────────────────────────────────────────────────────
+    roadmap_raw = audit_data.get("roadmap") or audit_data.get("roadmap_json")
+    roadmap: dict = {}
+    if roadmap_raw:
+        try:
+            roadmap = json.loads(roadmap_raw) if isinstance(roadmap_raw, str) else roadmap_raw
+        except (ValueError, TypeError):
+            pass
+
+    # ── Whitespace Score (from research agent) ────────────────────────────────
+    whitespace = (results.get("research") or {}).get("whitespace") or {}
 
     return {
         "url":           audit_data.get("url", ""),
@@ -812,6 +913,14 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
         "category_inferred":    geo_visibility.get("category_inferred", ""),
         "ai_vis_pct":           geo_visibility.get("ai_simulation_visibility_pct", 0),
         "meta_ads_library_url": performance_ads.get("meta_ads_library_url", ""),
+        "pagespeed_report_url": f"https://pagespeed.web.dev/report?url={_url_quote(audit_data.get('url', ''), safe='')}",
+        # brand health pulse
+        "sparklines":    sparklines,
+        "pulse_labels":  pulse_labels,
+        # 30-day roadmap
+        "roadmap":       roadmap,
+        # whitespace score
+        "whitespace":    whitespace,
         # market forecast
         "market_forecast":  market_forecast,
         "price_trend":      price_trend,
@@ -835,6 +944,17 @@ _CONFIDENCE_BADGE = {
     "inferred":    ('<span style="color:#f59e0b;font-weight:700">Inferred</span>', "#f59e0b"),
     "unavailable": ('<span style="color:#6b7280;font-weight:700">Unavailable</span>', "#6b7280"),
 }
+
+
+def _linkify(url: str, label: str = None) -> str:
+    """Return an <a> tag for a URL, or a plain label/dash if the URL is absent."""
+    if not url or not isinstance(url, str) or not url.startswith(("http://", "https://")):
+        return label or url or "—"
+    display = label or (url[:50] + ("…" if len(url) > 50 else ""))
+    return f'<a href="{url}" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:underline">{display}</a>'
+
+
+_env.globals["linkify"] = _linkify
 
 
 def is_valid_url(url: object) -> bool:
@@ -949,6 +1069,35 @@ def _render_sources_panel(results: dict, brand_url: str = "", brand_name: str = 
 </div>"""
 
 
+def generate_section(agent_key: str, audit_data: dict) -> str:
+    """Return the HTML for a single audit section, identified by agent_key.
+
+    Renders the full report template and extracts the section between
+    ``<!-- SECTION:agent_key -->`` and ``<!-- /SECTION:agent_key -->`` markers.
+    The returned section always has its ``<details>`` element set to ``open``
+    so it's immediately visible when appended during progressive reveal.
+    """
+    import re as _re
+    audit_data = validate_scores(audit_data)
+    ctx = _build_audit_context(audit_data)
+    template = _env.get_template("audit_report.html")
+    full_html = template.render(**ctx)
+
+    pattern = rf'<!--\s*SECTION:{_re.escape(agent_key)}\s*-->(.*?)<!--\s*/SECTION:{_re.escape(agent_key)}\s*-->'
+    match = _re.search(pattern, full_html, _re.DOTALL)
+    if not match:
+        return f'<div style="padding:1rem;color:#6b7280;font-size:.85rem">Section <em>{agent_key}</em> not available yet.</div>'
+
+    section_html = match.group(1).strip()
+    # Force open so the section is visible during live reveal
+    section_html = section_html.replace(
+        '<details class="section-accordion">',
+        '<details class="section-accordion" open>',
+        1,
+    )
+    return section_html
+
+
 def _build_virality_context(virality_data: dict) -> dict:
     analysis = virality_data.get("analysis") or virality_data
     dims_raw = analysis.get("dimensions") or {}
@@ -966,11 +1115,12 @@ def _build_virality_context(virality_data: dict) -> dict:
     for key, label in dim_order:
         raw = dims_raw.get(key, {})
         if isinstance(raw, dict):
-            score = raw.get("score", 0)
+            score     = raw.get("score", 0)
             reasoning = raw.get("reasoning", "")
-            signals = raw.get("signals", [])
+            signals   = raw.get("signals", [])
+            evidence  = raw.get("evidence", "")
         else:
-            score, reasoning, signals = (raw or 0), "", []
+            score, reasoning, signals, evidence = (raw or 0), "", [], ""
         dimensions.append({
             "key":       key,
             "label":     label,
@@ -978,6 +1128,7 @@ def _build_virality_context(virality_data: dict) -> dict:
             "pct":       round((score / 10) * 100),
             "reasoning": reasoning,
             "signals":   signals,
+            "evidence":  evidence,
         })
 
     score = virality_data.get("score") or analysis.get("overall_virality_score") or 0
@@ -988,18 +1139,42 @@ def _build_virality_context(virality_data: dict) -> dict:
         "C": "#eab308", "D": "#ef4444",
     }.get(g_char, "#6b7280")
 
+    # Scrape mode + visual/text signals
+    scrape_mode      = virality_data.get("scrape_mode", "text_only")
+    visual_signals   = virality_data.get("visual_signals") or {}
+    text_signals     = virality_data.get("text_signals")   or {}
+    fallback_warning = analysis.get("_fallback_warning", "")
+
+    # Viral angles — support both new dict format and legacy string format
+    raw_angles   = _safe_list(analysis.get("viral_content_angles"))
+    viral_angles = []
+    for a in raw_angles:
+        if isinstance(a, dict):
+            viral_angles.append({
+                "text":     a.get("angle", ""),
+                "platform": a.get("best_platform", ""),
+                "hook":     a.get("hook_line", ""),
+                "reach":    a.get("expected_reach_multiplier", ""),
+            })
+        else:
+            viral_angles.append({"text": str(a), "platform": "", "hook": "", "reach": ""})
+
     return {
-        "product_name":   virality_data.get("product_name") or analysis.get("product_name") or "Product",
-        "url":            virality_data.get("url") or "",
-        "score":          score,
-        "grade":          grade,
-        "grade_color":    grade_color,
-        "dimensions":     dimensions,
-        "killer_hook":    analysis.get("killer_hook", ""),
-        "viral_angles":   _safe_list(analysis.get("viral_content_angles")),
-        "best_platforms": _safe_list(analysis.get("best_platforms")),
-        "ideal_creator":  analysis.get("ideal_creator_profile", ""),
-        "risk_factors":   _safe_list(analysis.get("risk_factors")),
-        "comparable":     _safe_list(analysis.get("comparable_viral_products")),
-        "generated_at":   _now_ist(),
+        "product_name":    virality_data.get("product_name") or analysis.get("product_name") or "Product",
+        "url":             virality_data.get("url") or "",
+        "score":           score,
+        "grade":           grade,
+        "grade_color":     grade_color,
+        "dimensions":      dimensions,
+        "killer_hook":     analysis.get("killer_hook", ""),
+        "viral_angles":    viral_angles,
+        "best_platforms":  _safe_list(analysis.get("best_platforms")),
+        "ideal_creator":   analysis.get("ideal_creator_profile", ""),
+        "risk_factors":    _safe_list(analysis.get("risk_factors")),
+        "comparable":      _safe_list(analysis.get("comparable_viral_products")),
+        "generated_at":    _now_ist(),
+        "scrape_mode":     scrape_mode,
+        "visual_signals":  visual_signals,
+        "text_signals":    text_signals,
+        "fallback_warning": fallback_warning,
     }

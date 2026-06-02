@@ -290,6 +290,24 @@ h1,h2,h3{line-height:1.25}
   color:var(--muted);padding:.18rem .55rem;border-radius:4px;
   background:var(--card2);border:1px solid var(--border);margin-top:.8rem}
 
+/* ── Section accordions ───────────────────────────────────────────────────── */
+details.section-accordion{border:1px solid var(--border);border-radius:var(--r);
+  margin-top:2rem;margin-bottom:.75rem;overflow:hidden}
+details.section-accordion[open] summary.section-header .accordion-arrow{transform:rotate(180deg)}
+summary.section-header{display:flex;align-items:center;gap:.75rem;
+  padding:1rem 1.25rem;cursor:pointer;list-style:none;background:var(--card);
+  user-select:none}
+summary.section-header::-webkit-details-marker{display:none}
+summary.section-header:focus{outline:none}
+.section-num{font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--blue)}
+.section-title{font-size:1.1rem;font-weight:700;letter-spacing:-.2px}
+.section-score-badge{font-size:.8rem;font-weight:700;padding:.18rem .65rem;
+  border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+.accordion-arrow{margin-left:auto;transition:transform .2s;color:var(--blue);
+  font-size:1.1rem;flex-shrink:0}
+.section-body{padding:1.25rem}
+
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem;
   border-top:1px solid var(--border);margin-top:3rem;line-height:1.8}
@@ -308,6 +326,10 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
   /* Each section on its own page */
   .section{page-break-before:always;margin-top:1.5cm}
   .exec{page-break-before:auto;margin-top:0}
+  details.section-accordion{page-break-before:always;margin-top:1.5cm;
+    border:none!important;overflow:visible}
+  details.section-accordion[open],.section-body{display:block!important}
+  summary.section-header{background:#f2f2f2!important;border-bottom:1px solid #ccc}
 
   /* Cards to greyscale */
   .card,.exec-card,.score-item,.stat-box,.qw-card,.opp-card,.rec-card,.cwv-box{
@@ -457,13 +479,92 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {% endif %}
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
+{# 30-DAY ACTION ROADMAP                                                        #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{% if roadmap and (roadmap.week_1 or roadmap.week_2_3 or roadmap.week_4) %}
+<details class="section-accordion" style="margin-top:1.5rem">
+  <summary class="section-header" style="background:linear-gradient(135deg,#0d1f3c,#0a1628)">
+    <span class="section-num" style="color:var(--amber)">📅</span>
+    <span class="section-title">30-Day Action Roadmap</span>
+    <span class="section-score-badge" style="color:var(--amber);border-color:rgba(245,158,11,.3)">Hand to your team Monday</span>
+    <span class="accordion-arrow" style="color:var(--amber)">▾</span>
+  </summary>
+  <div class="section-body">
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.55">
+    Every task below is drawn directly from your audit findings. The first week prioritises zero-risk quick wins
+    that require no development — your team can start tomorrow.
+  </p>
+
+  {% set _weeks = [
+    ("Week 1 — Quick Wins", "Day 1–7", roadmap.week_1 or [], "#22c55e"),
+    ("Week 2–3 — Medium Effort", "Day 8–21", roadmap.week_2_3 or [], "#3b82f6"),
+    ("Week 4 — Foundation", "Day 22–30", roadmap.week_4 or [], "#a78bfa"),
+  ] %}
+
+  {% for week_label, week_range, tasks, week_color in _weeks %}
+  {% if tasks %}
+  <div style="margin-bottom:1.5rem">
+    <div style="display:flex;align-items:baseline;gap:.6rem;margin-bottom:.6rem">
+      <span style="font-size:.78rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.08em;color:{{ week_color }}">{{ week_label }}</span>
+      <span style="font-size:.7rem;color:var(--muted)">{{ week_range }}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      {% for t in tasks %}
+      {% set task_text = t.task if t is mapping else t %}
+      {% set task_days = t.days if t is mapping else '' %}
+      {% set task_effort = t.effort if t is mapping else '' %}
+      {% set task_impact = t.impact if t is mapping else '' %}
+      {% set task_agent = t.agent if t is mapping else '' %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;
+        padding:.8rem 1rem;border-left:3px solid {{ week_color }}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            {% if task_days %}
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;
+              letter-spacing:.07em;color:{{ week_color }};margin-bottom:.25rem">{{ task_days }}</div>
+            {% endif %}
+            <div style="font-size:.87rem;font-weight:500;line-height:1.5;color:var(--text)">{{ task_text }}</div>
+          </div>
+          <div style="flex-shrink:0;text-align:right;display:flex;flex-direction:column;gap:.25rem">
+            {% if task_impact %}
+            <span style="font-size:.75rem;font-weight:700;color:var(--green)">{{ task_impact }}</span>
+            {% endif %}
+            {% if task_effort %}
+            <span style="font-size:.7rem;color:var(--muted)">⏱ {{ task_effort }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if task_agent %}
+        <div style="margin-top:.35rem">
+          <span style="font-size:.67rem;color:var(--muted);background:var(--card);
+            border:1px solid var(--border);border-radius:4px;padding:.1rem .4rem">
+            {{ task_agent }}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+  </div>
+</details>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
 {# SECTION 1: BRAND BASICS                                                     #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="section">
-  <div class="sec-hdr">
-    <span class="sec-num">01</span>
-    <span class="sec-title">Brand Basics</span>
-  </div>
+<!-- SECTION:brand_basics -->
+<details class="section-accordion" open>
+  <summary class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">Brand Basics</span>
+    <span class="section-score-badge" style="color:var(--muted)">—</span>
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
 
   <div class="card">
     <table class="info-table">
@@ -512,16 +613,25 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     </ul>
   </div>
   {% endif %}
-</section>
+  </div>
+</details>
+<!-- /SECTION:brand_basics -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# SECTION 2: CONTENT + CATALOG                                                #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="section">
-  <div class="sec-hdr">
-    <span class="sec-num">02</span>
-    <span class="sec-title">Content &amp; Catalog</span>{{ trend_content | safe }}
-  </div>
+<!-- SECTION:content_catalog -->
+{% set _s2_score = (cc.pdp_quality_score or 0) | int %}
+<details class="section-accordion">
+  <summary class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">Content &amp; Catalog</span>
+    {{ trend_content | safe }}
+    {% if sparklines.content %}{{ sparklines.content | safe }}&nbsp;{% endif %}
+    <span class="section-score-badge" style="color:{{ '#22c55e' if _s2_score >= 7 else ('#f59e0b' if _s2_score >= 5 else '#ef4444') }}">{{ _s2_score }}/10</span>
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
 
   {# — PDP Scorecard — #}
   <div class="subsec-title">PDP Quality Scorecard</div>
@@ -638,16 +748,25 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     </div>
   </div>
   {% endif %}
-</section>
+  </div>
+</details>
+<!-- /SECTION:content_catalog -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# SECTION 3: PERFORMANCE ADS                                                  #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="section">
-  <div class="sec-hdr">
-    <span class="sec-num">03</span>
-    <span class="sec-title">Performance &amp; Ads</span>
-  </div>
+<!-- SECTION:performance_ads -->
+{% set _s3_score = (pa.hook_strength_score or 0) | int %}
+<details class="section-accordion">
+  <summary class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">Performance &amp; Ads</span>
+    {{ trend_ads | safe }}
+    {% if sparklines.ads %}{{ sparklines.ads | safe }}&nbsp;{% endif %}
+    <span class="section-score-badge" style="color:{{ '#22c55e' if _s3_score >= 7 else ('#f59e0b' if _s3_score >= 5 else '#ef4444') }}">{{ _s3_score }}/10 hook</span>
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
 
   {# — Top stats — #}
   <div class="stat-row">
@@ -661,7 +780,6 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
       <div class="stat-num" style="color:{{ hc }}">{{ hs }}<span style="font-size:.9rem;color:var(--muted);font-weight:400">/10</span></div>
       <div class="stat-label">Hook Strength</div>
       {{ bm_chip('hook_strength', hs) | safe }}
-      {{ trend_ads | safe }}
     </div>
     <div class="stat-box">
       {% set cs = (pa.cta_consistency or 0) %}
@@ -746,6 +864,13 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
   </div>
   {% endif %}
 
+  {# — Meta Ads Library link — #}
+  {% if meta_ads_library_url %}
+  <div style="margin-bottom:1rem;font-size:.83rem">
+    {{ linkify(meta_ads_library_url, '↗ View active ads in Meta Ad Library') | safe }}
+  </div>
+  {% endif %}
+
   {# — Suggested angles — #}
   {% if pa.suggested_ad_angles %}
   <div class="subsec" style="margin-top:1.1rem">
@@ -757,16 +882,36 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     </ul>
   </div>
   {% endif %}
-</section>
+  </div>
+</details>
+<!-- /SECTION:performance_ads -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# SECTION 4: GEO VISIBILITY                                                   #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="section">
-  <div class="sec-hdr">
-    <span class="sec-num">04</span>
-    <span class="sec-title">GEO &amp; AI Visibility</span>
+<!-- SECTION:geo_visibility -->
+{% set _s4_score = (geo.geo_score or 0) | int %}
+<details class="section-accordion">
+  <summary class="section-header">
+    <span class="section-num">04</span>
+    <span class="section-title">GEO &amp; AI Visibility</span>
+    {{ trend_geo | safe }}
+    {% if sparklines.geo %}{{ sparklines.geo | safe }}&nbsp;{% endif %}
+    <span class="section-score-badge" style="color:{{ '#22c55e' if _s4_score >= 70 else ('#f59e0b' if _s4_score >= 45 else '#ef4444') }}">{{ _s4_score }}/100</span>
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
+
+  {# — Brand Health Pulse (sparkline + delta) — #}
+  {% if sparklines.geo or pulse_labels.geo %}
+  <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;
+    padding:.55rem .9rem;background:var(--card2);border:1px solid var(--border);border-radius:8px;
+    font-size:.75rem;color:var(--muted)">
+    <span style="font-weight:600">Brand Health Pulse</span>
+    {% if sparklines.geo %}{{ sparklines.geo | safe }}{% endif %}
+    {% if pulse_labels.geo %}{{ pulse_labels.geo | safe }}{% endif %}
   </div>
+  {% endif %}
 
   {# — GEO score + likelihood — #}
   {% set gs = (geo.geo_score or 0) | int %}
@@ -776,7 +921,6 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
       <div style="font-size:3rem;font-weight:900;color:{{ gc }};line-height:1">{{ gs }}</div>
       <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">/100 GEO Score</div>
       {{ bm_chip('geo_score', gs) | safe }}
-      {{ trend_geo | safe }}
     </div>
     <div>
       <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.3rem">AI Citation Likelihood</div>
@@ -866,16 +1010,25 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     {% endfor %}
   </div>
   {% endif %}
-</section>
+  </div>
+</details>
+<!-- /SECTION:geo_visibility -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# SECTION 5: STORE + CRO                                                      #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="section">
-  <div class="sec-hdr">
-    <span class="sec-num">05</span>
-    <span class="sec-title">Store &amp; CRO</span>
-  </div>
+<!-- SECTION:store_cro -->
+{% set _s5_score = mobile_score | int %}
+<details class="section-accordion">
+  <summary class="section-header">
+    <span class="section-num">05</span>
+    <span class="section-title">Store &amp; CRO</span>
+    {{ trend_store | safe }}
+    {% if sparklines.store %}{{ sparklines.store | safe }}&nbsp;{% endif %}
+    <span class="section-score-badge" style="color:{{ '#22c55e' if _s5_score >= 80 else ('#f59e0b' if _s5_score >= 50 else '#ef4444') }}">{{ _s5_score }}/100 mobile</span>
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
 
   {# — PageSpeed circles — #}
   <div class="subsec-title">PageSpeed Scores</div>
@@ -883,7 +1036,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     <div>
       {{ ps_ring(mobile_score, mobile_score | ps_hex, 'Mobile') }}
       {{ bm_chip('mobile_pagespeed', mobile_score) | safe }}
-      {{ trend_store | safe }}
+      <div style="margin-top:.4rem;font-size:.78rem">{{ linkify(pagespeed_report_url, '↗ Full PageSpeed Report') | safe }}</div>
     </div>
     {{ ps_ring(desktop_score, desktop_score | ps_hex, 'Desktop') }}
     <div style="flex:1;min-width:200px">
@@ -967,16 +1120,45 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     </div>
   </div>
   {% endif %}
-</section>
+  </div>
+</details>
+<!-- /SECTION:store_cro -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# SECTION 6: COMPETITIVE RESEARCH                                             #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
-<section class="section">
-  <div class="sec-hdr">
-    <span class="sec-num">06</span>
-    <span class="sec-title">Competitive Landscape</span>
+<!-- SECTION:research -->
+{% set _s6_score = (res.research_score or 0) | int %}
+<details class="section-accordion">
+  <summary class="section-header">
+    <span class="section-num">06</span>
+    <span class="section-title">Competitive Landscape</span>
+    {% if sparklines.research %}{{ sparklines.research | safe }}&nbsp;{% endif %}
+    <span class="section-score-badge" style="color:{{ '#22c55e' if _s6_score >= 7 else ('#f59e0b' if _s6_score >= 5 else '#ef4444') }}">{{ _s6_score }}/10</span>
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
+
+  {# — Whitespace Score — #}
+  {% if whitespace and whitespace.score is defined %}
+  {% set ws = whitespace.score %}
+  {% set ws_color = "#22c55e" if ws >= 70 else ("#f59e0b" if ws >= 40 else "#ef4444") %}
+  <div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--r);
+    padding:1.1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
+    <div style="text-align:center;flex-shrink:0">
+      <div style="font-size:2.2rem;font-weight:900;color:{{ ws_color }};line-height:1">{{ ws }}</div>
+      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Whitespace<br>Score /100</div>
+    </div>
+    <div>
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+        color:{{ ws_color }};margin-bottom:.3rem">
+        {% if ws >= 70 %}🌊 Blue Ocean{% elif ws >= 40 %}⚔ Contested Market{% else %}🔴 Red Ocean{% endif %}
+        &nbsp;·&nbsp; {{ whitespace.zone | default('') }}
+      </div>
+      <div style="font-size:.87rem;line-height:1.55;color:var(--text)">{{ whitespace.message | default('') }}</div>
+    </div>
   </div>
+  {% endif %}
 
   {# — Market positioning note — #}
   {% if res.brand_positioning_vs_market %}
@@ -1193,7 +1375,9 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 
   {% endif %}{# /market_forecast #}
 
-</section>
+  </div>
+</details>
+<!-- /SECTION:research -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {# FOOTER                                                                      #}

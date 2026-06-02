@@ -19,6 +19,9 @@ _using_fallback = False  # flips to True once 70B is rate-limited this session
 _RETRY_ATTEMPTS   = 3
 _RETRY_BASE_DELAY = 10.0
 
+# Cap concurrent LLM calls to avoid exhausting Groq free-tier TPM in burst scenarios
+_LLM_SEMAPHORE = asyncio.Semaphore(3)
+
 _JSON_FENCE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
 
 _TOKENS_USED: int = 0
@@ -82,15 +85,16 @@ class GroqClient:
         for attempt in range(_RETRY_ATTEMPTS):
             model = self._active_model()
             try:
-                resp = await self._client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": user_content},
-                    ],
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
+                async with _LLM_SEMAPHORE:
+                    resp = await self._client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user",   "content": user_content},
+                        ],
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                    )
                 return resp.choices[0].message.content or ""
             except RateLimitError:
                 if not _using_fallback:

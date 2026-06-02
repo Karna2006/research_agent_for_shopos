@@ -48,7 +48,7 @@ def _migrate_columns() -> None:
 
     with engine.begin() as conn:
         existing = {c["name"] for c in inspect(engine).get_columns("auditrun")}
-        for col in ("share_token", "one_thing", "changes_summary"):
+        for col in ("share_token", "one_thing", "changes_summary", "roadmap_json"):
             if col not in existing:
                 if _DB_BACKEND == "sqlite":
                     conn.execute(text(f"ALTER TABLE auditrun ADD COLUMN {col} VARCHAR"))

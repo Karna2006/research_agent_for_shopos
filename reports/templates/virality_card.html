@@ -18,6 +18,13 @@ h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
    letter-spacing:.1em;margin-bottom:.75rem}
 .card{background:var(--surface);border:1px solid var(--border);
       border-radius:var(--radius);padding:1.4rem;margin-bottom:1.25rem}
+/* ── Scrape mode banner ───────────────────────────────────────────────────── */
+.scrape-mode-banner{display:flex;align-items:center;gap:.6rem;
+  border-radius:8px;padding:.55rem .9rem;margin-bottom:1.25rem;
+  font-size:.8rem;font-weight:600;border:1px solid transparent}
+.scrape-mode-banner.url-based{background:#0d2010;border-color:#166534;color:#86efac}
+.scrape-mode-banner.scrape-failed{background:#1e0f00;border-color:#92400e;color:#fbbf24}
+.scrape-mode-banner.text-only{background:#0f172a;border-color:#334155;color:#94a3b8}
 /* ── Header ───────────────────────────────────────────────────────────────── */
 .vc-header{text-align:center;margin-bottom:1.75rem}
 .brand-tag{display:inline-block;background:rgba(255,255,255,.06);
@@ -42,7 +49,7 @@ h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
   background:var(--score-color);color:#000;margin-bottom:.5rem}
 .grade-subtitle{font-size:.82rem;color:var(--muted)}
 /* ── Dimension bars ───────────────────────────────────────────────────────── */
-.dim-row{margin-bottom:.85rem}
+.dim-row{margin-bottom:1rem}
 .dim-header{display:flex;justify-content:space-between;
   align-items:baseline;margin-bottom:.3rem}
 .dim-label{font-size:.88rem;font-weight:500}
@@ -53,10 +60,20 @@ h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
   transition:width .5s ease}
 .dim-reasoning{font-size:.78rem;color:var(--muted);margin-top:.3rem;
   padding-left:.1rem}
+.dim-evidence{font-size:.74rem;color:#4b9cd3;margin-top:.28rem;
+  padding-left:.1rem;font-style:italic;line-height:1.45}
+.dim-evidence::before{content:"↳ Evidence: "}
 .dim-signals{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem}
 .dim-signal{font-size:.72rem;background:rgba(255,255,255,.05);
   border:1px solid var(--border);border-radius:4px;padding:.15rem .45rem;
   color:var(--muted)}
+/* ── Visual signals grid ──────────────────────────────────────────────────── */
+.vs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.65rem}
+.vs-item{background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:.6rem .75rem;text-align:center}
+.vs-val{font-size:1.1rem;font-weight:700;color:var(--score-color);line-height:1.2}
+.vs-lbl{font-size:.68rem;color:var(--muted);margin-top:.18rem;line-height:1.3}
+.vs-yes{color:#22c55e}.vs-no{color:#6b7280}.vs-partial{color:#f59e0b}
 /* ── Killer hook ──────────────────────────────────────────────────────────── */
 .hook-box{background:linear-gradient(135deg,#1a1000,#0d0d00);
   border:1px solid #3d2e00;border-radius:var(--radius);padding:1.25rem 1.5rem;
@@ -73,8 +90,15 @@ h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
   border-radius:10px;padding:1rem;display:flex;gap:.75rem;align-items:flex-start}
 .angle-num{width:28px;height:28px;border-radius:50%;
   background:var(--score-color);color:#000;font-weight:700;font-size:.8rem;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
+.angle-body{flex:1;min-width:0}
 .angle-text{font-size:.88rem;line-height:1.5;color:var(--text)}
+.angle-meta{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem}
+.angle-chip{font-size:.7rem;border-radius:4px;padding:.12rem .4rem;
+  border:1px solid var(--border);color:var(--muted)}
+.angle-chip.platform{border-color:#3b82f660;color:#93c5fd}
+.angle-chip.hook{border-color:#a78bfa60;color:#c4b5fd;font-style:italic}
+.angle-chip.reach{border-color:#22c55e60;color:#86efac}
 /* ── Platform badges ──────────────────────────────────────────────────────── */
 .platform-badges{display:flex;flex-wrap:wrap;gap:.5rem}
 .platform-badge{display:flex;align-items:center;gap:.4rem;
@@ -106,6 +130,8 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
   .hook-box{background:#fffde7;border-color:#e6c500}
   .hook-text{color:#7a5200}
   .hook-box::before{color:rgba(180,130,0,.15)}
+  .scrape-mode-banner{background:#f0f0f0!important;border-color:#ccc!important;
+    color:#333!important}
 }
 </style>
 </head>
@@ -117,6 +143,25 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
   <h1 class="product-name">{{ product_name }}</h1>
   {% if url %}<div class="product-url">{{ url }}</div>{% endif %}
 </div>
+
+<!-- ── Scrape mode banner ──────────────────────────────────────────────────── -->
+{% if scrape_mode == "url_based" %}
+<div class="scrape-mode-banner url-based">
+  🔍 URL-based analysis — scores backed by scraped images and page content
+</div>
+{% elif scrape_mode == "scrape_failed" %}
+<div class="scrape-mode-banner scrape-failed">
+  ⚠ URL not accessible — scored from description only. Add a working product URL for image-based analysis.
+</div>
+{% elif fallback_warning %}
+<div class="scrape-mode-banner text-only">
+  ℹ {{ fallback_warning }}
+</div>
+{% else %}
+<div class="scrape-mode-banner text-only">
+  ℹ No URL provided — scored from description only. Add a product URL for visual signal analysis.
+</div>
+{% endif %}
 
 <!-- ── Score ring ──────────────────────────────────────────────────────────── -->
 <div class="card score-section">
@@ -155,6 +200,9 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
     {% if dim.reasoning %}
     <div class="dim-reasoning">{{ dim.reasoning }}</div>
     {% endif %}
+    {% if dim.evidence %}
+    <div class="dim-evidence">{{ dim.evidence }}</div>
+    {% endif %}
     {% if dim.signals %}
     <div class="dim-signals">
       {% for s in dim.signals %}
@@ -165,6 +213,89 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
   </div>
   {% endfor %}
 </div>
+
+<!-- ── Visual Signals (only when URL-based) ────────────────────────────────── -->
+{% if scrape_mode == "url_based" and visual_signals %}
+<div class="card">
+  <h2>Visual Signals Detected</h2>
+  <div class="vs-grid">
+    <div class="vs-item">
+      <div class="vs-val">{{ visual_signals.get("image_count", 0) }}</div>
+      <div class="vs-lbl">Product Images</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">{{ visual_signals.get("images_analyzed", 0) }}</div>
+      <div class="vs-lbl">Images Analysed</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val" style="text-transform:capitalize">
+        {{ visual_signals.get("primary_color_name", "—") }}
+      </div>
+      <div class="vs-lbl">Dominant Color</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">
+        {% if visual_signals.get("has_lifestyle_shot") %}
+        <span class="vs-yes">Yes</span>
+        {% else %}
+        <span class="vs-no">No</span>
+        {% endif %}
+      </div>
+      <div class="vs-lbl">Lifestyle Shot</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">
+        {% if visual_signals.get("has_before_after") %}
+        <span class="vs-yes">Yes</span>
+        {% else %}
+        <span class="vs-no">No</span>
+        {% endif %}
+      </div>
+      <div class="vs-lbl">Before / After</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">
+        {% if visual_signals.get("has_video") %}
+        <span class="vs-yes">Yes</span>
+        {% else %}
+        <span class="vs-no">No</span>
+        {% endif %}
+      </div>
+      <div class="vs-lbl">Video Content</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">{{ visual_signals.get("visual_contrast", 0) }}/10</div>
+      <div class="vs-lbl">Visual Contrast</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">{{ visual_signals.get("image_richness", 0) }}/10</div>
+      <div class="vs-lbl">Image Richness</div>
+    </div>
+    <div class="vs-item">
+      <div class="vs-val">
+        {% if visual_signals.get("background_is_white") %}
+        <span class="vs-partial">Studio</span>
+        {% else %}
+        <span class="vs-yes">Lifestyle</span>
+        {% endif %}
+      </div>
+      <div class="vs-lbl">Background Type</div>
+    </div>
+  </div>
+  {% if text_signals %}
+  <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
+    <div style="font-size:.74rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem">
+      <span>📝 <strong>{{ text_signals.get("description_length", 0) }}</strong> description words</span>
+      <span>💬 <strong>{{ text_signals.get("review_count", 0) }}</strong> reviews</span>
+      {% if text_signals.get("avg_rating") %}
+      <span>⭐ <strong>{{ text_signals.get("avg_rating") }}</strong>/5 rating</span>
+      {% endif %}
+      <span>✅ <strong>{{ (text_signals.get("benefit_ratio", 0) * 100) | round | int }}%</strong> benefit language</span>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
 
 <!-- ── Killer Hook ─────────────────────────────────────────────────────────── -->
 {% if killer_hook %}
@@ -182,7 +313,22 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
     {% for angle in viral_angles %}
     <div class="angle-card">
       <div class="angle-num">{{ loop.index }}</div>
-      <div class="angle-text">{{ angle }}</div>
+      <div class="angle-body">
+        <div class="angle-text">{{ angle.text }}</div>
+        {% if angle.platform or angle.reach or angle.hook %}
+        <div class="angle-meta">
+          {% if angle.platform %}
+          <span class="angle-chip platform">📱 {{ angle.platform }}</span>
+          {% endif %}
+          {% if angle.reach %}
+          <span class="angle-chip reach">📈 {{ angle.reach }}</span>
+          {% endif %}
+          {% if angle.hook %}
+          <span class="angle-chip hook">"{{ angle.hook }}"</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
     </div>
     {% endfor %}
   </div>

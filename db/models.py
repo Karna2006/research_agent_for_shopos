@@ -31,6 +31,7 @@ class AuditRun(SQLModel, table=True):
     one_thing: Optional[str] = None
     monitoring: bool = False
     changes_summary: Optional[str] = None   # JSON — LLM-generated change diff
+    roadmap_json: Optional[str] = None      # JSON — 30-day action roadmap
 
 
 class CompareRun(SQLModel, table=True):

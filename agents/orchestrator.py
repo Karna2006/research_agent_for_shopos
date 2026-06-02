@@ -63,6 +63,33 @@ _AGENT_LABELS = {
     "research":        "Competitive Research",
 }
 
+_ROADMAP_PROMPT = """\
+You are a D2C ecommerce consultant creating a 30-day action roadmap.
+Given this brand audit, return a concrete week-by-week plan.
+
+Output ONLY valid JSON — no preamble, no markdown. Start with { and end with }:
+{
+  "week_1": [
+    {"days": "Day 1-2", "task": "specific action sentence", "effort": "2-4 hours", "impact": "+X% metric", "agent": "Store & CRO"}
+  ],
+  "week_2_3": [
+    {"days": "Day 8-10", "task": "...", "effort": "1 day", "impact": "+Y%", "agent": "GEO & AI Visibility"}
+  ],
+  "week_4": [
+    {"days": "Day 22-28", "task": "...", "effort": "3-5 days", "impact": "+Z%", "agent": "Content & Catalog"}
+  ]
+}
+
+Rules:
+- week_1: exactly 3 tasks — Low effort, highest-impact quick wins from the worst scores
+- week_2_3: exactly 3 tasks — Medium effort improvements
+- week_4: exactly 2 tasks — Foundation work for long-term growth
+- Every task must cite a specific finding from the audit (not generic advice)
+- impact must be a specific metric range (e.g. '+5-8% mobile conversion')
+- effort must be realistic calendar time (e.g. '1-2 hours', '1 day', '3-5 days')
+- agent must be one of: Brand Basics | Content & Catalog | Performance & Ads | GEO & AI Visibility | Store & CRO | Competitive Intel
+"""
+
 _ONE_THING_PROMPT = (
     "You are a senior ecommerce consultant. Given this complete brand audit data, "
     "identify THE single highest-impact action this brand can take in the next 7 days. "
@@ -76,6 +103,41 @@ _ONE_THING_PROMPT = (
     "missing ATC are costing ~15% of mobile conversions.'\n\n"
     "Output only the sentence, nothing else."
 )
+
+
+async def _generate_roadmap(llm, results: dict) -> dict:
+    """One LLM call that turns all 6 agent outputs into a 30-day action roadmap."""
+    try:
+        summary = {
+            "scores": {
+                "geo":           _nested(results, "geo_visibility",  "analysis", "geo_score"),
+                "mobile_speed":  _nested(results, "store_cro",       "pagespeed", "mobile_score"),
+                "pdp_quality":   _nested(results, "content_catalog", "analysis", "pdp_quality_score"),
+                "hook_strength": _nested(results, "performance_ads", "analysis", "hook_strength_score"),
+                "cro":           _nested(results, "store_cro",       "analysis", "cro_score"),
+                "research":      _nested(results, "research",        "analysis", "research_score"),
+            },
+            "top_cro_fixes":    (_nested(results, "store_cro",       "analysis", "top_5_cro_fixes")    or [])[:3],
+            "schema_missing":   (_nested(results, "geo_visibility",  "analysis", "schema_missing")      or [])[:3],
+            "pdp_weaknesses":   (_nested(results, "content_catalog", "analysis", "pdp_weaknesses")      or [])[:3],
+            "top_3_content":    (_nested(results, "content_catalog", "analysis", "top_3_improvements")  or [])[:3],
+            "ad_quick_wins":    (_nested(results, "performance_ads", "analysis", "top_3_ad_quick_wins") or [])[:2],
+            "geo_roadmap":      (_nested(results, "geo_visibility",  "analysis", "geo_improvement_roadmap") or [])[:2],
+            "strategic_recs":   (_nested(results, "research",        "analysis", "strategic_recommendations") or [])[:2],
+            "whitespace":       _nested(results, "research", "whitespace"),
+        }
+        raw = await llm.analyze_structured(
+            system_prompt=_ROADMAP_PROMPT,
+            user_content=f"Audit data:\n{json.dumps(summary, indent=2, default=str)}",
+            max_tokens=1400,
+            temperature=0.3,
+        )
+        if "_parse_error" in raw:
+            return {}
+        return raw
+    except Exception as exc:
+        print(f"  [roadmap] skipped — {exc}", flush=True)
+        return {}
 
 
 async def _generate_one_thing(llm, results: dict) -> str:
@@ -252,6 +314,8 @@ async def run_full_audit(url: str) -> dict:
 
     print("  Generating highest-impact recommendation…", flush=True)
     one_thing = await _generate_one_thing(llm, results)
+    print("  Generating 30-day action roadmap…", flush=True)
+    roadmap = await _generate_roadmap(llm, results)
 
     return {
         "url": url,
@@ -263,6 +327,7 @@ async def run_full_audit(url: str) -> dict:
         "manual_tools": _MANUAL_TOOL_LINKS if overall_coverage == "critical_failure" else [],
         "agent_status": agent_status,
         "one_thing": one_thing,
+        "roadmap": roadmap,
         "results": results,
     }
 
@@ -328,6 +393,8 @@ async def run_all(audit_id: int) -> None:
 
     print("  Generating highest-impact recommendation…", flush=True)
     one_thing = await _generate_one_thing(llm, agent_results)
+    print("  Generating 30-day action roadmap…", flush=True)
+    roadmap = await _generate_roadmap(llm, agent_results)
 
     overall_coverage = (
         "critical_failure" if failed_count >= 4
@@ -340,7 +407,8 @@ async def run_all(audit_id: int) -> None:
                 status="complete",
                 current_agent=None,
                 progress_pct=100,
-                one_thing=one_thing)
+                one_thing=one_thing,
+                roadmap_json=json.dumps(roadmap) if roadmap else None)
 
     print(f"  Audit #{audit_id} complete (coverage: {overall_coverage}).", flush=True)
     if one_thing:
