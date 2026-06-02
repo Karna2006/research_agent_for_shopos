@@ -12,7 +12,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 # ── Patch env before importing app ────────────────────────────────────────────
-os.environ.setdefault("GROQ_API_KEY", "test-key")
+os.environ.setdefault("GEMINI_API_KEY", "test-key")
 os.environ.setdefault("DATABASE_URL", "")  # force SQLite
 
 # Use in-memory SQLite for all tests in this module
@@ -244,4 +244,4 @@ async def test_status_database_field(client):
 async def test_status_cache_field(client):
     """cache field is 'memory' or 'redis'."""
     resp = await client.get("/status")
-    assert resp.json()["cache"] in ("memory", "redis")
+    assert resp.json()["cache"] in ("in-memory", "redis")

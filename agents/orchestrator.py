@@ -1,4 +1,10 @@
-"""Orchestrates all 6 agents in phased parallelism, writes progress to DB + console."""
+"""Orchestrates all 6 agents sequentially, writes progress to DB + console.
+
+Sequential execution chosen deliberately for Groq free-tier reliability:
+parallel LLM calls exhaust the token-per-minute limit (~14-20k tokens/min)
+causing cascading 429 retries that make the pipeline slower, not faster.
+Revert to parallel when on a paid LLM tier with higher rate limits.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -207,7 +213,7 @@ async def _run_phase1(
 # ── Standalone entry point (no DB) ────────────────────────────────────────────
 
 async def run_full_audit(url: str) -> dict:
-    """Run a complete audit without touching the database."""
+    """Run a complete 6-agent audit sequentially without touching the database."""
     brand_name = _brand_name_from_url(url)
     llm     = get_client()
     scraper = WebScraper()
@@ -222,70 +228,27 @@ async def run_full_audit(url: str) -> dict:
     print(f"Brand: {brand_name}", flush=True)
     print("-" * 48, flush=True)
 
-    # ── Phase 1: parallel data gathering ──────────────────────────────────────
-    prefetched = await _run_phase1(url, brand_name, scraper, search, llm)
+    for idx, key in enumerate(AGENT_SEQUENCE, start=1):
+        label = _AGENT_LABELS[key]
+        t0 = time.monotonic()
+        error = None
+        try:
+            result = await agents[key].run(url, brand_name)
+            if "error" in result:
+                error = result["error"]
+        except Exception as exc:
+            error = str(exc)
+            result = _err_result(key, exc)
+        elapsed = time.monotonic() - t0
+        results[key] = result
+        agent_status.append(_make_status(key, result, elapsed, error))
+        _log(idx, 6, label, elapsed, error)
 
-    # ── Phase 2: brand_basics (sequential — others depend on its output) ──────
-    t0 = time.monotonic()
-    try:
-        bb_result = await agents["brand_basics"].run(url, brand_name, prefetched=prefetched)
-        bb_error = bb_result.get("error")
-    except Exception as exc:
-        bb_error = str(exc)
-        bb_result = _err_result("brand_basics", exc)
-    bb_elapsed = time.monotonic() - t0
-    results["brand_basics"] = bb_result
-    agent_status.append(_make_status("brand_basics", bb_result, bb_elapsed, bb_error))
-    _log(1, 6, "Brand Basics", bb_elapsed, bb_error)
-
-    # ── Phase 3: four agents in parallel ──────────────────────────────────────
-    phase3_keys = ["content_catalog", "performance_ads", "geo_visibility", "store_cro"]
-    t3 = time.monotonic()
-    phase3_outcomes = await asyncio.gather(
-        *[_timed(k, agents[k].run(url, brand_name, prefetched=prefetched)) for k in phase3_keys],
-        return_exceptions=True,
-    )
-    for p3_idx, (key, outcome, elapsed) in enumerate(phase3_outcomes, start=2):
-        if isinstance(outcome, Exception):
-            err = str(outcome)
-            res = _err_result(key, outcome)
-        else:
-            err = outcome.get("error")
-            res = outcome
-        results[key] = res
-        agent_status.append(_make_status(key, res, elapsed, err))
-        _log(p3_idx, 6, _AGENT_LABELS[key], elapsed, err)
-
-    print(f"  [phase3] Parallel agents done ({round(time.monotonic() - t3, 1)}s total)", flush=True)
-
-    # ── Phase 4: research (uses brand_basics context) ─────────────────────────
-    context = {
-        "category":          _nested(bb_result, "analysis", "core_categories"),
-        "brand_positioning": _nested(bb_result, "analysis", "brand_positioning"),
-    }
-    t0 = time.monotonic()
-    try:
-        rs_result = await agents["research"].run(
-            url, brand_name, prefetched=prefetched, context=context
-        )
-        rs_error = rs_result.get("error")
-    except Exception as exc:
-        rs_error = str(exc)
-        rs_result = _err_result("research", exc)
-    rs_elapsed = time.monotonic() - t0
-    results["research"] = rs_result
-    agent_status.append(_make_status("research", rs_result, rs_elapsed, rs_error))
-    _log(6, 6, "Competitive Research", rs_elapsed, rs_error)
-
-    # ── Phase 5: compile ──────────────────────────────────────────────────────
     total_time = round(time.monotonic() - overall_start, 2)
     overall_coverage, failed_agents = _classify_failure(results)
     print(f"\n  Completed in {total_time}s", flush=True)
     if overall_coverage == "critical_failure":
-        print(
-            f"  ⚠  {len(failed_agents)} agents failed — partial report only.",
-            flush=True,
-        )
+        print(f"  ⚠  {len(failed_agents)} agents failed — partial report only.", flush=True)
 
     print("  Generating highest-impact recommendation…", flush=True)
     one_thing = await _generate_one_thing(llm, results)
@@ -307,7 +270,7 @@ async def run_full_audit(url: str) -> dict:
 # ── DB-backed entry point (called by FastAPI BackgroundTasks) ──────────────────
 
 async def run_all(audit_id: int) -> None:
-    """Background entry point — reads/writes AuditRun row in SQLite."""
+    """Background entry point — sequential 6-agent run, writes progress to DB."""
     with Session(engine) as session:
         audit = session.get(AuditRun, audit_id)
         if not audit:
@@ -326,103 +289,58 @@ async def run_all(audit_id: int) -> None:
     print("-" * 48, flush=True)
 
     agent_results: dict = {}
-    failed_count = 0
-
-    # ── Phase 1: parallel data gathering ──────────────────────────────────────
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, current_agent="gathering_data", progress_pct=5)
-
-    prefetched = await _run_phase1(url, brand_name, scraper, search, llm)
-
-    # ── Phase 2: brand_basics ─────────────────────────────────────────────────
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, current_agent="brand_basics", progress_pct=15)
-
-    try:
-        bb_result = await agents["brand_basics"].run(url, brand_name, prefetched=prefetched)
-        if "error" in bb_result:
-            failed_count += 1
-    except Exception as exc:
-        bb_result = _err_result("brand_basics", exc)
-        failed_count += 1
-    agent_results["brand_basics"] = bb_result
-
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, brand_basics=json.dumps(bb_result), progress_pct=25)
-
-    # ── Phase 3: four agents in parallel ──────────────────────────────────────
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, current_agent="content_catalog", progress_pct=30)
-
-    phase3_keys = ["content_catalog", "performance_ads", "geo_visibility", "store_cro"]
-    phase3_outcomes = await asyncio.gather(
-        *[_timed(k, agents[k].run(url, brand_name, prefetched=prefetched)) for k in phase3_keys],
-        return_exceptions=True,
-    )
-    phase3_writes: dict = {}
-    for key, outcome, elapsed in phase3_outcomes:
-        if isinstance(outcome, Exception):
-            res = _err_result(key, outcome)
-            failed_count += 1
-        else:
-            if "error" in outcome:
-                failed_count += 1
-            res = outcome
-        agent_results[key] = res
-        phase3_writes[key] = json.dumps(res)
-        _log(len(agent_results), 6, _AGENT_LABELS[key], elapsed, res.get("error"))
-
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, **phase3_writes, progress_pct=80)
-
-    # ── Phase 4: research ─────────────────────────────────────────────────────
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, current_agent="research", progress_pct=85)
-
-    context = {
-        "category":          _nested(bb_result, "analysis", "core_categories"),
-        "brand_positioning": _nested(bb_result, "analysis", "brand_positioning"),
+    failed_count   = 0
+    db_field_map   = {
+        "brand_basics":    "brand_basics",
+        "content_catalog": "content_catalog",
+        "performance_ads": "performance_ads",
+        "geo_visibility":  "geo_visibility",
+        "store_cro":       "store_cro",
+        "research":        "research",
     }
-    try:
-        rs_result = await agents["research"].run(
-            url, brand_name, prefetched=prefetched, context=context
-        )
-        if "error" in rs_result:
+
+    for idx, key in enumerate(AGENT_SEQUENCE, start=1):
+        label    = _AGENT_LABELS[key]
+        progress = int((idx - 1) / 6 * 100)
+
+        with Session(engine) as session:
+            audit = session.get(AuditRun, audit_id)
+            _db_set(session, audit, current_agent=key, progress_pct=progress)
+
+        t0 = time.monotonic()
+        try:
+            result = await agents[key].run(url, brand_name)
+            if "error" in result:
+                failed_count += 1
+        except Exception as exc:
+            result = _err_result(key, exc)
             failed_count += 1
-    except Exception as exc:
-        rs_result = _err_result("research", exc)
-        failed_count += 1
-    agent_results["research"] = rs_result
+        elapsed = time.monotonic() - t0
 
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit, research=json.dumps(rs_result), progress_pct=95)
+        agent_results[key] = result
+        _log(idx, 6, label, elapsed, result.get("error"))
 
-    # ── Phase 5: one_thing compile ─────────────────────────────────────────────
+        with Session(engine) as session:
+            audit = session.get(AuditRun, audit_id)
+            _db_set(session, audit,
+                    **{db_field_map[key]: json.dumps(result)},
+                    progress_pct=int(idx / 6 * 95))
+
     print("  Generating highest-impact recommendation…", flush=True)
     one_thing = await _generate_one_thing(llm, agent_results)
 
     overall_coverage = (
         "critical_failure" if failed_count >= 4
-        else "partial" if failed_count > 0
+        else "partial"     if failed_count > 0
         else "complete"
     )
     with Session(engine) as session:
         audit = session.get(AuditRun, audit_id)
-        _db_set(
-            session,
-            audit,
-            status="complete",
-            current_agent=None,
-            progress_pct=100,
-            one_thing=one_thing,
-        )
+        _db_set(session, audit,
+                status="complete",
+                current_agent=None,
+                progress_pct=100,
+                one_thing=one_thing)
 
     print(f"  Audit #{audit_id} complete (coverage: {overall_coverage}).", flush=True)
     if one_thing:

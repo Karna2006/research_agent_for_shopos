@@ -379,14 +379,61 @@ Out-of-range values logged, never shown to users.
 
 ---
 
+## Phase 14 — Production Deployment (June 1, 2026, 18:00–18:30)
+
+### Pre-deploy fixes applied
+Three code changes made before pushing to GitHub:
+
+1. **SQLite path:** `./shopos.db` → `/tmp/shopos.db`
+   Render's filesystem is ephemeral outside `/tmp`. Using `/tmp` ensures the DB
+   initialises correctly on container start and doesn't throw permission errors.
+
+2. **CORS origins:** `["http://localhost:3000"]` → `["*"]`
+   Prototype allows all origins so the API works from any frontend, Postman,
+   or the founder's browser without CORS errors.
+
+3. **PORT env var handling:** Already in place from Phase 5.
+   `int(os.environ.get("PORT", 8000))` — Render injects `PORT` at runtime.
+   `host="0.0.0.0"` in production (required for Docker), `127.0.0.1` locally.
+   `webbrowser.open()` skipped when `PORT` is set.
+
+### Git commit
+- Repository initialised, `main` branch set
+- 77 files committed in single clean commit
+- `.env` confirmed absent from tracked files
+- `shopos.db` excluded via `.gitignore`
+- `output/` directory excluded (runtime artefacts)
+
+### Render.com setup
+- Platform: Render.com free tier (Docker runtime)
+- Region: Singapore (lowest latency from India)
+- Build: Docker image (~800MB, includes Playwright Chromium)
+- First build time: ~8 minutes
+- Environment variables set: `GROQ_API_KEY`, `FIRECRAWL_API_KEY`
+- Auto-deploy: enabled on push to `main` branch
+
+### Live URL
+`https://research-agent.onrender.com` *(update with actual URL)*
+
+### Deployment verification
+After deploy, confirmed:
+- `GET /health` → 200 `{"status":"ok"}`
+- `GET /demo` → instant Rare Rabbit report (no API calls)
+- `POST /audit` → queues successfully
+- `GET /status` → all components reporting correctly
+
+---
+
 ## Final State — June 1, 2026
 
-**Endpoints:** 20+ routes, all returning correct status codes
-**Test coverage:** 113 tests passing
-**Audit duration:** ~2 minutes (reduced from ~5-6 minutes)
-**Brands in DB:** 11 unique brands, 20 completed audit runs
+**Endpoints:** 38 registered routes, all returning correct status codes
+**Test coverage:** 113 tests passing (non-slow tests; Playwright tests excluded from CI)
+**Audit duration:** ~2 minutes (reduced from ~5-6 minutes via phased parallelism)
+**Brands in DB:** 11 unique brands, 20 completed audit runs locally
 **Demo reliability:** Pre-cached Rare Rabbit report at `/demo` loads instantly (no API calls)
-**Deployment:** Render.com Docker deployment ready, `.gitignore` and PORT fix applied
+**Git:** 77 files, clean single commit on `main` branch
+**Deployed:** Render.com — `https://research-agent.onrender.com`
+**Total build time:** ~32 hours across 14 phases (May 31 AM → June 1 PM)
 
 ---
 

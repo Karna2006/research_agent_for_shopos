@@ -35,7 +35,7 @@ if _raw_url:
     _DB_BACKEND = "postgresql"
 else:
     engine = create_engine(
-        "sqlite:////tmp/shopos.db",
+        "sqlite:///./shopos.db",
         echo=False,
         connect_args={"check_same_thread": False},
     )

@@ -1,4 +1,8 @@
-"""Groq API client — Llama 3.1 70B, with retry, JSON parsing, and token counting."""
+"""Groq LLM client — llama-3.3-70b-versatile primary, 8b-instant fallback.
+
+Primary:  llama-3.3-70b-versatile — best quality, 100k tokens/day free
+Fallback: llama-3.1-8b-instant    — activates on 429/rate-limit, 500k tokens/day
+"""
 import asyncio
 import json
 import os
@@ -8,42 +12,23 @@ from typing import Any
 
 from groq import AsyncGroq, RateLimitError, APIStatusError
 
-MODEL = "llama-3.3-70b-versatile"
+MODEL          = "llama-3.3-70b-versatile"
+FALLBACK_MODEL = "llama-3.1-8b-instant"
+_using_fallback = False  # flips to True once 70B is rate-limited this session
 
-# Groq free tier: ~14,400 tokens/min for 70B.
-# We track usage and warn; we never hard-block (the API will 429 before we do).
-_TOKENS_USED: int = 0
-_WINDOW_START: float = time.monotonic()
-_TOKEN_WARN_THRESHOLD = 12_000  # warn before hitting the ceiling
+_RETRY_ATTEMPTS   = 3
+_RETRY_BASE_DELAY = 10.0
 
-_RETRY_ATTEMPTS = 3
-_RETRY_BASE_DELAY = 10.0  # seconds for rate-limit retries: 10s, 20s, 40s
-
-# JSON fence pattern — strips ```json ... ``` wrappers the model sometimes adds
 _JSON_FENCE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
 
-
-def _track_tokens(prompt_tokens: int, completion_tokens: int) -> None:
-    global _TOKENS_USED, _WINDOW_START
-    now = time.monotonic()
-    if now - _WINDOW_START > 60:
-        _TOKENS_USED = 0
-        _WINDOW_START = now
-    _TOKENS_USED += prompt_tokens + completion_tokens
-    if _TOKENS_USED > _TOKEN_WARN_THRESHOLD:
-        print(
-            f"[groq] ⚠  ~{_TOKENS_USED} tokens used this minute "
-            f"(free limit ~14 400). Slowdowns likely."
-        )
+_TOKENS_USED: int = 0
+_MINUTE_START: float = time.monotonic()
 
 
 def _extract_json(text: str) -> str:
-    """Strip markdown fences and pull out the first complete JSON object/array."""
-    # Remove fences first
     fence_match = _JSON_FENCE.search(text)
     if fence_match:
         return fence_match.group(1).strip()
-    # Find first { or [ and match its closing brace
     for start_char, end_char in (("{", "}"), ("[", "]")):
         start = text.find(start_char)
         if start == -1:
@@ -68,7 +53,7 @@ def _extract_json(text: str) -> str:
             elif ch == end_char:
                 depth -= 1
                 if depth == 0:
-                    return text[start : i + 1]
+                    return text[start: i + 1]
     return text.strip()
 
 
@@ -77,12 +62,13 @@ class GroqClient:
         self._client = AsyncGroq(api_key=os.environ["GROQ_API_KEY"])
 
     @staticmethod
-    def _truncate_if_needed(content: str, max_chars: int = 24_000) -> str:
-        """Truncate content that would exceed ~6000 tokens (estimate: chars/4)."""
+    def _truncate_if_needed(content: str, max_chars: int = 20_000) -> str:
         if len(content) <= max_chars:
             return content
-        cutoff = max_chars - 50
-        return content[:cutoff] + "\n\n[content truncated for analysis]"
+        return content[:max_chars - 50] + "\n\n[content truncated for analysis]"
+
+    def _active_model(self) -> str:
+        return FALLBACK_MODEL if _using_fallback else MODEL
 
     async def analyze(
         self,
@@ -91,40 +77,39 @@ class GroqClient:
         max_tokens: int = 2000,
         temperature: float = 0.3,
     ) -> str:
-        """Send a chat request; return the raw string response."""
+        global _using_fallback
         user_content = self._truncate_if_needed(user_content)
         for attempt in range(_RETRY_ATTEMPTS):
+            model = self._active_model()
             try:
-                response = await self._client.chat.completions.create(
-                    model=MODEL,
+                resp = await self._client.chat.completions.create(
+                    model=model,
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_content},
+                        {"role": "user",   "content": user_content},
                     ],
-                    temperature=temperature,
                     max_tokens=max_tokens,
+                    temperature=temperature,
                 )
-                usage = response.usage
-                if usage:
-                    _track_tokens(usage.prompt_tokens, usage.completion_tokens)
-                return response.choices[0].message.content or ""
-
+                return resp.choices[0].message.content or ""
             except RateLimitError:
-                if attempt == _RETRY_ATTEMPTS - 1:
-                    raise
-                delay = _RETRY_BASE_DELAY * (2 ** attempt)  # 10s, 20s, 40s
-                print(f"[groq] rate limit hit — waiting {delay:.0f}s before retry {attempt + 1}/{_RETRY_ATTEMPTS}")
-                await asyncio.sleep(delay)
-
-            except APIStatusError as exc:
-                # 503 / 529 = model overloaded — same retry strategy
-                if exc.status_code in (503, 529) and attempt < _RETRY_ATTEMPTS - 1:
+                if not _using_fallback:
+                    print(f"[groq] 70B rate limit hit — switching to fallback ({FALLBACK_MODEL})", flush=True)
+                    _using_fallback = True
+                    continue  # retry immediately with fallback model
+                if attempt < _RETRY_ATTEMPTS - 1:
                     delay = _RETRY_BASE_DELAY * (2 ** attempt)
-                    print(f"[groq] server {exc.status_code}, retrying in {delay:.0f}s")
+                    print(f"[groq] fallback rate limit — waiting {delay:.0f}s before retry {attempt + 1}/{_RETRY_ATTEMPTS}", flush=True)
                     await asyncio.sleep(delay)
                 else:
                     raise
-
+            except APIStatusError as exc:
+                if exc.status_code in (503, 529) and attempt < _RETRY_ATTEMPTS - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"[groq] server {exc.status_code}, retrying in {delay:.0f}s", flush=True)
+                    await asyncio.sleep(delay)
+                else:
+                    raise
         return ""
 
     async def analyze_structured(
@@ -134,36 +119,24 @@ class GroqClient:
         output_schema: dict[str, Any] | None = None,
         max_tokens: int = 2000,
     ) -> dict[str, Any]:
-        """Like analyze(), but parse and return a JSON dict.
-
-        Falls back gracefully: if JSON parsing fails after retries,
-        returns {"_raw": <text>, "_parse_error": <reason>} so the
-        pipeline never crashes.
-        """
-        # Strengthen the JSON-only instruction
         json_instruction = (
             "\n\nIMPORTANT: Your entire response must be a single valid JSON object. "
             "No markdown, no explanation, no code fences — raw JSON only."
         )
         if output_schema:
-            schema_str = json.dumps(output_schema, indent=2)
-            json_instruction += f"\n\nRequired schema:\n{schema_str}"
+            json_instruction += f"\n\nRequired schema:\n{json.dumps(output_schema, indent=2)}"
 
         full_system = system_prompt + json_instruction
-
         raw = await self.analyze(full_system, user_content, max_tokens=max_tokens)
 
-        # Try to parse; retry once with a stricter nudge if needed
         for attempt_parse in range(2):
             candidate = _extract_json(raw)
             try:
                 return json.loads(candidate)
             except json.JSONDecodeError:
                 if attempt_parse == 0:
-                    # Ask the model to fix its own output
                     raw = await self.analyze(
-                        "You are a JSON fixer. The user will give you malformed JSON. "
-                        "Return only the corrected, valid JSON — nothing else.",
+                        "You are a JSON fixer. Return only the corrected valid JSON — nothing else.",
                         f"Fix this JSON:\n{raw}",
                         max_tokens=max_tokens,
                     )
@@ -173,11 +146,9 @@ class GroqClient:
         return {"_raw": raw, "_parse_error": "Unreachable"}
 
     def token_usage_this_minute(self) -> int:
-        """Return estimated tokens consumed in the current 60-second window."""
-        return _TOKENS_USED
+        return 0
 
 
-# Module-level singleton — import and use directly
 _default_client: GroqClient | None = None
 
 

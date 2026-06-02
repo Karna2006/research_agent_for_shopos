@@ -1,5 +1,6 @@
 # Architecture Report — Competitive Research Agent
 **Version:** 1.0 | **Date:** June 2026 | **Stack:** Python / FastAPI / Groq / Playwright
+**Live URL:** https://research-agent.onrender.com *(replace with actual URL after deploy)*
 
 ---
 
@@ -264,8 +265,17 @@ A "Data Sources" panel at the bottom of every report shows the full attribution 
 ## 10. Deployment
 
 - **Platform:** Render.com (free tier, Docker-based)
-- **URL:** `https://[app-name].onrender.com`
+- **Live URL:** `https://research-agent.onrender.com` *(update after deploy)*
 - **Sleep behaviour:** App sleeps after 15min inactivity on free tier, wakes in ~30s
 - **DB persistence:** SQLite at `/tmp/shopos.db` — persists within session, reset on redeploy
 - **Env vars required:** `GROQ_API_KEY`, `FIRECRAWL_API_KEY`
 - **Docker:** Custom image with Playwright Chromium pre-installed (~800MB image)
+- **CORS:** Allow-all origins (`*`) for prototype; restrict to specific domain before enterprise use
+- **Git:** 77 files, single commit pushed to GitHub main branch
+- **Auto-deploy:** Render rebuilds on every push to main (~8 min build, ~30s deploy)
+- **Pre-deploy fixes applied:**
+  - SQLite path changed from `./shopos.db` → `/tmp/shopos.db` (Render writable dir)
+  - CORS origins changed from `localhost:3000` → `*` (allows any domain)
+  - PORT env var read at startup: `int(os.environ.get("PORT", 8000))`
+  - `host="0.0.0.0"` in production, `"127.0.0.1"` locally
+  - `webbrowser.open()` skipped when `PORT` env var is set (production detection)

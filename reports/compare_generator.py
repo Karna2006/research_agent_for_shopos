@@ -401,6 +401,8 @@ def _dim_verdicts_html(verdicts: list, la: str, lb: str) -> str:
         gap_str = f"{gap:.1f} pts" if isinstance(gap, (int, float)) else ""
         is_a = la[:20] in winner or winner.startswith("Brand A")
         winner_color = "#60a5fa" if is_a else "#fcd34d"
+        gap_html = '<span style="color:#555;font-size:.75rem">+' + gap_str + "</span>" if gap_str else ""
+        fix_html = '<div style="font-size:.78rem;color:#f59e0b;border-left:2px solid #f59e0b44;padding-left:.55rem;margin-top:.3rem">Fix: ' + fix + "</div>" if fix else ""
         rows += (
             f'<div style="background:#111;border:1px solid #1e1e1e;border-radius:8px;'
             f'padding:.85rem 1rem;margin-bottom:.55rem">'
@@ -409,11 +411,11 @@ def _dim_verdicts_html(verdicts: list, la: str, lb: str) -> str:
             f'<span style="font-weight:700;color:#e8e8e8;font-size:.88rem">{dim}</span>'
             f'<div style="display:flex;gap:.5rem;align-items:center">'
             f'<span style="color:{winner_color};font-weight:700;font-size:.8rem">✓ {winner[:22]}</span>'
-            f'{(f"<span style=\"color:#555;font-size:.75rem\">+{gap_str}</span>") if gap_str else ""}'
+            f'{gap_html}'
             f'</div>'
             f'</div>'
             f'<div style="font-size:.82rem;color:#9ca3af;line-height:1.55;margin-bottom:.3rem">{why}</div>'
-            f'{(f"<div style=\"font-size:.78rem;color:#f59e0b;border-left:2px solid #f59e0b44;padding-left:.55rem;margin-top:.3rem\">Fix: {fix}</div>") if fix else ""}'
+            f'{fix_html}'
             f'</div>'
         )
     return (

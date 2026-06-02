@@ -1355,7 +1355,7 @@ async function loadBrands() {
 async function toggleMonitoring(auditId, btn) {
   try {
     const data = await fetch(`/audit/${auditId}/monitoring`, {method:'PATCH'}).then(r => r.json());
-    btn.textContent = data.monitoring ? 'Disable monitoring' : 'Enable monitoring';
+    btn.textContent = data.monitoring ? 'Disable' : 'Monitor';
     const row = btn.closest('tr');
     const monCell = row.querySelector('td:nth-child(4)');
     monCell.innerHTML = data.monitoring
@@ -1801,8 +1801,10 @@ def _build_rich_context(brand_name: str, results: dict) -> dict:
 
 def _assemble_audit_data(audit: AuditRun) -> dict:
     """Reconstruct the audit dict that generate_audit_report expects."""
+    from agents.orchestrator import _brand_name_from_url as _bnfu
     return {
         "url":             audit.url,
+        "brand_name":      _bnfu(audit.url),
         "one_thing":       audit.one_thing or "",
         "changes_summary": audit.changes_summary or "",
         "results": {
@@ -2093,10 +2095,9 @@ async def _run_compare_bg(
             s.commit()
 
     try:
-        await asyncio.gather(
-            _orchestrate_if_needed(audit_id_a),
-            _orchestrate_if_needed(audit_id_b),
-        )
+        # Sequential — parallel LLM calls exhaust Groq free-tier TPM limit
+        await _orchestrate_if_needed(audit_id_a)
+        await _orchestrate_if_needed(audit_id_b)
     except Exception as exc:
         with S(engine) as s:
             cr = s.get(CompareRun, compare_id)
@@ -2403,26 +2404,13 @@ async def _sse_gen(audit_id: int) -> AsyncGenerator[str, None]:
             # ── Emit completion event for the agent that just finished ───────
             if last_key is not None and last_key != "gathering_data":
                 elapsed = round(time.monotonic() - agent_t.get(last_key, time.monotonic()), 1)
-
-                if last_key == "content_catalog":
-                    # Phase 3 boundary: all 4 agents finished together — emit one batch event
-                    phase3_agents = []
-                    for k in _PHASE3_KEYS:
-                        raw = _agent_data.get(k)
-                        r = json.loads(raw) if raw else {}
-                        phase3_agents.append({"key": k, "preview": _extract_preview(k, r)})
-                    yield f"data: {json.dumps({'status': 'phase3_done', 'agents': phase3_agents, 'progress_pct': pct})}\n\n"
-                else:
-                    raw = _agent_data.get(last_key)
-                    r = json.loads(raw) if raw else {}
-                    yield f"data: {json.dumps({'key': last_key, 'agent': _AGENT_LABELS.get(last_key, last_key), 'status': 'done', 'elapsed': elapsed, 'progress_pct': pct, 'preview': _extract_preview(last_key, r)})}\n\n"
+                raw = _agent_data.get(last_key)
+                r = json.loads(raw) if raw else {}
+                yield f"data: {json.dumps({'key': last_key, 'agent': _AGENT_LABELS.get(last_key, last_key), 'status': 'done', 'elapsed': elapsed, 'progress_pct': pct, 'preview': _extract_preview(last_key, r)})}\n\n"
 
             # ── Emit start event for the new current_agent ───────────────────
             if current == "gathering_data":
                 yield f"data: {json.dumps({'status': 'gathering'})}\n\n"
-            elif current == "content_catalog":
-                agent_t["content_catalog"] = time.monotonic()
-                yield f"data: {json.dumps({'status': 'phase3_start', 'agents': _PHASE3_KEYS})}\n\n"
             elif current is not None:
                 agent_t[current] = time.monotonic()
                 step = (AGENT_SEQUENCE.index(current) + 1) if current in AGENT_SEQUENCE else 0
@@ -2459,10 +2447,10 @@ async def system_status():
     result: dict[str, str] = {"api": "ok"}
 
     result["database"] = db_backend()
-    result["cache"] = "redis" if _cache.backend == "upstash" else "memory"
+    result["cache"] = "redis" if _cache.backend == "upstash" else "in-memory"
 
     groq_key = _os.environ.get("GROQ_API_KEY", "")
-    result["groq"] = "ok" if groq_key else "error: no API key"
+    result["groq"] = "ok" if groq_key else "error: no GROQ_API_KEY"
 
     try:
         from playwright.async_api import async_playwright  # noqa: F401
