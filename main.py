@@ -1504,8 +1504,21 @@ const DIM_KEYS = [
 function renderVirality(data) {
   // If there's a pre-rendered server report (e.g. TRIBE v2), show it in an iframe
   if (data.virality_card_url) {
+    const url = data.virality_card_url;
     document.getElementById('v-result').innerHTML =
-      `<iframe src="${data.virality_card_url}" frameborder="0"
+      `<div style="display:flex;align-items:center;justify-content:flex-end;gap:.5rem;margin-bottom:.5rem">
+         <a href="${url}" target="_blank"
+            style="font-size:.78rem;padding:.3rem .75rem;border-radius:6px;
+                   background:#1e1e1e;border:1px solid #333;color:#aaa;text-decoration:none">
+           ↗ Open full page
+         </a>
+         <button onclick="document.getElementById('vc-frame').contentWindow.print()"
+            style="font-size:.78rem;padding:.3rem .75rem;border-radius:6px;
+                   background:#7c3aed;border:none;color:#fff;cursor:pointer;font-weight:600">
+           ⬇ Download PDF
+         </button>
+       </div>
+       <iframe id="vc-frame" src="${url}" frameborder="0"
         style="width:100%;height:82vh;min-height:600px;border:1px solid #1e1e1e;
                border-radius:10px;background:#0a0a0a;display:block"></iframe>`;
     return;
