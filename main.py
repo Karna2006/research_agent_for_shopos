@@ -31,11 +31,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator, model_validator
-from sqlmodel import Session
+from sqlmodel import Session, select as _sql_select
 
 from db.database import engine, get_session, init_db, db_backend
-from db.models import AGENT_SEQUENCE, AuditRun, CompareRun, ScoreHistory, ViralityRun
-from agents.orchestrator import run_all as _orchestrate
+from db.models import AGENT_SEQUENCE, AuditRun, BrandConnector, CompareRun, ScoreHistory, ViralityRun
+from agents.agentic_orchestrator import run_all as _orchestrate
 from agents.virality import ViralityPredictor
 from llm.client import get_client
 from scrapers.web_scraper import WebScraper
@@ -45,6 +45,7 @@ from reports.generator import (
     extract_native_scores, _overall_health,
 )
 from reports.compare_generator import generate_compare_report, extract_dim_scores, overall_score
+from agents.brain_map import generate_activation_heatmap, virality_dims_to_network_scores
 from cache.redis_cache import CacheManager, TTL
 
 _cache = CacheManager()
@@ -63,12 +64,14 @@ def _require_internal(x_internal_key: str = Header(...)) -> None:
 
 
 _AGENT_LABELS: dict[str, str] = {
-    "brand_basics":    "Brand Basics",
-    "content_catalog": "Content Audit",
-    "performance_ads": "Ad Intelligence",
-    "geo_visibility":  "GEO Visibility",
-    "store_cro":       "Store & CRO",
-    "research":        "Competitive Research",
+    "brand_basics":       "Brand Basics",
+    "content_catalog":    "Content Audit",
+    "performance_ads":    "Ad Intelligence",
+    "geo_visibility":     "GEO Visibility",
+    "store_cro":          "Store & CRO",
+    "research":           "Competitive Research",
+    "social_profile":     "Social & Brand Presence",
+    "social_media_audit": "Social Media Deep Audit",
 }
 
 # ── "Still running" placeholder page (auto-refreshes) ─────────────────────────
@@ -241,12 +244,98 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
 .b-ok{background:rgba(34,197,94,.12);color:var(--green)}
 .b-err{background:rgba(239,68,68,.12);color:var(--red)}
 
-/* ── FIX 2: Inline report iframe ──────────────────────────────────────────── */
-.report-wrap{display:none;margin-top:1.15rem}
+/* ── Split-pane audit layout ───────────────────────────────────────────────── */
+#audit-layout{width:100%}
+#audit-sidebar{width:100%}
+#audit-content{display:none;flex:1;min-width:0}
+#audit-layout.audit-split{display:flex;gap:1.25rem;align-items:flex-start}
+#audit-layout.audit-split #audit-sidebar{width:310px;flex-shrink:0}
+#audit-layout.audit-split #audit-content{display:block}
+
+/* ── Inline report iframe ──────────────────────────────────────────────────── */
+.report-wrap{display:none}
 .report-toolbar{display:flex;align-items:center;justify-content:space-between;
   margin-bottom:.55rem}
-.report-frame{width:100%;height:80vh;border:1px solid #333;border-radius:8px;
-  background:#0f0f0f;display:block}
+.report-frame{width:100%;height:calc(100vh - 130px);min-height:560px;
+  border:1px solid #1e1e1e;border-radius:10px;background:#0a0a0a;display:block}
+
+/* ── Live section styles — full report CSS injected so fragments render properly ── */
+#live-sections{padding-bottom:2rem}
+@keyframes sec-appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#live-sections>[data-agent]{animation:sec-appear .35s ease forwards}
+#live-sections details.section-accordion,#live-sections details.audit-section{
+  border:1px solid var(--border);border-radius:var(--r);margin-top:1.25rem;overflow:hidden}
+#live-sections details[open] summary .accordion-arrow{transform:rotate(180deg)}
+#live-sections summary.section-header{display:flex;align-items:center;gap:.75rem;
+  padding:1rem 1.25rem;cursor:pointer;list-style:none;background:var(--surface);user-select:none}
+#live-sections summary.section-header::-webkit-details-marker,
+#live-sections summary::-webkit-details-marker{display:none}
+#live-sections .section-num{font-size:.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--blue)}
+#live-sections .section-title{font-size:1.1rem;font-weight:700;letter-spacing:-.2px}
+#live-sections .section-score-badge{font-size:.8rem;font-weight:700;padding:.18rem .65rem;
+  border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
+#live-sections .accordion-arrow{margin-left:auto;transition:transform .2s;color:var(--blue);font-size:1.1rem;flex-shrink:0}
+#live-sections .section-body{padding:1.25rem}
+/* ── Report fragment CSS — identical to audit_report.html so fragments render correctly ── */
+#live-sections .card{background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:1.25rem}
+#live-sections .card+.card{margin-top:.75rem}
+#live-sections .sh{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:#6b7280;margin-bottom:.65rem;padding-bottom:.4rem;border-bottom:1px solid #2a2a2a}
+#live-sections .dim-bg{height:7px;background:#1e1e1e;border-radius:999px;margin:.3rem 0}
+#live-sections .dim-fill{height:7px;border-radius:999px;transition:width .6s ease}
+#live-sections .pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .65rem;
+  border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid transparent}
+#live-sections .pill-green{background:rgba(34,197,94,.12);color:#22c55e;border-color:rgba(34,197,94,.25)}
+#live-sections .pill-amber{background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.25)}
+#live-sections .pill-red{background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.25)}
+#live-sections .pill-blue{background:rgba(59,130,246,.12);color:#3b82f6;border-color:rgba(59,130,246,.25)}
+#live-sections .pill-muted{background:rgba(107,114,128,.1);color:#6b7280;border-color:rgba(107,114,128,.2)}
+#live-sections .pill-tribe{background:#052e16;color:#22c55e}
+#live-sections .score-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem}
+#live-sections .score-item{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;
+  padding:.6rem .9rem;min-width:130px;flex:1}
+#live-sections .score-item-label{font-size:.7rem;color:#6b7280;font-weight:600;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem}
+#live-sections .score-item-val{font-size:1.25rem;font-weight:800;line-height:1}
+#live-sections .check-list{list-style:none;padding:0}
+#live-sections .check-list li{display:flex;align-items:flex-start;gap:.55rem;
+  font-size:.87rem;padding:.32rem 0;border-bottom:1px solid #2a2a2a}
+#live-sections .check-list li:last-child{border-bottom:none}
+#live-sections .ci{flex-shrink:0;font-size:.9rem;margin-top:.05rem}
+#live-sections .ci-ok{color:#22c55e}
+#live-sections .ci-warn{color:#f59e0b}
+#live-sections .ci-bad{color:#ef4444}
+#live-sections .info-table{width:100%;border-collapse:collapse;font-size:.88rem}
+#live-sections .info-table tr{border-bottom:1px solid #2a2a2a}
+#live-sections .info-table tr:last-child{border-bottom:none}
+#live-sections .info-table td{padding:.6rem .85rem;vertical-align:top;line-height:1.5}
+#live-sections .info-table td:first-child{color:#6b7280;font-weight:600;width:175px;background:#1e1e1e}
+#live-sections .ba-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
+#live-sections .ba-box{border-radius:8px;padding:1rem 1.15rem;font-size:.86rem;line-height:1.65}
+#live-sections .ba-before{background:#1c0a0a;border-left:4px solid #ef4444}
+#live-sections .ba-after{background:#0a1c0a;border-left:4px solid #22c55e}
+#live-sections .ba-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
+#live-sections .ba-before .ba-label{color:#ef4444}
+#live-sections .ba-after .ba-label{color:#22c55e}
+#live-sections .fmt-bars{display:flex;flex-direction:column;gap:.55rem}
+#live-sections .fmt-bar{display:flex;align-items:center;gap:.7rem;font-size:.83rem}
+#live-sections .fmt-bar-label{min-width:90px;color:#e8e8e8;font-weight:500}
+#live-sections .fmt-bar-track{flex:1;height:8px;background:#1e1e1e;border-radius:999px;overflow:hidden}
+#live-sections .fmt-bar-fill{height:8px;border-radius:999px;background:#3b82f6}
+#live-sections .fmt-bar-val{min-width:36px;text-align:right;color:#6b7280;font-size:.78rem}
+#live-sections .swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.5rem}
+#live-sections .swot-cell{padding:.75rem .9rem;border-radius:8px;font-size:.83rem;line-height:1.55}
+#live-sections .swot-s{background:rgba(34,197,94,.07);border-left:3px solid #22c55e}
+#live-sections .swot-w{background:rgba(239,68,68,.07);border-left:3px solid #ef4444}
+#live-sections .swot-o{background:rgba(59,130,246,.07);border-left:3px solid #3b82f6}
+#live-sections .swot-t{background:rgba(245,158,11,.07);border-left:3px solid #f59e0b}
+#live-sections .swot-ttl{font-size:.67rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;margin-bottom:.4rem}
+#live-sections .wspace{border-radius:10px;padding:1rem 1.2rem;margin-top:.65rem}
+#live-sections .wspace-blue{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2)}
+#live-sections .wspace-amber{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2)}
+#live-sections .wspace-red{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)}
 
 /* ── FIX 3: Audit example chips ───────────────────────────────────────────── */
 .chip-bar{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.9rem}
@@ -382,68 +471,84 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
   <button class="tab"    onclick="showTab('virality',this)">Virality Score</button>
   <button class="tab"    onclick="showTab('compare',this)">Compare Brands</button>
   <button class="tab"    onclick="showTab('brands',this);loadBrands()">My Brands</button>
+  <button class="tab"    onclick="showTab('connectors',this);loadConnectors()">🔌 Connectors</button>
 </div>
 
 <!-- ── Brand Audit pane ──────────────────────────────────────────────────── -->
 <div id="pane-audit" class="pane on">
+<div id="audit-layout">
 
-  <!-- FIX 3: Example chips above URL input -->
-  <div class="chip-bar">
-    <span class="chip-lbl">Examples:</span>
-    <button class="chip" onclick="loadAuditExample('https://rarerabbit.in','demo')">⚡ Rare Rabbit</button>
-    <button class="chip" onclick="loadAuditExample('https://www.hoka.com/en-in/')">Hoka</button>
-    <button class="chip" onclick="loadAuditExample('https://www.boat-lifestyle.com/')">boAt</button>
-  </div>
-
-  <div class="field">
-    <label>Brand URL</label>
-    <div class="row">
-      <input type="url" id="a-url" placeholder="https://rarerabbit.in"
-             onkeydown="if(event.key==='Enter')startAudit()"/>
-      <button class="btn btn-p" id="a-btn" onclick="startAudit()">Run Audit →</button>
+  <!-- LEFT SIDEBAR: form + pipeline tracker -->
+  <div id="audit-sidebar">
+    <!-- Example chips -->
+    <div class="chip-bar">
+      <span class="chip-lbl">Examples:</span>
+      <button class="chip" onclick="loadAuditExample('https://rarerabbit.in','demo')">⚡ Rare Rabbit</button>
+      <button class="chip" onclick="loadAuditExample('https://www.hoka.com/en-in/')">Hoka</button>
+      <button class="chip" onclick="loadAuditExample('https://www.boat-lifestyle.com/')">boAt</button>
     </div>
-  </div>
 
-  <div id="a-pipeline" style="display:none">
-    <div class="card">
-      <div class="pl-hd">Analysis Pipeline</div>
-      <div id="a-agents"></div>
-      <div class="prog-wrap">
-        <div class="prog-fill" id="a-prog" style="width:0"></div>
-      </div>
-      <div class="data-counter" id="data-counter" style="display:none">
-        Analysed <strong id="data-count-num">0</strong> data points so far&hellip;
+    <div class="field">
+      <label>Brand URL</label>
+      <div class="row">
+        <input type="url" id="a-url" placeholder="https://rarerabbit.in"
+               onkeydown="if(event.key==='Enter')startAudit()"/>
+        <button class="btn btn-p" id="a-btn" onclick="startAudit()">Run →</button>
       </div>
     </div>
-
-    <!-- Feature 3: While-you-wait insights -->
-    <div id="insights-panel" class="card insight-panel" style="display:none">
-      <div class="insight-hdr">Did you know?</div>
-      <div id="insight-text"></div>
-      <div class="insight-dots-row" id="insight-dots"></div>
+    <div style="margin-top:.55rem;display:flex;align-items:center;gap:.5rem">
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--muted)">
+        <input type="checkbox" id="a-deep-visual" style="accent-color:#a855f7;width:13px;height:13px"/>
+        <span>Deep Visual Analysis</span>
+        <span style="font-size:.68rem;color:#4b5563">(Instagram Reels + TRIBE v2 fMRI · adds ~20 min)</span>
+      </label>
     </div>
 
-    <!-- Feature 1: Progressive finding cards appear here -->
-    <div id="live-findings" class="findings-feed"></div>
-  </div>
-
-  <!-- FIX 4: Sections reveal progressively as each agent completes -->
-  <div id="live-sections" style="display:none"></div>
-
-  <div id="a-result"></div>
-
-  <!-- FIX 2: Inline report — renders below pipeline on the same page -->
-  <div id="a-report-wrap" class="report-wrap">
-    <div class="report-toolbar">
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <span class="badge b-ok">✓ Audit complete</span>
-        <span id="a-cache-badge" style="display:none" class="cache-hit">⚡ Loaded from cache</span>
+    <div id="a-pipeline" style="display:none">
+      <div class="card" style="margin-top:.7rem">
+        <div class="pl-hd">Analysis Pipeline</div>
+        <div id="a-agents"></div>
+        <div class="prog-wrap">
+          <div class="prog-fill" id="a-prog" style="width:0"></div>
+        </div>
+        <div class="data-counter" id="data-counter" style="display:none">
+          Analysed <strong id="data-count-num">0</strong> data points&hellip;
+        </div>
       </div>
-      <button class="btn btn-g" onclick="printReport()"
-        style="font-size:.8rem;padding:.38rem .85rem">⬇ Download PDF</button>
+
+      <!-- While-you-wait insights -->
+      <div id="insights-panel" class="card insight-panel" style="display:none">
+        <div class="insight-hdr">Did you know?</div>
+        <div id="insight-text"></div>
+        <div class="insight-dots-row" id="insight-dots"></div>
+      </div>
+
+      <!-- finding cards removed — sections are the live feed -->
+      <div id="live-findings" class="findings-feed" style="display:none"></div>
     </div>
-    <iframe id="a-report-frame" src="" frameborder="0" class="report-frame"></iframe>
+
+    <div id="a-result"></div>
   </div>
+
+  <!-- RIGHT CONTENT: report fills this area -->
+  <div id="audit-content">
+    <!-- Progressive sections while report is loading -->
+    <div id="live-sections" style="display:none"></div>
+
+    <div id="a-report-wrap" class="report-wrap">
+      <div class="report-toolbar">
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span class="badge b-ok">✓ Audit complete</span>
+          <span id="a-cache-badge" style="display:none" class="cache-hit">⚡ Loaded from cache</span>
+        </div>
+        <button class="btn btn-g" onclick="printReport()"
+          style="font-size:.8rem;padding:.38rem .85rem">⬇ Download PDF</button>
+      </div>
+      <iframe id="a-report-frame" src="" frameborder="0" class="report-frame"></iframe>
+    </div>
+  </div>
+
+</div><!-- /audit-layout -->
 </div>
 
 <!-- ── Virality pane ─────────────────────────────────────────────────────── -->
@@ -474,9 +579,9 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
     <div class="sh">Try an example</div>
     <div class="ex-cards">
       <div class="ex-card" id="exc-0" onclick="loadViralityExample(0)">
-        <div class="ex-icon">👔</div>
-        <div class="ex-name">Oxford Shirt</div>
-        <div class="ex-meta">Rare Rabbit · Menswear</div>
+        <div class="ex-icon">✨</div>
+        <div class="ex-name">Chanel Foundation</div>
+        <div class="ex-meta">Nykaa · Luxury Beauty</div>
         <div class="ex-badge" id="excb-0">Pre-cached</div>
       </div>
       <div class="ex-card" id="exc-1" onclick="loadViralityExample(1)">
@@ -499,6 +604,43 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
     Analysing virality potential… this takes ~20 seconds.
   </div>
   <div id="v-result"></div>
+
+  <!-- ── TRIBE v2 Video Neural Analysis ──────────────────────────────────── -->
+  <div style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+    <div class="sh" style="font-size:.78rem;margin-bottom:.55rem">
+      Neural Video Analysis
+      <span style="font-size:.62rem;color:var(--muted);font-weight:400;margin-left:.35rem">· Meta TRIBE v2 fMRI · any video platform</span>
+    </div>
+    <p style="font-size:.78rem;color:#4b5563;margin-bottom:.75rem;line-height:1.5">
+      Paste any video URL — YouTube, Instagram Reels, TikTok, Vimeo, direct .mp4, or any yt-dlp-supported platform.
+      TRIBE v2 predicts which brain networks the video activates. Takes ~10–30 min on CPU.
+    </p>
+    <div style="display:flex;gap:.5rem;align-items:flex-end">
+      <div class="field" style="flex:1;margin-bottom:0">
+        <label style="font-size:.72rem">Video URL</label>
+        <input type="url" id="nv-url"
+          placeholder="https://youtu.be/… or instagram.com/reel/… or direct .mp4"
+          style="font-size:.83rem"/>
+      </div>
+      <div class="field" style="width:160px;margin-bottom:0">
+        <label style="font-size:.72rem">Label <span class="opt">(optional)</span></label>
+        <input type="text" id="nv-label" placeholder="Brand Ad — Q1"
+          style="font-size:.83rem"/>
+      </div>
+    </div>
+    <button class="btn btn-g" id="nv-btn" onclick="startVideoAnalysis()"
+      style="margin-top:.65rem;font-size:.82rem;padding:.45rem 1.1rem">
+      Analyze with TRIBE v2 →
+    </button>
+    <div id="nv-loading" style="display:none;margin-top:.65rem" class="ld">
+      <span class="spin spin-lg"></span>
+      Running TRIBE v2 fMRI inference… this takes 10–30 minutes on CPU.
+      <div style="font-size:.68rem;color:#374151;margin-top:.25rem">
+        Downloading video → extracting audio/visual features → predicting cortical activations
+      </div>
+    </div>
+    <div id="nv-result" style="margin-top:.75rem"></div>
+  </div>
 </div>
 
 <!-- ── Compare Brands pane ───────────────────────────────────────────────── -->
@@ -580,6 +722,112 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
     </div>
   </div>
 </div>
+
+<!-- ── Connectors pane ──────────────────────────────────────────────────── -->
+<div id="pane-connectors" class="pane">
+
+  <!-- Brand URL selector + status lookup -->
+  <div class="card" style="margin-top:1.5rem">
+    <div style="font-size:1.05rem;font-weight:700;margin-bottom:.35rem">API Connectors</div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:1.25rem">
+      Connect private API keys for deeper brand analysis — private store data, real ad spend, ROAS, and customer metrics.
+    </div>
+
+    <div class="field">
+      <label>Brand URL to configure</label>
+      <div class="row">
+        <input type="url" id="conn-brand-url" placeholder="https://yourbrand.com"
+               oninput="onConnBrandUrl(this.value)"/>
+        <button class="btn btn-g" onclick="checkConnectorStatus()">Check Status</button>
+      </div>
+    </div>
+
+    <!-- Status indicator -->
+    <div id="conn-status-row" style="display:none;gap:.65rem;margin-bottom:1.1rem;display:none;flex-wrap:wrap"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem" class="conn-forms">
+
+      <!-- ── Shopify ────────────────────────────────────────────────── -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.1rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
+          <span style="font-size:1.3rem">🛒</span>
+          <div>
+            <div style="font-weight:700;font-size:.95rem">Shopify</div>
+            <div style="font-size:.72rem;color:var(--muted)">Private store data — orders, inventory, customers</div>
+          </div>
+          <span id="shopify-badge" style="margin-left:auto;font-size:.7rem;font-weight:600;
+            padding:.15rem .5rem;border-radius:4px;display:none"></span>
+        </div>
+
+        <div class="field">
+          <label>Store URL</label>
+          <input type="url" id="shopify-store-url" placeholder="https://mystore.myshopify.com"/>
+        </div>
+        <div class="field">
+          <label>Admin API Access Token</label>
+          <input type="password" id="shopify-token" placeholder="shpat_xxxxxxxxxxxxxxxx"/>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.6rem">
+          <button class="btn btn-p" style="flex:1" onclick="saveShopify()">Connect Shopify</button>
+          <button class="btn btn-g" id="shopify-disconnect-btn" style="display:none" onclick="disconnectConnector('shopify')">Disconnect</button>
+        </div>
+        <div id="shopify-msg" style="font-size:.78rem;margin-top:.5rem;display:none"></div>
+
+        <div style="margin-top:.85rem;padding:.7rem;background:var(--surface);border-radius:7px;font-size:.72rem;color:var(--muted)">
+          <strong style="color:var(--text)">How to get token:</strong><br/>
+          Shopify Admin → Settings → Apps → Develop apps → Create app →
+          Configure Admin API scopes (read_orders, read_products, read_customers, read_analytics) → Install → copy token
+        </div>
+      </div>
+
+      <!-- ── Meta Ads ───────────────────────────────────────────────── -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.1rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
+          <span style="font-size:1.3rem">📘</span>
+          <div>
+            <div style="font-weight:700;font-size:.95rem">Meta Ads</div>
+            <div style="font-size:.72rem;color:var(--muted)">Real ad performance — ROAS, spend, CTR, campaigns</div>
+          </div>
+          <span id="meta-badge" style="margin-left:auto;font-size:.7rem;font-weight:600;
+            padding:.15rem .5rem;border-radius:4px;display:none"></span>
+        </div>
+
+        <div class="field">
+          <label>Access Token</label>
+          <input type="password" id="meta-token" placeholder="EAAxxxxxxxxxxxxxxxx"/>
+        </div>
+        <div class="field">
+          <label>Ad Account ID</label>
+          <input type="text" id="meta-account-id" placeholder="act_1234567890  or  1234567890"/>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.6rem">
+          <button class="btn btn-p" style="flex:1" onclick="saveMeta()">Connect Meta</button>
+          <button class="btn btn-g" id="meta-disconnect-btn" style="display:none" onclick="disconnectConnector('meta')">Disconnect</button>
+        </div>
+        <div id="meta-msg" style="font-size:.78rem;margin-top:.5rem;display:none"></div>
+
+        <div style="margin-top:.85rem;padding:.7rem;background:var(--surface);border-radius:7px;font-size:.72rem;color:var(--muted)">
+          <strong style="color:var(--text)">How to get token:</strong><br/>
+          Meta Business Suite → Business Settings → Users → System Users → Add system user →
+          Generate token with ads_read, ads_management scopes → copy token + Ad Account ID
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Connected brands list -->
+  <div class="card" style="margin-top:1.25rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <div style="font-weight:700;font-size:.95rem">Connected Brands</div>
+      <button class="btn btn-g" onclick="loadConnectors()" style="font-size:.78rem;padding:.35rem .75rem">↻ Refresh</button>
+    </div>
+    <div id="connectors-list">
+      <div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">Loading…</div>
+    </div>
+  </div>
+
+</div>
 </main>
 
 <script>
@@ -592,39 +840,49 @@ function showTab(id, btn) {
 }
 
 /* ── Agent pipeline ───────────────────────────────────────────────────────── */
+// [key, label, est_seconds]
 const AGENTS = [
-  ['brand_basics',    'Brand Basics'],
-  ['content_catalog', 'Content Audit'],
-  ['performance_ads', 'Ad Intelligence'],
-  ['geo_visibility',  'GEO Visibility'],
-  ['store_cro',       'Store & CRO'],
-  ['research',        'Competitive Research'],
+  ['brand_basics',       'Brand Basics',           15],
+  ['content_catalog',    'Content Audit',           20],
+  ['performance_ads',    'Ad Intelligence',         35],
+  ['geo_visibility',     'GEO Visibility',          15],
+  ['store_cro',          'Store & CRO',             20],
+  ['research',           'Competitive Research',    40],
+  ['social_profile',     'Social & Brand Presence', 25],
+  ['social_media_audit', 'Social Media Deep Audit', 50],
 ];
 
 function buildPipeline() {
-  document.getElementById('a-agents').innerHTML = AGENTS.map(([k, lbl]) =>
+  document.getElementById('a-agents').innerHTML = AGENTS.map(([k, lbl, est]) =>
     `<div class="ag-row" id="row-${k}">
        <span class="ag-ic" id="ic-${k}" style="color:var(--border)">○</span>
-       <span class="ag-name">${lbl}</span>
+       <div style="flex:1;min-width:0">
+         <span class="ag-name">${lbl}</span>
+         <span class="ag-eta" id="eta-${k}" style="font-size:.62rem;color:#4b5563;margin-left:.35rem">~${est}s</span>
+       </div>
        <span class="ag-st" id="st-${k}" style="color:var(--muted)">Pending</span>
      </div>`
   ).join('');
 }
 
 function setAgent(key, state, elapsed) {
-  const ic = document.getElementById('ic-' + key);
-  const st = document.getElementById('st-' + key);
+  const ic  = document.getElementById('ic-'  + key);
+  const st  = document.getElementById('st-'  + key);
+  const eta = document.getElementById('eta-' + key);
   if (!ic) return;
   if (state === 'running') {
     ic.innerHTML = '<span class="ic-spin" style="color:var(--amber)">↻</span>';
     ic.style.color = 'var(--amber)';
     st.textContent = 'Running…'; st.style.color = 'var(--amber)';
+    if (eta) eta.style.display = 'inline';
   } else if (state === 'done') {
     ic.innerHTML = '✓'; ic.style.color = 'var(--green)';
     st.textContent = elapsed ? elapsed + 's' : 'Done'; st.style.color = 'var(--green)';
+    if (eta) eta.style.display = 'none';
   } else if (state === 'error') {
     ic.innerHTML = '✗'; ic.style.color = 'var(--red)';
     st.textContent = 'Error'; st.style.color = 'var(--red)';
+    if (eta) eta.style.display = 'none';
   }
 }
 
@@ -648,7 +906,8 @@ function addFindingCard(key, label, preview) {
 var _dataPoints = 0;
 var AGENT_DATA_COUNTS = {
   brand_basics: 47, content_catalog: 123, performance_ads: 89,
-  geo_visibility: 64, store_cro: 38, research: 156
+  geo_visibility: 64, store_cro: 38, research: 156,
+  social_profile: 74, social_media_audit: 210,
 };
 
 function countUp(el, from, to, ms) {
@@ -670,7 +929,7 @@ function updateDataCounter(final) {
   if (!el || !numEl) return;
   el.style.display = 'block';
   if (final) {
-    el.innerHTML = 'Analysed <strong>517</strong> data points across 6 intelligence agents';
+    el.innerHTML = 'Analysed <strong>801</strong> data points across 8 intelligence agents';
     return;
   }
   var prev = parseInt(numEl.textContent.replace(/,/g, '')) || 0;
@@ -727,6 +986,58 @@ function stopInsightsRotator() {
   if (panel) panel.style.display = 'none';
 }
 
+/* ── TRIBE v2 background polling ─────────────────────────────────────────── */
+function _startTribePolling(auditId, reportUrl) {
+  var tribeBar = document.createElement('div');
+  tribeBar.id = 'tribe-bar';
+  tribeBar.style.cssText = 'margin-top:.75rem;padding:.5rem .85rem;border-radius:8px;' +
+    'background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);' +
+    'font-size:.8rem;color:var(--amber);display:flex;align-items:center;gap:.5rem';
+  tribeBar.innerHTML = '<span class="phase3-dots"><span></span><span></span>' +
+    '<span></span><span></span></span>' +
+    '<span>TRIBE v2 fMRI running in background — brain maps will appear in report when ready</span>';
+  var res = document.getElementById('a-result');
+  if (res) res.appendChild(tribeBar);
+
+  var _pollCount = 0;
+  var _pollMax = 30; // 30 × 20s = 10 min hard cap
+  var _poll = setInterval(function() {
+    _pollCount++;
+    if (_pollCount > _pollMax) {
+      clearInterval(_poll);
+      var bar = document.getElementById('tribe-bar');
+      if (bar) {
+        bar.style.color = 'var(--muted)';
+        bar.innerHTML = 'Deep Visual Analysis timed out — brain maps may still be processing. '
+          + '<a href="' + (reportUrl || '/report/' + auditId) + '" target="_blank" style="color:var(--blue)">Check report</a>';
+      }
+      return;
+    }
+    fetch('/audit/' + auditId + '/tribe-status')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.status === 'complete' || d.status === 'failed') {
+          clearInterval(_poll);
+          var bar = document.getElementById('tribe-bar');
+          if (bar) {
+            if (d.status === 'complete') {
+              bar.style.background = 'rgba(34,197,94,.08)';
+              bar.style.borderColor = 'rgba(34,197,94,.25)';
+              bar.style.color = 'var(--green)';
+              bar.innerHTML = '&#x2713; TRIBE v2 brain maps ready — ' +
+                '<a href="' + (reportUrl || '/report/' + auditId) + '" ' +
+                'target="_blank" style="color:var(--green)">open report to view</a>';
+            } else {
+              bar.style.color = 'var(--muted)';
+              bar.innerHTML = 'Deep Visual Analysis could not complete: ' + (d.error || 'unknown error');
+            }
+          }
+        }
+      })
+      .catch(function() {}); // silent — network blip during long background job
+  }, 20000); // poll every 20s
+}
+
 /* ── Feature 4: Phase 3 parallel indicator ───────────────────────────────── */
 function setPhase3Running() {
   var P3 = ['content_catalog', 'performance_ads', 'geo_visibility', 'store_cro'];
@@ -766,11 +1077,14 @@ function loadAuditExample(url, mode) {
 
 async function loadDemoAudit() {
   const btn = document.getElementById('a-btn');
-  btn.disabled = true; btn.textContent = 'Loading…';
+  btn.disabled = true; btn.textContent = '…';
   document.getElementById('a-result').innerHTML = '';
   document.getElementById('a-report-wrap').style.display = 'none';
   document.getElementById('a-pipeline').style.display = 'block';
   buildPipeline();
+
+  // Activate split layout
+  document.getElementById('audit-layout').classList.add('audit-split');
 
   // Pre-cached — mark all agents done instantly
   AGENTS.forEach(([k]) => setAgent(k, 'done', '—'));
@@ -796,12 +1110,15 @@ async function startAudit() {
   if (!url) { document.getElementById('a-url').focus(); return; }
 
   const btn = document.getElementById('a-btn');
-  btn.disabled = true; btn.textContent = 'Starting…';
+  btn.disabled = true; btn.textContent = '…';
   document.getElementById('a-result').innerHTML = '';
   document.getElementById('a-report-wrap').style.display = 'none';
   document.getElementById('a-pipeline').style.display = 'block';
   document.getElementById('a-prog').style.width = '0';
   buildPipeline();
+
+  // Activate split layout
+  document.getElementById('audit-layout').classList.add('audit-split');
 
   // Reset live-experience state
   _dataPoints = 0;
@@ -814,18 +1131,25 @@ async function startAudit() {
   if (dcn) dcn.textContent = '0';
   stopInsightsRotator();
 
+  const deepVisual = document.getElementById('a-deep-visual')?.checked || false;
+
   let auditId, _fromCache = false;
   try {
     const r = await fetch('/audit', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({url}),
+      body: JSON.stringify({url, deep_visual: deepVisual}),
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail || 'Failed to start audit');
     auditId = d.audit_id;
     _fromCache = d.from_cache || false;
     btn.textContent = 'Running…';
+    if (deepVisual) {
+      // Update social_media_audit ETA to reflect TRIBE v2 time
+      const etaEl = document.getElementById('eta-social_media_audit');
+      if (etaEl) etaEl.textContent = '~20min (TRIBE v2)';
+    }
     startInsightsRotator();
   } catch (e) {
     document.getElementById('a-pipeline').style.display = 'none';
@@ -835,7 +1159,7 @@ async function startAudit() {
   }
 
   /* SSE stream */
-  const es = new EventSource('/audit/stream/' + auditId);
+  const es = new EventSource('/audit/stream/' + auditId + (deepVisual ? '?deep_visual=1' : ''));
 
   es.onmessage = ev => {
     let m; try { m = JSON.parse(ev.data); } catch { return; }
@@ -862,48 +1186,76 @@ async function startAudit() {
       setPhase3Running();
 
     } else if (m.status === 'phase3_done') {
-      // Tick all 4 agents done at once, show finding cards
-      var p3keys = ['content_catalog', 'performance_ads', 'geo_visibility', 'store_cro'];
+      // All 6 parallel agents done — tick any that haven't been individually ticked yet
+      var p3keys = ['content_catalog', 'performance_ads', 'geo_visibility', 'store_cro', 'research', 'social_profile'];
       p3keys.forEach(function(k) {
         restorePhase3AgentName(k);
         setAgent(k, 'done');
       });
       if (m.progress_pct != null)
         document.getElementById('a-prog').style.width = m.progress_pct + '%';
-      // Feature 1: show 4 finding cards
+      // Show finding cards for all 6 parallel agents (agents array now always present)
       if (m.agents) {
         m.agents.forEach(function(a) {
           if (a.preview) addFindingCard(a.key, a.preview.label, a.preview);
         });
       }
-      // Feature 2: increment counter for all 4 at once
+      // Increment counter for all 6 parallel agents
       _dataPoints += (AGENT_DATA_COUNTS.content_catalog || 0)
         + (AGENT_DATA_COUNTS.performance_ads || 0)
         + (AGENT_DATA_COUNTS.geo_visibility || 0)
-        + (AGENT_DATA_COUNTS.store_cro || 0);
+        + (AGENT_DATA_COUNTS.store_cro || 0)
+        + (AGENT_DATA_COUNTS.research || 0)
+        + (AGENT_DATA_COUNTS.social_profile || 0);
       updateDataCounter();
+
+    } else if (m.status === 'tribe_started') {
+      // TRIBE v2 fMRI processing started — update social_media_audit row status
+      setAgent('social_media_audit', 'running');
+
+    } else if (m.status === 'tribe_complete') {
+      // TRIBE v2 done — already marked done via the column-watch done event
+      console.log('[SSE] TRIBE v2 complete, reels:', m.reels_processed);
 
     } else if (m.status === 'done' && m.key) {
       setAgent(m.key, 'done', m.elapsed);
       if (m.progress_pct != null)
         document.getElementById('a-prog').style.width = m.progress_pct + '%';
-      // Feature 1: show finding card
-      if (m.preview) addFindingCard(m.key, m.agent, m.preview);
-      // Feature 2: increment counter
+      // Feature 2: increment counter (finding cards removed — sections are the live feed)
       var inc = AGENT_DATA_COUNTS[m.key] || 0;
       if (inc) { _dataPoints += inc; updateDataCounter(); }
-      // FIX 4: progressive section reveal — fetch and append section HTML
+      // Progressive section reveal — fetch and append beautifully styled section HTML
       (function(key, id) {
         fetch('/report/section/' + id + '/' + key)
-          .then(function(r) { return r.ok ? r.text() : null; })
+          .then(function(r) { return r.ok ? r.text() : Promise.reject(r.status); })
           .then(function(html) {
             if (!html) return;
             var ls = document.getElementById('live-sections');
             if (!ls) return;
             ls.style.display = 'block';
-            ls.insertAdjacentHTML('beforeend', html);
+            // Auto-collapse all previously open sections except brand_basics
+            ls.querySelectorAll('[data-agent] details[open]').forEach(function(d) {
+              var ag = d.closest('[data-agent]');
+              if (ag && ag.dataset.agent !== 'brand_basics') d.removeAttribute('open');
+            });
+            var wrapper = document.createElement('div');
+            wrapper.setAttribute('data-agent', key);
+            wrapper.innerHTML = html;
+            ls.appendChild(wrapper);
+            wrapper.scrollIntoView({behavior: 'smooth', block: 'nearest'});
           })
-          .catch(function() {});
+          .catch(function(err) {
+            var ls = document.getElementById('live-sections');
+            if (!ls) return;
+            ls.style.display = 'block';
+            var wrapper = document.createElement('div');
+            wrapper.setAttribute('data-agent', key);
+            wrapper.innerHTML = '<div style="margin:.75rem 0;padding:.85rem 1rem;'
+              + 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;'
+              + 'color:#6b7280;font-size:.82rem">&#9888; Section failed to load'
+              + ' — <a href="/report/' + id + '" target="_blank" style="color:var(--blue)">open full report</a></div>';
+            ls.appendChild(wrapper);
+          });
       })(m.key, auditId);
 
     } else if (m.status === 'complete') {
@@ -911,18 +1263,45 @@ async function startAudit() {
       updateDataCounter(true);
       stopInsightsRotator();
       es.close();
-      // Fade out findings feed and live sections, then show full report in iframe
+      // Hide finding cards — pipeline stays visible in sidebar
       var feed = document.getElementById('live-findings');
       if (feed) feed.style.display = 'none';
+      // Collapse all live sections except brand_basics, keep visible as the report
       var liveSec = document.getElementById('live-sections');
-      if (liveSec) liveSec.style.display = 'none';
-      document.getElementById('a-report-frame').src = m.report_url;
-      document.getElementById('a-report-wrap').style.display = 'block';
+      var hasSections = liveSec && liveSec.querySelectorAll('[data-agent]').length > 0;
+      var reportUrl = m.report_url;
+      if (hasSections) {
+        liveSec.querySelectorAll('[data-agent] details').forEach(function(d) {
+          var agentDiv = d.closest('[data-agent]');
+          if (agentDiv && agentDiv.dataset.agent !== 'brand_basics') {
+            d.removeAttribute('open');
+          }
+        });
+        liveSec.style.display = 'block';
+        // Show toolbar without iframe
+        document.getElementById('a-report-wrap').style.display = 'block';
+        document.getElementById('a-report-frame').style.display = 'none';
+        var toolbar = document.querySelector('.report-toolbar');
+        if (toolbar && reportUrl) {
+          var dlBtn = toolbar.querySelector('button');
+          if (dlBtn) dlBtn.style.display = 'none';
+          toolbar.insertAdjacentHTML('beforeend',
+            '<a href="' + reportUrl + '" target="_blank" class="btn btn-g" ' +
+            'style="font-size:.8rem;padding:.38rem .85rem;text-decoration:none">↗ Full Report</a>');
+        }
+      } else {
+        // Cache hit — no live sections, load iframe
+        document.getElementById('a-report-frame').src = reportUrl;
+        document.getElementById('a-report-frame').style.display = '';
+        document.getElementById('a-report-wrap').style.display = 'block';
+      }
       const cacheBadge = document.getElementById('a-cache-badge');
       if (cacheBadge) cacheBadge.style.display = (_fromCache || m.from_cache) ? 'inline-flex' : 'none';
       document.getElementById('a-result').innerHTML = '';
       btn.disabled = false; btn.textContent = 'Run Audit →';
       if (_brandsLoaded) loadBrands();
+      // If Deep Visual was requested, poll for TRIBE v2 brain maps in background
+      if (deepVisual && auditId) _startTribePolling(auditId, reportUrl);
 
     } else if (m.status === 'failed') {
       es.close();
@@ -1104,13 +1483,179 @@ function renderVirality(data) {
       <div class="hook-txt">"${hook}"</div>
     </div>` : '';
 
-  const angHtml = angles.length ? `<div class="sh">Viral Content Angles</div>
-    ${angles.map((a, i) => `<div class="ang-item">
-      <span class="ang-n" style="background:${color}">${i + 1}</span>
-      <span>${a}</span></div>`).join('')}` : '';
+  // angles may be strings OR objects {angle, hook_line, best_platform, ...}
+  const angHtml = angles.length ? '<div class="sh">Viral Content Angles</div>' +
+    angles.map(function(a, i) {
+      var txt   = typeof a === 'string' ? a : (a.angle || a.hook_line || JSON.stringify(a));
+      var extra = typeof a === 'object' && a.best_platform
+        ? ' <span style="font-size:.68rem;color:var(--muted);margin-left:.3rem">· ' + esc(a.best_platform) + '</span>'
+        : '';
+      return '<div class="ang-item"><span class="ang-n" style="background:' + color + '">' + (i+1) + '</span>'
+        + '<span>' + esc(txt) + extra + '</span></div>';
+    }).join('') : '';
 
   const platHtml = plats.length ? `<div class="sh">Best Platforms</div>
     <div class="plat-wrap">${plats.map(p => `<span class="plat">${p}</span>`).join('')}</div>` : '';
+
+  /* Visual Analysis — from Llama 4 Scout image analysis */
+  let visualHtml = '';
+  const va = data.llm_visual_analysis;
+  // Only render if we have at least one real field (not just an empty object)
+  const _vaHasData = va && typeof va === 'object' && !va._parse_error &&
+    (va.visual_hook_strength != null || va.dominant_emotion || (va.visual_strengths && va.visual_strengths.length));
+  if (_vaHasData) {
+    const hookScore = typeof va.visual_hook_strength === 'number' ? va.visual_hook_strength : 0;
+    const hookPct   = Math.round(hookScore / 10 * 100);
+    const emotion   = va.dominant_emotion || '';
+    const lvsLabel  = va.lifestyle_vs_studio ? va.lifestyle_vs_studio.replace(/-/g, ' ') : '';
+    const rec       = va.recommended_visual_change || '';
+    const strengths = Array.isArray(va.visual_strengths) ? va.visual_strengths.slice(0, 2) : [];
+    const gaps      = Array.isArray(va.visual_gaps)      ? va.visual_gaps.slice(0, 2)      : [];
+    visualHtml =
+      '<div class="sh">Visual Analysis <span style="font-size:.62rem;color:var(--muted);font-weight:400">· Llama 4 Scout</span></div>' +
+      '<div class="dim-row">' +
+        '<div class="dim-top">' +
+          '<span class="dim-label">Visual Hook Strength</span>' +
+          '<span class="dim-score" style="color:' + color + '">' + hookScore + '/10</span>' +
+        '</div>' +
+        '<div class="dim-bg"><div class="dim-fill" style="width:' + hookPct + '%;background:' + color + '"></div></div>' +
+      '</div>' +
+      (emotion   ? '<div style="margin:.45rem 0 .3rem;display:flex;gap:.35rem;flex-wrap:wrap">' +
+                     '<span class="plat" style="border-color:' + color + ';color:' + color + '">' + emotion + '</span>' +
+                     (lvsLabel ? '<span class="plat">' + lvsLabel + '</span>' : '') +
+                   '</div>' : '') +
+      (strengths.length ? '<div style="font-size:.73rem;color:var(--green);margin-top:.3rem">✓ ' + strengths.join(' · ') + '</div>' : '') +
+      (gaps.length      ? '<div style="font-size:.73rem;color:var(--muted);margin-top:.2rem">△ ' + gaps.join(' · ') + '</div>'      : '') +
+      (rec ? '<div style="font-size:.78rem;color:var(--amber);margin-top:.45rem;line-height:1.45">💡 ' + rec + '</div>' : '');
+  }
+
+  /* Neural Engagement — TRIBE v2 fMRI prediction */
+  let neHtml = '';
+  const ne = data.neural_engagement;
+  if (ne && (ne.neural_engagement_score != null || ne.error)) {
+    const neScore = ne.neural_engagement_score;
+    const neTier  = ne.tier || '';
+    const tierColor = neTier === 'High' ? 'var(--green)' : neTier === 'Medium' ? 'var(--amber)' : 'var(--red)';
+    const nePct   = neScore != null ? Math.round(neScore) : 0;
+    neHtml =
+      '<div class="sh">Neural Engagement' +
+        '<span style="font-size:.62rem;color:var(--muted);font-weight:400"> · Meta TRIBE v2</span>' +
+      '</div>' +
+      (ne.error && !neScore
+        ? '<div style="margin:.5rem 0 .65rem;padding:.7rem;background:#0f172a;' +
+            'border-radius:8px;border:1px dashed var(--border);' +
+            'font-size:.8rem;color:var(--muted);text-align:center">' +
+            '⚠ ' + esc(ne.error) +
+          '</div>'
+        : '<div style="margin:.45rem 0 .75rem">' +
+            '<div style="display:flex;align-items:baseline;gap:.55rem;margin-bottom:.5rem">' +
+              '<span style="font-size:2.4rem;font-weight:900;line-height:1;color:' + tierColor + '">' + nePct + '</span>' +
+              '<span style="font-size:.8rem;color:var(--muted)">/100</span>' +
+              (neTier ? '<span style="display:inline-block;padding:.18rem .65rem;border-radius:999px;' +
+                'font-size:.75rem;font-weight:700;background:' + tierColor + ';color:#000;margin-left:.2rem">' + esc(neTier) + ' Neural Engagement</span>' : '') +
+            '</div>' +
+            '<div class="dim-bg" style="margin-bottom:.5rem">' +
+              '<div class="dim-fill" style="width:' + nePct + '%;background:' + tierColor + '"></div>' +
+            '</div>' +
+            (ne.consistency_score != null
+              ? '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">' +
+                  '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:var(--muted)">' +
+                    'Consistency ' + ne.consistency_score + '%</span>' +
+                  (ne.early_hook_strong
+                    ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:rgba(34,197,94,.1);color:var(--green)">Strong opening hook</span>'
+                    : ne.early_hook_ratio != null && ne.early_hook_ratio < 0.85
+                      ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:rgba(239,68,68,.08);color:var(--red)">Weak opening hook</span>'
+                      : '') +
+                  (ne.n_trs_analyzed
+                    ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:var(--muted)">' + ne.n_trs_analyzed + ' TRs analysed</span>'
+                    : '') +
+                '</div>'
+              : '') +
+            (ne.interpretation
+              ? '<div style="font-size:.78rem;color:#cbd5e1;line-height:1.5;' +
+                  'padding:.5rem .65rem;background:#0f172a;border-radius:6px;' +
+                  'border-left:2px solid ' + tierColor + '">' + esc(ne.interpretation) + '</div>'
+              : '') +
+          '</div>') +
+      '<div style="font-size:.61rem;color:#374151;margin-top:.35rem">' +
+        'Research Preview — powered by Meta TRIBE v2 · CC-BY-NC-4.0 (non-commercial research use only)' +
+      '</div>';
+  }
+
+  /* Visual Attention Map — DeepGaze IIE heatmap */
+  let attnHtml = '';
+  const va2 = data.visual_attention;
+  // Only show when DeepGaze actually ran (not just "analysis not run" placeholder)
+  if (va2 && va2.error !== 'analysis not run') {
+    const focusLabel = {
+      'upper-left': 'Upper Left', 'upper-center': 'Upper Center', 'upper-right': 'Upper Right',
+      'middle-left': 'Middle Left', 'middle-center': 'Center', 'middle-right': 'Middle Right',
+      'lower-left': 'Lower Left', 'lower-center': 'Lower Center', 'lower-right': 'Lower Right',
+    };
+    const distColor = va2.attention_distribution === 'concentrated' ? 'var(--green)' : 'var(--amber)';
+    const focusName = focusLabel[va2.attention_focus] || va2.attention_focus || '—';
+    attnHtml =
+      '<div class="sh">Visual Attention Map' +
+        '<span style="font-size:.62rem;color:var(--muted);font-weight:400"> · DeepGaze IIE</span>' +
+      '</div>' +
+      (va2.heatmap_available && va2.heatmap_base64
+        ? '<div style="position:relative;margin:.5rem 0 .65rem;border-radius:8px;overflow:hidden">' +
+            '<img src="data:image/png;base64,' + va2.heatmap_base64 + '" ' +
+              'style="width:100%;display:block;border-radius:8px" ' +
+              'alt="Visual attention heatmap — red = high attention"/>' +
+            '<div style="position:absolute;bottom:0;left:0;right:0;' +
+              'background:linear-gradient(transparent,rgba(0,0,0,.65));' +
+              'padding:.4rem .6rem;font-size:.67rem;color:#e8e8e8">' +
+              '🔴 Red = high attention &nbsp;·&nbsp; 🔵 Blue = low attention</div>' +
+          '</div>'
+        : '<div style="margin:.5rem 0 .65rem;padding:.75rem;background:#0f172a;' +
+            'border-radius:8px;border:1px dashed var(--border);' +
+            'font-size:.8rem;color:var(--muted);text-align:center">' +
+            '⚠ Image not accessible — visual attention analysis unavailable' +
+            (va2.error ? '<div style="font-size:.68rem;margin-top:.3rem;color:#6b7280">' + esc(va2.error) + '</div>' : '') +
+          '</div>') +
+      '<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.45rem">' +
+        (va2.attention_focus
+          ? '<span style="font-size:.72rem;padding:.18rem .5rem;border-radius:5px;' +
+              'background:#1e2d45;color:#60a5fa">Focus: ' + esc(focusName) + '</span>'
+          : '') +
+        (va2.attention_distribution
+          ? '<span style="font-size:.72rem;padding:.18rem .5rem;border-radius:5px;' +
+              'background:#1e1e1e;color:' + distColor + '">' + esc(va2.attention_distribution) + '</span>'
+          : '') +
+        (va2.concentration_pct != null
+          ? '<span style="font-size:.72rem;padding:.18rem .5rem;border-radius:5px;' +
+              'background:#1e1e1e;color:var(--muted)">Top 90% mass in ' + va2.concentration_pct + '% of pixels</span>'
+          : '') +
+      '</div>' +
+      (va2.interpretation
+        ? '<div style="font-size:.78rem;color:#cbd5e1;line-height:1.5;' +
+            'padding:.5rem .65rem;background:#0f172a;border-radius:6px;' +
+            'border-left:2px solid var(--blue)">' + esc(va2.interpretation) + '</div>'
+        : '') +
+      '<div style="font-size:.62rem;color:#374151;margin-top:.4rem">Powered by DeepGaze IIE — predicts human visual attention</div>';
+  }
+
+  /* Brain activation map */
+  let brainHtml = '';
+  const bm = data.brain_map_svg;
+  const bn = data.brain_network_scores || {};
+  const bmSrc = data.brain_map_source || '';
+  if (bm) {
+    const srcLabel = bmSrc === 'tribe_v2'
+      ? 'Meta TRIBE v2 · fMRI predictions'
+      : 'Estimated · based on virality dimensions';
+    const srcColor = bmSrc === 'tribe_v2' ? 'var(--green)' : 'var(--amber)';
+    brainHtml =
+      '<div class="sh">Brain Activation Map' +
+        '<span style="font-size:.62rem;color:var(--muted);font-weight:400"> · How this content triggers the mind</span>' +
+      '</div>' +
+      '<div style="margin:.5rem 0 .75rem">' + bm + '</div>' +
+      '<div style="font-size:.61rem;color:#374151;margin-top:.25rem">' +
+        'Source: <span style="color:' + srcColor + '">' + srcLabel + '</span>' +
+        ' &nbsp;·&nbsp; CC-BY-NC-4.0 (non-commercial research use only)' +
+      '</div>';
+  }
 
   document.getElementById('v-result').innerHTML = `
     <div class="card">
@@ -1121,12 +1666,120 @@ function renderVirality(data) {
         <div class="v-denom">/100</div>
         <div class="v-badge" style="background:${color}">${grade}</div>
       </div>
+      ${brainHtml}
       <div class="sh">Score Breakdown</div>
       ${dimsHtml}
+      ${visualHtml}
+      ${attnHtml}
+      ${neHtml}
       ${hookHtml}
       ${angHtml}
       ${platHtml}
     </div>`;
+}
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── TRIBE v2 Video Neural Analysis ──────────────────────────────────────── */
+async function startVideoAnalysis() {
+  const url   = document.getElementById('nv-url').value.trim();
+  const label = document.getElementById('nv-label').value.trim();
+  if (!url) {
+    document.getElementById('nv-result').innerHTML =
+      '<div class="err-box">⚠ Enter a video URL to analyze.</div>';
+    return;
+  }
+
+  const btn = document.getElementById('nv-btn');
+  btn.disabled = true;
+  document.getElementById('nv-loading').style.display = 'block';
+  document.getElementById('nv-result').innerHTML = '';
+
+  try {
+    const r = await fetch('/analyze-video', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({video_url: url, label: label || ''}),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Analysis failed');
+    renderVideoAnalysis(d);
+  } catch (e) {
+    document.getElementById('nv-result').innerHTML =
+      '<div class="err-box">⚠ ' + esc(e.message) + '</div>';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('nv-loading').style.display = 'none';
+  }
+}
+
+function renderVideoAnalysis(d) {
+  const score    = d.neural_engagement_score;
+  const tier     = d.tier || '';
+  const tierColor = tier === 'High' ? 'var(--green)' : tier === 'Medium' ? 'var(--amber)' : 'var(--red)';
+  const nePct    = score != null ? Math.round(score) : 0;
+  const bmSrc    = d.brain_map_source || '';
+  const srcLabel = bmSrc === 'tribe_v2' ? 'Meta TRIBE v2 · fMRI' : 'Estimated';
+  const srcColor = bmSrc === 'tribe_v2' ? 'var(--green)' : 'var(--amber)';
+
+  let html = '<div class="card">';
+
+  if (d.error && score == null) {
+    html += '<div style="color:var(--red);font-size:.85rem;padding:.5rem">⚠ ' + esc(d.error) + '</div>';
+  } else {
+    html +=
+      '<div style="display:flex;align-items:baseline;gap:.55rem;margin-bottom:.75rem">' +
+        '<span style="font-size:2.6rem;font-weight:900;line-height:1;color:' + tierColor + '">' + nePct + '</span>' +
+        '<span style="font-size:.85rem;color:var(--muted)">/100 Neural Engagement</span>' +
+        (tier ? '<span style="display:inline-block;padding:.18rem .65rem;border-radius:999px;' +
+          'font-size:.75rem;font-weight:700;background:' + tierColor + ';color:#000">' + esc(tier) + '</span>' : '') +
+      '</div>' +
+      '<div class="dim-bg" style="margin-bottom:.75rem">' +
+        '<div class="dim-fill" style="width:' + nePct + '%;background:' + tierColor + '"></div>' +
+      '</div>' +
+      (d.consistency_score != null
+        ? '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.65rem">' +
+            '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:var(--muted)">' +
+              'Consistency ' + d.consistency_score + '%</span>' +
+            (d.n_trs_analyzed
+              ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:var(--muted)">' + d.n_trs_analyzed + ' TRs</span>'
+              : '') +
+            (d.early_hook_strong
+              ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:rgba(34,197,94,.1);color:var(--green)">Strong opening hook</span>'
+              : (d.early_hook_ratio != null && d.early_hook_ratio < 0.85
+                ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:rgba(239,68,68,.08);color:var(--red)">Weak opening hook</span>'
+                : '')) +
+          '</div>'
+        : '') +
+      (d.interpretation
+        ? '<div style="font-size:.8rem;color:#cbd5e1;line-height:1.55;padding:.55rem .75rem;' +
+            'background:#0f172a;border-radius:7px;border-left:2px solid ' + tierColor + ';margin-bottom:.75rem">' +
+            esc(d.interpretation) + '</div>'
+        : '');
+
+    if (d.brain_map_svg) {
+      html +=
+        '<div class="sh" style="margin-top:.5rem">Brain Activation Map' +
+          '<span style="font-size:.62rem;color:var(--muted);font-weight:400;margin-left:.35rem">' +
+            '· Source: <span style="color:' + srcColor + '">' + srcLabel + '</span></span>' +
+        '</div>' +
+        '<div style="margin:.5rem 0 .5rem">' + d.brain_map_svg + '</div>';
+    }
+
+    html +=
+      '<div style="font-size:.62rem;color:#374151;margin-top:.5rem;padding-top:.5rem;border-top:1px solid #1e1e1e">' +
+        'Powered by Meta TRIBE v2 · CC-BY-NC-4.0 (non-commercial research use only) · ' +
+        '<a href="/brain-map" target="_blank" style="color:#475569">Brain map explainer</a>' +
+      '</div>';
+  }
+
+  html += '</div>';
+  document.getElementById('nv-result').innerHTML = html;
 }
 
 function showErr(id, msg) {
@@ -1424,9 +2077,161 @@ async function addBrandMonitor() {
       <span style="color:var(--border)">·</span>
       ${dot(s.playwright, 'ok', null)} Playwright
       <span style="color:var(--border)">·</span>
-      ${dot(s.tribe_v2, 'loaded', null, 'not installed')} Chronos · Prophet`;
+      ${dot(s.tribe_v2, 'loaded', 'checkpoint needed', 'not installed')} TRIBE v2`;
   } catch (_) {}
 })();
+
+/* ── Connectors ────────────────────────────────────────────────────────────── */
+function onConnBrandUrl(val) {
+  if (!val) return;
+  document.getElementById('conn-status-row').style.display = 'none';
+}
+
+async function checkConnectorStatus() {
+  const url = document.getElementById('conn-brand-url').value.trim();
+  if (!url) return;
+  const res = await fetch('/connect/status/' + encodeURIComponent(url));
+  const data = await res.json();
+  _applyConnectorStatus(data);
+}
+
+function _applyConnectorStatus(data) {
+  // Shopify badge
+  const sb = document.getElementById('shopify-badge');
+  const sdb = document.getElementById('shopify-disconnect-btn');
+  if (data.shopify) {
+    sb.textContent = '✓ Connected'; sb.style.display = '';
+    sb.style.background = 'rgba(34,197,94,.15)'; sb.style.color = '#22c55e';
+    if (data.shopify_store_url) document.getElementById('shopify-store-url').value = data.shopify_store_url;
+    sdb.style.display = '';
+  } else {
+    sb.textContent = 'Not connected'; sb.style.display = '';
+    sb.style.background = 'rgba(88,88,88,.18)'; sb.style.color = 'var(--muted)';
+    sdb.style.display = 'none';
+  }
+  // Meta badge
+  const mb = document.getElementById('meta-badge');
+  const mdb = document.getElementById('meta-disconnect-btn');
+  if (data.meta) {
+    mb.textContent = '✓ Connected'; mb.style.display = '';
+    mb.style.background = 'rgba(34,197,94,.15)'; mb.style.color = '#22c55e';
+    if (data.meta_account_id) document.getElementById('meta-account-id').value = data.meta_account_id;
+    mdb.style.display = '';
+  } else {
+    mb.textContent = 'Not connected'; mb.style.display = '';
+    mb.style.background = 'rgba(88,88,88,.18)'; mb.style.color = 'var(--muted)';
+    mdb.style.display = 'none';
+  }
+}
+
+async function saveShopify() {
+  const brandUrl = document.getElementById('conn-brand-url').value.trim();
+  const storeUrl = document.getElementById('shopify-store-url').value.trim();
+  const token    = document.getElementById('shopify-token').value.trim();
+  const msgEl    = document.getElementById('shopify-msg');
+  if (!brandUrl || !storeUrl || !token) {
+    _connMsg(msgEl, 'Fill in all fields.', false); return;
+  }
+  _connMsg(msgEl, 'Verifying…', null);
+  try {
+    const res = await fetch('/connect/shopify', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({brand_url: brandUrl, store_url: storeUrl, access_token: token})
+    });
+    const data = await res.json();
+    if (res.ok) {
+      _connMsg(msgEl, '✓ Shopify connected!', true);
+      document.getElementById('shopify-token').value = '';
+      document.getElementById('shopify-badge').textContent = '✓ Connected';
+      document.getElementById('shopify-badge').style.display = '';
+      document.getElementById('shopify-badge').style.background = 'rgba(34,197,94,.15)';
+      document.getElementById('shopify-badge').style.color = '#22c55e';
+      document.getElementById('shopify-disconnect-btn').style.display = '';
+      loadConnectors();
+    } else {
+      _connMsg(msgEl, '✗ ' + (data.detail || 'Error'), false);
+    }
+  } catch(e) { _connMsg(msgEl, '✗ Network error', false); }
+}
+
+async function saveMeta() {
+  const brandUrl   = document.getElementById('conn-brand-url').value.trim();
+  const token      = document.getElementById('meta-token').value.trim();
+  const accountId  = document.getElementById('meta-account-id').value.trim();
+  const msgEl      = document.getElementById('meta-msg');
+  if (!brandUrl || !token || !accountId) {
+    _connMsg(msgEl, 'Fill in all fields.', false); return;
+  }
+  _connMsg(msgEl, 'Verifying…', null);
+  try {
+    const res = await fetch('/connect/meta', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({brand_url: brandUrl, access_token: token, ad_account_id: accountId})
+    });
+    const data = await res.json();
+    if (res.ok) {
+      _connMsg(msgEl, '✓ Meta Ads connected!', true);
+      document.getElementById('meta-token').value = '';
+      document.getElementById('meta-badge').textContent = '✓ Connected';
+      document.getElementById('meta-badge').style.display = '';
+      document.getElementById('meta-badge').style.background = 'rgba(34,197,94,.15)';
+      document.getElementById('meta-badge').style.color = '#22c55e';
+      document.getElementById('meta-disconnect-btn').style.display = '';
+      loadConnectors();
+    } else {
+      _connMsg(msgEl, '✗ ' + (data.detail || 'Error'), false);
+    }
+  } catch(e) { _connMsg(msgEl, '✗ Network error', false); }
+}
+
+async function disconnectConnector(provider) {
+  const brandUrl = document.getElementById('conn-brand-url').value.trim();
+  if (!brandUrl) { alert('Enter brand URL first.'); return; }
+  if (!confirm('Disconnect ' + provider + ' for ' + brandUrl + '?')) return;
+  const res = await fetch('/connect/' + encodeURIComponent(brandUrl) + '/' + provider, {method:'DELETE'});
+  if (res.ok) {
+    checkConnectorStatus();
+    loadConnectors();
+  }
+}
+
+async function loadConnectors() {
+  const listEl = document.getElementById('connectors-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch('/connect/list');
+    const data = await res.json();
+    if (!data.length) {
+      listEl.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">No connectors configured yet. Add API keys above to enable deeper analysis.</div>';
+      return;
+    }
+    listEl.innerHTML = data.map(c => `
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.brand_url}</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.15rem">Updated: ${c.updated_at ? c.updated_at.split('T')[0] : '—'}</div>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-shrink:0">
+          ${c.shopify ? '<span style="font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:4px;background:rgba(34,197,94,.12);color:#22c55e">🛒 Shopify</span>' : ''}
+          ${c.meta    ? '<span style="font-size:.7rem;font-weight:600;padding:.15rem .5rem;border-radius:4px;background:rgba(59,130,246,.12);color:#3b82f6">📘 Meta Ads</span>' : ''}
+        </div>
+        <button onclick="document.getElementById(\'conn-brand-url\').value=\'${c.brand_url}\';checkConnectorStatus();showTab(\'connectors\',document.querySelector(\'.tab:last-child\'))"
+          style="font-size:.75rem;padding:.3rem .6rem;border-radius:5px;border:1px solid var(--border);
+          background:transparent;color:var(--muted);cursor:pointer">Edit</button>
+      </div>`
+    ).join('');
+  } catch(e) {
+    listEl.innerHTML = '<div style="color:var(--red);padding:1rem;font-size:.85rem">Error loading connectors.</div>';
+  }
+}
+
+function _connMsg(el, msg, ok) {
+  el.style.display = '';
+  el.textContent = msg;
+  el.style.color = ok === true ? 'var(--green)' : ok === false ? 'var(--red)' : 'var(--muted)';
+}
 </script>
 
 <div id="sys-bar" style="position:fixed;bottom:0;left:0;right:0;
@@ -1530,6 +2335,7 @@ async def _http_exception_handler(request: Request, exc: HTTPException):
 class AuditRequest(BaseModel):
     url: str
     scheduled: bool = False
+    deep_visual: bool = False
 
     @field_validator("url")
     @classmethod
@@ -1580,24 +2386,34 @@ class CompareRequest(BaseModel):
 
 # ── Action plan LLM prompt ────────────────────────────────────────────────────
 
-_ACTION_PLAN_PROMPT = (
+_ACTION_PLAN_PROMPT_TEMPLATE = (
     "You are a Shopify CRO specialist. Generate a step-by-step implementation plan "
-    "for this specific fix for {brand_name} on {platform}.\n\n"
-    "Finding: {finding}\n\n"
-    'Output JSON:\n{{\n'
+    "for this specific fix for __BRAND_NAME__ on __PLATFORM__.\n\n"
+    "Finding: __FINDING__\n\n"
+    'Output JSON:\n{\n'
     '  "title": "Fix: [specific name]",\n'
     '  "estimated_time": "2-4 hours",\n'
     '  "estimated_impact": "+5-8% mobile conversion rate",\n'
     '  "difficulty": "Low | Medium | High",\n'
     '  "steps": [\n'
-    '    {{"step": 1, "action": "specific action", '
+    '    {"step": 1, "action": "specific action", '
     '"detail": "exactly how to do it", '
-    '"tool": "Shopify theme editor / liquid code / app name"}}\n'
+    '"tool": "Shopify theme editor / liquid code / app name"}\n'
     '  ],\n'
     '  "if_not_on_shopify": "alternative approach for custom platforms",\n'
     '  "resources": ["specific documentation or app links"]\n'
-    "}}"
+    "}"
 )
+
+
+def _build_action_plan_prompt(brand_name: str, platform: str, finding: str) -> str:
+    """Build action plan prompt safely — finding may contain curly braces."""
+    return (
+        _ACTION_PLAN_PROMPT_TEMPLATE
+        .replace("__BRAND_NAME__", brand_name)
+        .replace("__PLATFORM__", platform)
+        .replace("__FINDING__", finding)
+    )
 
 
 # ── Compare LLM prompt ────────────────────────────────────────────────────────
@@ -1822,19 +2638,34 @@ def _build_rich_context(brand_name: str, results: dict) -> dict:
 
 def _assemble_audit_data(audit: AuditRun) -> dict:
     """Reconstruct the audit dict that generate_audit_report expects."""
-    from agents.orchestrator import _brand_name_from_url as _bnfu
+    from agents.agentic_orchestrator import _brand_name_from_url as _bnfu
+    am = _parse_json(audit.agentic_meta_json) or {}
     return {
-        "url":             audit.url,
-        "brand_name":      _bnfu(audit.url),
-        "one_thing":       audit.one_thing or "",
-        "changes_summary": audit.changes_summary or "",
+        "audit_id":           audit.id,
+        "url":                audit.url,
+        "brand_name":         _bnfu(audit.url),
+        "one_thing":          audit.one_thing or "",
+        "roadmap_json":       audit.roadmap_json or "",
+        "changes_summary":    audit.changes_summary or "",
+        "analyst_brief":      _parse_json(audit.analyst_brief_json) or {},
+        "cross_findings":     _parse_json(audit.cross_findings_json) or [],
+        # WorkingMemory — powers Reasoning Brain panel
+        "agentic_meta":       am,
+        "reasoning_trace":    am.get("reasoning_trace", []),
+        "signals":            am.get("signals", []),
+        "cross_insights":     am.get("cross_insights", []),
+        "decisions":          am.get("decisions", []),
+        "pattern_detected":   am.get("pattern_detected"),
+        "strategic_posture":  am.get("strategic_posture"),
         "results": {
-            "brand_basics":    _parse_json(audit.brand_basics),
-            "content_catalog": _parse_json(audit.content_catalog),
-            "performance_ads": _parse_json(audit.performance_ads),
-            "geo_visibility":  _parse_json(audit.geo_visibility),
-            "store_cro":       _parse_json(audit.store_cro),
-            "research":        _parse_json(audit.research),
+            "brand_basics":       _parse_json(audit.brand_basics),
+            "content_catalog":    _parse_json(audit.content_catalog),
+            "performance_ads":    _parse_json(audit.performance_ads),
+            "geo_visibility":     _parse_json(audit.geo_visibility),
+            "store_cro":          _parse_json(audit.store_cro),
+            "research":           _parse_json(audit.research),
+            "social_profile":     _parse_json(audit.social_profile),
+            "social_media_audit": _parse_json(audit.social_media_audit),
         },
     }
 
@@ -2090,7 +2921,21 @@ def _make_audit_run_from_cache(url: str, cached_data: dict, session) -> AuditRun
         geo_visibility=json.dumps(results.get("geo_visibility")),
         store_cro=json.dumps(results.get("store_cro")),
         research=json.dumps(results.get("research")),
+        social_profile=json.dumps(results.get("social_profile")),
+        social_media_audit=json.dumps(results.get("social_media_audit")),
         one_thing=cached_data.get("one_thing", ""),
+        roadmap_json=(
+            json.dumps(cached_data["roadmap"])
+            if cached_data.get("roadmap") else None
+        ),
+        analyst_brief_json=(
+            json.dumps(cached_data["analyst_brief"])
+            if cached_data.get("analyst_brief") else None
+        ),
+        cross_findings_json=(
+            json.dumps(cached_data["cross_findings"])
+            if cached_data.get("cross_findings") else None
+        ),
     )
     session.add(audit)
     session.commit()
@@ -2283,11 +3128,89 @@ async def _compare_sse_gen(
 
 # ── Background task ───────────────────────────────────────────────────────────
 
-async def _run_audit_bg(audit_id: int) -> None:
+async def _run_tribe_background(audit_id: int) -> None:
+    """Run TRIBE v2 brain analysis as a background task after the main audit.
+
+    Reads the posts snapshot saved by social_media_audit, runs _process_reels_tribe,
+    merges the brain-map results back into the social_media_audit JSON in the DB,
+    then regenerates the HTML report so the Reels Neural section shows real fMRI data.
+    """
+    from sqlmodel import Session as S
+    from agents.social_media_audit import _process_reels_tribe
+
+    def _set_tribe_status(status: str, error: str | None = None) -> None:
+        with S(engine) as sess:
+            a = sess.get(AuditRun, audit_id)
+            if a and a.social_media_audit:
+                blob = _parse_json(a.social_media_audit) or {}
+                blob["tribe_status"] = status
+                if error:
+                    blob["tribe_error"] = error
+                a.social_media_audit = json.dumps(blob)
+                sess.add(a)
+                sess.commit()
+
+    try:
+        with S(engine) as sess:
+            audit = sess.get(AuditRun, audit_id)
+            if not audit or not audit.social_media_audit:
+                return
+            sma = _parse_json(audit.social_media_audit) or {}
+
+        posts = sma.get("tribe_posts_snapshot", [])
+        if not posts:
+            _set_tribe_status("failed", "No Reels snapshot found")
+            return
+
+        print(f"  [tribe_bg] Starting TRIBE v2 for audit {audit_id} — {len(posts)} Reel(s)", flush=True)
+        _set_tribe_status("processing")
+
+        tribe_data = await _process_reels_tribe(posts)
+
+        with S(engine) as sess:
+            audit = sess.get(AuditRun, audit_id)
+            if not audit or not audit.social_media_audit:
+                return
+            blob = _parse_json(audit.social_media_audit) or {}
+            blob["reels_tribe"]        = tribe_data["reels_tribe"]
+            blob["brand_brain_map"]    = tribe_data["brand_brain_map"]
+            blob["tribe_available"]    = tribe_data["tribe_available"]
+            blob["tribe_status"]       = "complete"
+            blob["tribe_error"]        = tribe_data.get("tribe_error")
+            blob.pop("tribe_posts_snapshot", None)  # no longer needed
+            audit.social_media_audit = json.dumps(blob)
+            sess.add(audit)
+            sess.commit()
+
+        # Regenerate the HTML report with the new brain-map data
+        try:
+            from reports.generator import generate_audit_report
+            with S(engine) as sess:
+                audit = sess.get(AuditRun, audit_id)
+                if audit:
+                    report_html = generate_audit_report(_assemble_audit_data(audit))
+                    audit.report_html = report_html
+                    sess.add(audit)
+                    sess.commit()
+        except Exception as rep_exc:
+            print(f"  [tribe_bg] Report regen failed: {rep_exc}", flush=True)
+
+        reels_ok = len([r for r in tribe_data["reels_tribe"] if not r.get("error")])
+        print(f"  [tribe_bg] Done — {reels_ok} Reel(s) processed for audit {audit_id}", flush=True)
+
+    except Exception as exc:
+        print(f"  [tribe_bg] Failed for audit {audit_id}: {exc}", flush=True)
+        _set_tribe_status("failed", str(exc))
+
+
+async def _run_audit_bg(audit_id: int, deep_visual: bool = False) -> None:
     from sqlmodel import Session as S
 
     try:
-        await _orchestrate(audit_id)
+        # Main audit always runs without blocking on TRIBE v2.
+        # deep_visual flag is forwarded so social_media_audit saves the posts
+        # snapshot and sets tribe_status="pending"; TRIBE v2 runs below.
+        await _orchestrate(audit_id, deep_visual=deep_visual)
     except Exception as exc:
         with S(engine) as session:
             audit = session.get(AuditRun, audit_id)
@@ -2342,6 +3265,11 @@ async def _run_audit_bg(audit_id: int) -> None:
             except Exception:
                 pass  # best-effort; report endpoint generates on-demand as fallback
 
+    # If deep_visual was requested, spin up TRIBE v2 in the background now
+    # that the main audit HTML is already saved and the user can see the report.
+    if deep_visual:
+        asyncio.create_task(_run_tribe_background(audit_id))
+
 
 # ── SSE generator ─────────────────────────────────────────────────────────────
 
@@ -2389,17 +3317,41 @@ def _extract_preview(agent_key: str, result: dict) -> dict:
             "stat": "Market position mapped",
             "insight": _first(analysis.get("whitespace_opportunities"), "Research complete"),
         },
+        "social_profile": {
+            "headline": f"Social presence score: {result.get('social_presence_score', '?')}/10",
+            "stat": f"Instagram: {(result.get('instagram') or {}).get('followers', 0):,} followers",
+            "insight": _first(result.get("top_3_social_improvements"), "Social presence mapped"),
+        },
+        "social_media_audit": {
+            "headline": f"Social audit score: {(result.get('scores') or {}).get('overall', '?')}/10",
+            "stat": f"IG: {(result.get('platforms') or {}).get('instagram', {}).get('followers', 0):,} · YT: {(result.get('platforms') or {}).get('youtube', {}).get('subscribers', 0):,}",
+            "insight": _first(result.get("top_3_recommendations"), "Multi-platform audit complete"),
+        },
     }
     p = previews.get(agent_key, {"headline": "Analysed", "stat": "", "insight": ""})
     p["label"] = _AGENT_LABELS.get(agent_key, agent_key)
     return p
 
 
-async def _sse_gen(audit_id: int) -> AsyncGenerator[str, None]:
-    """Poll the DB every 500ms and emit SSE events with live previews on state transitions."""
+async def _sse_gen(audit_id: int, deep_visual: bool = False) -> AsyncGenerator[str, None]:
+    """Poll DB every 500ms and emit SSE events.
+
+    Parallel agent fix (issues 4+5+6):
+      Old design watched current_agent (single string) → 5 parallel agents thrash
+      it at ~0ms intervals; SSE at 500ms misses 4 of 5 completions.
+
+      New design watches which DB columns transition null → populated.
+      Each column appearing = one done event, regardless of concurrency.
+      current_agent is still used for sequential agents (brand_basics,
+      social_media_audit) and the __parallel__ sentinel for phase3_start.
+
+    TRIBE v2 SSE (issue 9):
+      Watches tribe_status inside social_media_audit JSON blob.
+      Emits tribe_started / tribe_complete events once each.
+    """
     from sqlmodel import Session as S
 
-    # Instant cache-hit path
+    # ── Instant cache-hit ──────────────────────────────────────────────────────
     with S(engine) as session:
         _check = session.get(AuditRun, audit_id)
         if _check and _check.current_agent == "__cached__" and _check.status == "complete":
@@ -2407,10 +3359,21 @@ async def _sse_gen(audit_id: int) -> AsyncGenerator[str, None]:
             yield f"data: {json.dumps({'status': 'complete', 'report_url': f'/report/{audit_id}', 'progress_pct': 100, 'from_cache': True})}\n\n"
             return
 
-    last_key: Optional[str] = None
-    agent_t: dict[str, float] = {}
-    deadline = time.monotonic() + 600
-    ka_at = time.monotonic()
+    # 6 parallel Phase-2 agents — done events driven by field population, not current_agent
+    _PARALLEL_KEYS: set[str] = {
+        "content_catalog", "performance_ads", "geo_visibility",
+        "store_cro", "research", "social_profile",
+    }
+
+    agent_t: dict[str, float] = {}     # agent_key → time we first saw it "running"
+    _seen_done: set[str] = set()       # agents whose done event already fired
+    _phase2_started   = False
+    _phase2_done      = False
+    _tribe_announced  = False          # prevent duplicate tribe_started events
+    last_current: Optional[str] = None
+
+    deadline = time.monotonic() + (7200 if deep_visual else 1800)
+    ka_at    = time.monotonic()
 
     while time.monotonic() < deadline:
         await asyncio.sleep(0.5)
@@ -2424,36 +3387,84 @@ async def _sse_gen(audit_id: int) -> AsyncGenerator[str, None]:
             if not audit:
                 yield f"data: {json.dumps({'status': 'error', 'error': 'Audit not found'})}\n\n"
                 return
-            current = audit.current_agent
-            status  = audit.status
-            pct     = audit.progress_pct
+            current   = audit.current_agent
+            status    = audit.status
+            pct       = audit.progress_pct
             audit_err = getattr(audit, "error", None)
-            _agent_data = {
-                "brand_basics":    audit.brand_basics,
-                "content_catalog": audit.content_catalog,
-                "performance_ads": audit.performance_ads,
-                "geo_visibility":  audit.geo_visibility,
-                "store_cro":       audit.store_cro,
-                "research":        audit.research,
+            _agent_data: dict[str, Optional[str]] = {
+                "brand_basics":       audit.brand_basics,
+                "content_catalog":    audit.content_catalog,
+                "performance_ads":    audit.performance_ads,
+                "geo_visibility":     audit.geo_visibility,
+                "store_cro":          audit.store_cro,
+                "research":           audit.research,
+                "social_profile":     audit.social_profile,
+                "social_media_audit": audit.social_media_audit,
             }
 
-        if current != last_key:
-            # ── Emit completion event for the agent that just finished ───────
-            if last_key is not None and last_key != "gathering_data":
-                elapsed = round(time.monotonic() - agent_t.get(last_key, time.monotonic()), 1)
-                raw = _agent_data.get(last_key)
-                r = json.loads(raw) if raw else {}
-                yield f"data: {json.dumps({'key': last_key, 'agent': _AGENT_LABELS.get(last_key, last_key), 'status': 'done', 'elapsed': elapsed, 'progress_pct': pct, 'preview': _extract_preview(last_key, r)})}\n\n"
-
-            # ── Emit start event for the new current_agent ───────────────────
-            if current == "gathering_data":
-                yield f"data: {json.dumps({'status': 'gathering'})}\n\n"
-            elif current is not None:
+        # ── Sequential agent: brand_basics or social_media_audit ──────────────
+        if current != last_current:
+            if current not in _PARALLEL_KEYS and current not in (None, "__parallel__"):
                 agent_t[current] = time.monotonic()
                 step = (AGENT_SEQUENCE.index(current) + 1) if current in AGENT_SEQUENCE else 0
                 yield f"data: {json.dumps({'key': current, 'agent': _AGENT_LABELS.get(current, current), 'status': 'running', 'step': step, 'of': len(AGENT_SEQUENCE)})}\n\n"
 
-            last_key = current
+            # __parallel__ sentinel → Phase 2 is starting
+            if current == "__parallel__" and not _phase2_started:
+                _phase2_started = True
+                for pk in _PARALLEL_KEYS:
+                    agent_t[pk] = time.monotonic()
+                yield f"data: {json.dumps({'status': 'phase3_start'})}\n\n"
+
+            last_current = current
+
+        # ── Watch DB columns for done events (works for all agents, parallel or not) ──
+        for key in AGENT_SEQUENCE:
+            if key in _seen_done:
+                continue
+            raw = _agent_data.get(key)
+            if not raw:
+                continue
+            # Column just got populated → fire done event
+            _seen_done.add(key)
+            elapsed = round(time.monotonic() - agent_t.get(key, time.monotonic()), 1)
+            try:
+                r = json.loads(raw)
+            except Exception:
+                r = {}
+            yield f"data: {json.dumps({'key': key, 'agent': _AGENT_LABELS.get(key, key), 'status': 'done', 'elapsed': elapsed, 'progress_pct': pct, 'preview': _extract_preview(key, r)})}\n\n"
+
+            # phase3_done — fire once all 6 parallel agents are in _seen_done
+            if not _phase2_done and _PARALLEL_KEYS.issubset(_seen_done):
+                _phase2_done = True
+                agents_payload = []
+                for pk in _PARALLEL_KEYS:
+                    try:
+                        pr = json.loads(_agent_data[pk]) if _agent_data.get(pk) else {}
+                    except Exception:
+                        pr = {}
+                    agents_payload.append({
+                        "key":     pk,
+                        "agent":   _AGENT_LABELS.get(pk, pk),
+                        "preview": _extract_preview(pk, pr),
+                    })
+                yield f"data: {json.dumps({'status': 'phase3_done', 'progress_pct': pct, 'agents': agents_payload})}\n\n"
+
+        # ── TRIBE v2 status (issue 9) ──────────────────────────────────────────
+        if not _tribe_announced and _agent_data.get("social_media_audit"):
+            try:
+                sma = json.loads(_agent_data["social_media_audit"])
+                tribe_status = sma.get("tribe_status", "none")
+                if tribe_status == "processing":
+                    _tribe_announced = True
+                    yield f"data: {json.dumps({'status': 'tribe_started'})}\n\n"
+                elif tribe_status == "complete":
+                    _tribe_announced = True
+                    reels = sma.get("reels_tribe") or []
+                    ok = len([r for r in reels if not r.get("error")])
+                    yield f"data: {json.dumps({'status': 'tribe_complete', 'reels_processed': ok})}\n\n"
+            except Exception:
+                pass
 
         if status == "complete":
             yield f"data: {json.dumps({'status': 'complete', 'report_url': f'/report/{audit_id}', 'progress_pct': 100})}\n\n"
@@ -2463,7 +3474,8 @@ async def _sse_gen(audit_id: int) -> AsyncGenerator[str, None]:
             yield f"data: {json.dumps({'status': 'failed', 'error': audit_err or 'Audit failed'})}\n\n"
             return
 
-    yield f"data: {json.dumps({'status': 'timeout', 'error': 'Exceeded 10-minute limit'})}\n\n"
+    limit_label = "2-hour" if deep_visual else "30-minute"
+    yield f"data: {json.dumps({'status': 'timeout', 'error': f'Exceeded {limit_label} limit'})}\n\n"
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -2489,6 +3501,9 @@ async def system_status():
     groq_key = _os.environ.get("GROQ_API_KEY", "")
     result["groq"] = "ok" if groq_key else "error: no GROQ_API_KEY"
 
+    gemini_key = _os.environ.get("GEMINI_API_KEY", "")
+    result["gemini"] = "ok (fallback ready)" if gemini_key else "not configured"
+
     try:
         from playwright.async_api import async_playwright  # noqa: F401
         result["playwright"] = "ok"
@@ -2499,9 +3514,22 @@ async def system_status():
     result["mastra"] = "connected" if mastra_url else "not configured"
 
     try:
+        import sys
         import importlib
-        if importlib.util.find_spec("chronos") or importlib.util.find_spec("prophet"):
-            result["tribe_v2"] = "loaded"
+        tribe_repo = Path(__file__).parent.parent / "tribeV2"
+        if tribe_repo.exists() and str(tribe_repo) not in sys.path:
+            sys.path.insert(0, str(tribe_repo))
+        if importlib.util.find_spec("tribev2"):
+            ckpt_dir = _os.getenv("TRIBE_CHECKPOINT_DIR", "facebook/tribev2")
+            ckpt_local = Path(ckpt_dir)
+            # Check local dir first, then HuggingFace hub cache
+            local_ok = ckpt_local.exists() and (ckpt_local / "best.ckpt").exists()
+            hf_cache = Path.home() / ".cache" / "huggingface" / "hub"
+            hf_ok = any(
+                (p / "best.ckpt").exists()
+                for p in hf_cache.glob("models--facebook--tribev2/snapshots/*")
+            ) if hf_cache.exists() else False
+            result["tribe_v2"] = "loaded" if (local_ok or hf_ok) else "checkpoint needed"
         else:
             result["tribe_v2"] = "not installed"
     except Exception:
@@ -2535,6 +3563,8 @@ async def start_audit(
             geo_visibility=json.dumps(results.get("geo_visibility")),
             store_cro=json.dumps(results.get("store_cro")),
             research=json.dumps(results.get("research")),
+            social_profile=json.dumps(results.get("social_profile")),
+            social_media_audit=json.dumps(results.get("social_media_audit")),
         )
         session.add(audit)
         session.commit()
@@ -2555,7 +3585,7 @@ async def start_audit(
         }
 
     # ── Live pipeline ─────────────────────────────────────────────────────────
-    from agents.orchestrator import _brand_name_from_url
+    from agents.agentic_orchestrator import _brand_name_from_url
     brand_name = _brand_name_from_url(url)
     audit = AuditRun(
         url=url, status="pending",
@@ -2569,7 +3599,7 @@ async def start_audit(
     # Try Mastra first; fall back to Python orchestrator if unavailable
     mastra_started = await _try_mastra_audit(audit.id, url, brand_name)
     if not mastra_started:
-        background_tasks.add_task(_run_audit_bg, audit.id)
+        background_tasks.add_task(_run_audit_bg, audit.id, request.deep_visual)
 
     return {
         "audit_id":     audit.id,
@@ -2582,14 +3612,75 @@ async def start_audit(
 
 
 @app.get("/audit/stream/{audit_id}")
-async def audit_stream(audit_id: int, session: Session = Depends(get_session)):
+async def audit_stream(audit_id: int, deep_visual: int = 0, session: Session = Depends(get_session)):
     audit = session.get(AuditRun, audit_id)
     if not audit:
         raise HTTPException(status_code=404, detail="Audit not found")
     return StreamingResponse(
-        _sse_gen(audit_id),
+        _sse_gen(audit_id, deep_visual=bool(deep_visual)),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/audit/{audit_id}/tribe-status")
+async def tribe_status(audit_id: int, session: Session = Depends(get_session)):
+    """Poll TRIBE v2 background processing status.
+
+    Returns tribe_status: none | pending | processing | complete | failed
+    When complete, also returns reels_count so the frontend knows how many brain maps to expect.
+    """
+    audit = session.get(AuditRun, audit_id)
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+    sma = _parse_json(audit.social_media_audit) or {}
+    status = sma.get("tribe_status", "none")
+    return {
+        "audit_id":       audit_id,
+        "status":         status,
+        "tribe_available": sma.get("tribe_available", False),
+        "reels_count":    len(sma.get("reels_tribe", [])),
+        "error":          sma.get("tribe_error"),
+    }
+
+
+@app.get("/audit/{audit_id}/tribe-video/{reel_idx}/{kind}")
+async def tribe_video(
+    audit_id: int,
+    reel_idx: int,
+    kind: str,
+    session: Session = Depends(get_session),
+):
+    """Stream the reel video or brain simulation MP4 for a processed Reel.
+
+    kind: 'reel' | 'brain'
+    Returns 200 with video/mp4 content, 404 if not ready yet.
+    """
+    from fastapi.responses import FileResponse
+
+    if kind not in ("reel", "brain"):
+        raise HTTPException(status_code=400, detail="kind must be 'reel' or 'brain'")
+
+    audit = session.get(AuditRun, audit_id)
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+
+    sma = _parse_json(audit.social_media_audit) or {}
+    reels_tribe = sma.get("reels_tribe", [])
+    if reel_idx >= len(reels_tribe):
+        raise HTTPException(status_code=404, detail=f"Reel index {reel_idx} not found")
+
+    reel = reels_tribe[reel_idx]
+    path_key = "reel_video_path" if kind == "reel" else "sim_video_path"
+    video_path = reel.get(path_key)
+
+    if not video_path or not _os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail=f"{kind} video not yet generated")
+
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        headers={"Content-Disposition": f"inline; filename=\"tribe_{kind}_{reel_idx}.mp4\""},
     )
 
 
@@ -2599,7 +3690,8 @@ async def get_section_html(audit_id: int, agent_name: str, session: Session = De
     from reports.generator import generate_section as _gen_section
 
     _valid_keys = {"brand_basics", "content_catalog", "performance_ads",
-                   "geo_visibility", "store_cro", "research"}
+                   "geo_visibility", "store_cro", "research",
+                   "social_profile", "social_media_audit"}
     if agent_name not in _valid_keys:
         raise HTTPException(status_code=400, detail=f"Unknown agent: {agent_name}")
 
@@ -2704,7 +3796,7 @@ async def share_report(token: str, request: Request):
 
 
 @app.get("/share/compare/{token}", response_class=HTMLResponse)
-async def share_compare(token: str):
+async def share_compare(token: str, request: Request):
     """Public share link for a comparison report."""
     from sqlmodel import Session as S, select
     with S(engine) as session:
@@ -2725,7 +3817,10 @@ async def share_compare(token: str):
         return HTMLResponse(_LOADING_PAGE, status_code=202)
     if not cr.compare_html:
         raise HTTPException(status_code=500, detail="Report not generated")
-    return HTMLResponse(cr.compare_html, headers={"Cache-Control": "public, max-age=3600"})
+    html = cr.compare_html
+    created = _fmt_ist(cr.created_at) if hasattr(cr, "created_at") and cr.created_at else ""
+    html = _inject_toolbar(html, request.url._url, created)
+    return HTMLResponse(html, headers={"Cache-Control": "public, max-age=3600"})
 
 
 def _swot_fallback(brand_a: str, brand_b: str) -> dict:
@@ -2915,7 +4010,7 @@ async def action_plan(req: ActionPlanRequest):
     if cached:
         return cached
 
-    prompt = _ACTION_PLAN_PROMPT.format(
+    prompt = _build_action_plan_prompt(
         brand_name=req.brand_name,
         platform=req.platform or "shopify",
         finding=req.finding,
@@ -3006,7 +4101,7 @@ async def compare_stream(compare_id: int, session: Session = Depends(get_session
 
 
 @app.get("/compare/{compare_id}", response_class=HTMLResponse)
-async def get_compare(compare_id: int, session: Session = Depends(get_session)):
+async def get_compare(compare_id: int, request: Request, session: Session = Depends(get_session)):
     cr = session.get(CompareRun, compare_id)
     if not cr:
         raise HTTPException(status_code=404, detail="Comparison not found")
@@ -3014,7 +4109,13 @@ async def get_compare(compare_id: int, session: Session = Depends(get_session)):
         return HTMLResponse(_LOADING_PAGE, status_code=202)
     if not cr.compare_html:
         raise HTTPException(status_code=500, detail="Report not yet generated")
-    return HTMLResponse(cr.compare_html)
+    html = cr.compare_html
+    if cr.share_token:
+        base = str(request.base_url).rstrip("/")
+        share_url = f"{base}/share/compare/{cr.share_token}"
+        created = _fmt_ist(cr.created_at) if hasattr(cr, "created_at") and cr.created_at else ""
+        html = _inject_toolbar(html, share_url, created)
+    return HTMLResponse(html)
 
 
 @app.post("/virality")
@@ -3034,18 +4135,25 @@ async def run_virality(
     run_id = run.id  # capture before session scope changes
 
     from sqlmodel import Session as S
+    import logging as _logging
+    _vlog = _logging.getLogger("virality_endpoint")
     try:
         predictor = ViralityPredictor(get_client(), WebScraper(), SearchAgent())
+        _vlog.warning("[virality] starting predict()")
         result = await predictor.predict(
             url=request.url,
             product_name=request.product_name,
             description=request.description,
             category=request.category,
         )
+        _vlog.warning("[virality] predict() done, error=%s", result.get("error"))
+        _vlog.warning("[virality] json.dumps(result)...")
+        result_json = json.dumps(result, default=str)
+        _vlog.warning("[virality] json.dumps OK")
         with S(engine) as s2:
             r2 = s2.get(ViralityRun, run_id)
             r2.status = "complete"
-            r2.result = json.dumps(result)
+            r2.result = result_json
             r2.score  = result.get("score")
             s2.add(r2)
             s2.commit()
@@ -3055,6 +4163,8 @@ async def run_virality(
             **result,
         }
     except Exception as exc:
+        import traceback as _tb
+        _vlog.error("[virality] FAILED: %s\n%s", exc, _tb.format_exc())
         with S(engine) as s2:
             r2 = s2.get(ViralityRun, run_id)
             if r2:
@@ -3383,9 +4493,288 @@ async def toggle_monitoring(
     return {"audit_id": audit_id, "monitoring": audit.monitoring}
 
 
+# ── Video Neural Analysis (TRIBE v2) ─────────────────────────────────────────
+
+class VideoAnalyzeRequest(BaseModel):
+    video_url: str
+    label: str = ""
+
+    @field_validator("video_url")
+    @classmethod
+    def must_be_url(cls, v: str) -> str:
+        v = v.strip()
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("Must be a full URL starting with http:// or https://")
+        return v
+
+
+@app.post("/analyze-video")
+async def analyze_video(req: VideoAnalyzeRequest):
+    """Run Meta TRIBE v2 fMRI neural engagement analysis on any video URL.
+
+    Supports: YouTube, Instagram Reels, TikTok, Vimeo, Twitter/X, Facebook,
+    direct .mp4/.webm links, and any yt-dlp-supported platform.
+
+    Returns neural engagement score (0-100), brain activation heatmap SVG,
+    network scores, and interpretation. Processing takes ~10-30 min on CPU.
+    """
+    try:
+        from agents.neural_engagement import NeuralEngagementAnalyzer
+        from agents.brain_map import (
+            generate_activation_heatmap,
+            tribe_preds_to_network_scores,
+            virality_dims_to_network_scores,
+        )
+
+        analyzer = NeuralEngagementAnalyzer()
+        loop = asyncio.get_event_loop()
+
+        # Run TRIBE v2 in executor (blocking, CPU-intensive)
+        score_dict, preds, _reel_path, _sim_path = await asyncio.wait_for(
+            loop.run_in_executor(None, analyzer._run_sync_full, req.video_url),
+            timeout=3600.0,  # 1-hour hard cap
+        )
+
+        label = req.label or req.video_url.split("/")[-1][:50] or "video"
+
+        if preds is not None:
+            import numpy as _np
+            preds_arr = _np.array(preds)
+            network_scores = tribe_preds_to_network_scores(preds_arr)
+            brain_map_svg = generate_activation_heatmap(
+                network_scores, is_real_tribe=True, ad_label=label
+            )
+            brain_map_source = "tribe_v2"
+        else:
+            # No preds (error path) — use empty scores so we still return a map
+            network_scores = {k: 0.0 for k in ["visual","motor","attention","limbic","default","control","reward"]}
+            brain_map_svg = generate_activation_heatmap(
+                network_scores, is_real_tribe=False, ad_label=label
+            )
+            brain_map_source = "error"
+
+        return {
+            **score_dict,
+            "video_url": req.video_url,
+            "label": label,
+            "brain_map_svg": brain_map_svg,
+            "brain_map_source": brain_map_source,
+            "brain_network_scores": network_scores,
+        }
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="TRIBE v2 inference timed out (>60 min)")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 # ── Demo endpoints (pre-cached, no API calls) ─────────────────────────────────
 
 _DEMO_DIR = Path(__file__).parent / "demo"
+
+
+@app.post("/admin/backfill-roadmaps")
+async def backfill_roadmaps(session: Session = Depends(get_session)):
+    """Regenerate roadmap_json for all complete audits that are missing it.
+
+    Idempotent — safe to run multiple times. Skips audits that already have
+    a roadmap or don't have enough agent data to build one.
+    """
+    from agents.orchestrator import _generate_roadmap
+    from sqlmodel import select as _select
+
+    audits = session.exec(
+        _select(AuditRun)
+        .where(AuditRun.status == "complete")
+        .where(AuditRun.roadmap_json == None)  # noqa: E711
+        .order_by(AuditRun.id.desc())
+    ).all()
+
+    if not audits:
+        return {"message": "All complete audits already have roadmaps.", "updated": 0}
+
+    llm = get_client()
+    updated = 0
+    skipped = 0
+    errors: list[str] = []
+
+    for audit in audits:
+        try:
+            results = {
+                "brand_basics":       _parse_json(audit.brand_basics),
+                "content_catalog":    _parse_json(audit.content_catalog),
+                "performance_ads":    _parse_json(audit.performance_ads),
+                "geo_visibility":     _parse_json(audit.geo_visibility),
+                "store_cro":          _parse_json(audit.store_cro),
+                "research":           _parse_json(audit.research),
+                "social_profile":     _parse_json(audit.social_profile),
+                "social_media_audit": _parse_json(audit.social_media_audit),
+            }
+            # Skip if we don't have enough data
+            filled = sum(1 for v in results.values() if v)
+            if filled < 3:
+                skipped += 1
+                continue
+
+            roadmap = await _generate_roadmap(llm, results)
+            if roadmap:
+                audit.roadmap_json = json.dumps(roadmap)
+                session.add(audit)
+                session.commit()
+                updated += 1
+                print(f"  [backfill] audit {audit.id} — roadmap generated", flush=True)
+            else:
+                skipped += 1
+        except Exception as exc:
+            errors.append(f"audit {audit.id}: {exc}")
+            continue
+
+    return {
+        "message": f"Backfill complete. {updated} updated, {skipped} skipped.",
+        "updated": updated,
+        "skipped": skipped,
+        "errors": errors,
+        "total_found": len(audits),
+    }
+
+
+@app.post("/admin/cache/flush")
+async def flush_cache():
+    """Wipe the entire cache. All subsequent audits will run fresh with no cached data."""
+    count = await _cache.flush_all()
+    return {
+        "flushed": True,
+        "backend": _cache.backend,
+        "entries_cleared": count if count >= 0 else "all (redis flushdb)",
+    }
+
+
+# ── Connector endpoints ───────────────────────────────────────────────────────
+
+class ShopifyConnectRequest(BaseModel):
+    brand_url: str
+    store_url: str
+    access_token: str
+
+
+class MetaConnectRequest(BaseModel):
+    brand_url: str
+    access_token: str
+    ad_account_id: str
+
+
+@app.post("/connect/shopify")
+async def connect_shopify(req: ShopifyConnectRequest, db: Session = Depends(get_session)):
+    """Save Shopify Admin API token for a brand. Verifies the token before saving."""
+    from scrapers.shopify_private import verify_token
+    ok = await verify_token(req.store_url, req.access_token)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Token verification failed. Check store URL and access token.")
+
+    norm_url = req.brand_url.rstrip("/").lower()
+    connector = db.exec(
+        _sql_select(BrandConnector).where(BrandConnector.brand_url == norm_url)
+    ).first()
+    if connector:
+        connector.shopify_token = req.access_token
+        connector.shopify_store_url = req.store_url.rstrip("/")
+        connector.updated_at = _datetime.utcnow()
+    else:
+        connector = BrandConnector(
+            brand_url=norm_url,
+            shopify_token=req.access_token,
+            shopify_store_url=req.store_url.rstrip("/"),
+        )
+        db.add(connector)
+    db.commit()
+    return {"connected": True, "provider": "shopify", "brand_url": norm_url}
+
+
+@app.post("/connect/meta")
+async def connect_meta(req: MetaConnectRequest, db: Session = Depends(get_session)):
+    """Save Meta Marketing API token for a brand. Verifies the token before saving."""
+    from scrapers.meta_ads_api import verify_token
+    ok = await verify_token(req.access_token, req.ad_account_id)
+    if not ok:
+        raise HTTPException(status_code=400, detail="Token verification failed. Check access token and ad account ID.")
+
+    norm_url = req.brand_url.rstrip("/").lower()
+    connector = db.exec(
+        _sql_select(BrandConnector).where(BrandConnector.brand_url == norm_url)
+    ).first()
+    if connector:
+        connector.meta_token = req.access_token
+        connector.meta_account_id = req.ad_account_id
+        connector.updated_at = _datetime.utcnow()
+    else:
+        connector = BrandConnector(
+            brand_url=norm_url,
+            meta_token=req.access_token,
+            meta_account_id=req.ad_account_id,
+        )
+        db.add(connector)
+    db.commit()
+    return {"connected": True, "provider": "meta", "brand_url": norm_url}
+
+
+@app.get("/connect/status/{brand_url:path}")
+async def connector_status(brand_url: str, db: Session = Depends(get_session)):
+    """Get connector status for a brand URL."""
+    norm_url = brand_url.rstrip("/").lower()
+    connector = db.exec(
+        _sql_select(BrandConnector).where(BrandConnector.brand_url == norm_url)
+    ).first()
+    if not connector:
+        return {"brand_url": norm_url, "shopify": False, "meta": False}
+    return {
+        "brand_url": norm_url,
+        "shopify": bool(connector.shopify_token),
+        "shopify_store_url": connector.shopify_store_url,
+        "meta": bool(connector.meta_token),
+        "meta_account_id": connector.meta_account_id,
+        "updated_at": connector.updated_at.isoformat() if connector.updated_at else None,
+    }
+
+
+@app.delete("/connect/{brand_url:path}/{provider}")
+async def disconnect_connector(brand_url: str, provider: str, db: Session = Depends(get_session)):
+    """Remove a specific connector (shopify or meta) for a brand."""
+    if provider not in ("shopify", "meta"):
+        raise HTTPException(status_code=400, detail="provider must be 'shopify' or 'meta'")
+    norm_url = brand_url.rstrip("/").lower()
+    connector = db.exec(
+        _sql_select(BrandConnector).where(BrandConnector.brand_url == norm_url)
+    ).first()
+    if not connector:
+        raise HTTPException(status_code=404, detail="No connector found for this brand")
+    if provider == "shopify":
+        connector.shopify_token = None
+        connector.shopify_store_url = None
+    else:
+        connector.meta_token = None
+        connector.meta_account_id = None
+    connector.updated_at = _datetime.utcnow()
+    db.commit()
+    return {"disconnected": True, "provider": provider, "brand_url": norm_url}
+
+
+@app.get("/connect/list")
+async def list_connectors(db: Session = Depends(get_session)):
+    """List all brands with at least one connector configured."""
+    connectors = db.exec(
+        _sql_select(BrandConnector)
+    ).all()
+    return [
+        {
+            "brand_url": c.brand_url,
+            "shopify": bool(c.shopify_token),
+            "shopify_store_url": c.shopify_store_url,
+            "meta": bool(c.meta_token),
+            "meta_account_id": c.meta_account_id,
+            "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+        }
+        for c in connectors
+    ]
 
 
 @app.get("/demo", response_class=HTMLResponse)
@@ -3409,6 +4798,228 @@ async def demo_virality_scores():
     if not demo_path.exists():
         raise HTTPException(status_code=503, detail="Demo virality data not found")
     return json.loads(demo_path.read_text(encoding="utf-8"))
+
+
+# ── Brain Activation Heatmap demo ─────────────────────────────────────────────
+
+# Real TRIBE v2 scores from confirmed mamaearth reel inference (21min CPU run)
+_TRIBE_SCORES_REAL = {
+    "control":   0.143,
+    "default":   0.147,
+    "attention": 0.147,
+    "limbic":    0.162,
+    "motor":     0.133,
+    "visual":    0.143,
+    "reward":    0.173,
+}
+
+# Estimated scores from a high-performing D2C beauty ad (virality dims → network)
+_TRIBE_SCORES_EST = virality_dims_to_network_scores({
+    "visual_stopping_power": 8.5,
+    "transformation_clarity": 7.0,
+    "hook_strength": 9.0,
+    "emotional_trigger": 8.0,
+    "trend_alignment": 7.5,
+    "social_currency": 8.0,
+    "share_trigger": 7.5,
+})
+
+
+@app.get("/brain-map", response_class=HTMLResponse)
+async def brain_map_demo():
+    """Standalone brain activation heatmap demo page."""
+    svg_real = generate_activation_heatmap(
+        _TRIBE_SCORES_REAL,
+        is_real_tribe=True,
+        ad_label="mamaearth reel (confirmed fMRI)",
+    )
+    svg_est = generate_activation_heatmap(
+        _TRIBE_SCORES_EST,
+        is_real_tribe=False,
+        ad_label="high-performing D2C beauty ad (estimated)",
+    )
+
+    network_descriptions = {
+        "visual":    ("Visual Cortex", "imagery · scroll-stop · motion", "ef4444",
+                      "Fires when content has strong visual contrast, motion, or lifestyle imagery. High = content stops the scroll."),
+        "motor":     ("Motor / CTA",   "action urge · buy impulse",       "f97316",
+                      "The brain region that drives physical action. High activation = viewer has a strong urge to tap/click/buy."),
+        "attention": ("Attention",     "hook · salience · 3-sec hold",    "facc15",
+                      "Controls the 3-second hold. High = the opening hook is strong enough to prevent thumb-up scrolling."),
+        "limbic":    ("Limbic / Emotion", "desire · fear · brand feeling", "ec4899",
+                      "The emotional core — desire, aspiration, fear of missing out. High = deep emotional resonance with the brand."),
+        "default":   ("Default Mode",  "identity · trend · storytelling",  "a855f7",
+                      "Active during self-referential thinking. High = content aligns with viewer identity and feels personally relevant."),
+        "control":   ("Prefrontal",    "trust · price eval · logic",       "3b82f6",
+                      "The analytical network — evaluates price, credibility, and logic. High = viewer is seriously considering the purchase."),
+        "reward":    ("Reward Circuit", "dopamine · FOMO · social proof",   "22c55e",
+                      "Dopamine-driven response to social proof, scarcity, and sharing potential. High = strong FOMO and share trigger."),
+    }
+
+    network_rows = ""
+    for net_id, (label, sub, color, desc) in network_descriptions.items():
+        real_pct = int(_TRIBE_SCORES_REAL.get(net_id, 0) * 100)
+        est_pct  = int(_TRIBE_SCORES_EST.get(net_id, 0) * 100)
+        network_rows += f"""
+        <tr>
+          <td><span style="color:#{color};font-weight:700">{label}</span>
+              <br><span style="color:#475569;font-size:.75rem">{sub}</span></td>
+          <td style="text-align:center">
+            <span style="color:#{color};font-weight:700;font-size:1.05rem">{real_pct}%</span></td>
+          <td style="text-align:center">
+            <span style="color:#f59e0b;font-weight:700;font-size:1.05rem">{est_pct}%</span></td>
+          <td style="color:#94a3b8;font-size:.8rem">{desc}</td>
+        </tr>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Neural Brain Activation Heatmap — SHOPOS Agent</title>
+<style>
+*,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
+:root{{
+  --bg:#060d1a;--surface:#0d1829;--surface2:#111d33;--border:#1e3a5f;
+  --text:#e2e8f0;--muted:#475569;--r:12px;
+  --amber:#f59e0b;--green:#22c55e;--blue:#3b82f6;--red:#ef4444;
+}}
+html{{font-size:15px;background:var(--bg);color:var(--text)}}
+body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;padding:2rem 1.5rem}}
+a{{color:var(--amber);text-decoration:none}}
+h1{{font-size:1.6rem;font-weight:800;letter-spacing:-.4px;margin-bottom:.3rem}}
+h2{{font-size:1.05rem;font-weight:700;letter-spacing:-.2px;margin-bottom:1rem;color:#94a3b8}}
+h3{{font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:.75rem}}
+p{{color:#94a3b8;font-size:.875rem;line-height:1.65;margin-bottom:.75rem}}
+.wrap{{max-width:1100px;margin:0 auto}}
+.hdr{{display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:1.25rem;border-bottom:1px solid var(--border);margin-bottom:2rem}}
+.badge{{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .7rem;
+  border-radius:999px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}}
+.badge-green{{background:#052e16;color:#22c55e;border:1px solid #14532d}}
+.badge-amber{{background:#1c1400;color:#f59e0b;border:1px solid #78350f}}
+.grid-2{{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem}}
+@media(max-width:700px){{.grid-2{{grid-template-columns:1fr}}}}
+.card{{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem}}
+.card-title{{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:#64748b;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}}
+table{{width:100%;border-collapse:collapse;font-size:.84rem}}
+th{{text-align:left;padding:.5rem .75rem;color:#64748b;font-size:.7rem;
+  text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}}
+td{{padding:.65rem .75rem;border-bottom:1px solid #0f172a;vertical-align:top}}
+tr:last-child td{{border-bottom:none}}
+.pill{{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .5rem;
+  border-radius:4px;font-size:.68rem;font-weight:700}}
+.pill-tribe{{background:#052e16;color:#22c55e}}
+.pill-est{{background:#1c1400;color:#f59e0b}}
+.insight-box{{background:#0d1829;border:1px solid var(--border);border-radius:var(--r);
+  padding:1.25rem;margin-top:.75rem}}
+.insight-box p{{margin:0}}
+.back{{display:inline-flex;align-items:center;gap:.4rem;font-size:.82rem;
+  color:#64748b;margin-bottom:1.75rem}}
+.back:hover{{color:var(--amber)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back">← Back to agent</a>
+
+  <div class="hdr">
+    <div>
+      <h1>Neural Brain Activation Heatmap</h1>
+      <h2>How ad content fires the 7 Yeo functional networks · powered by Meta TRIBE v2 fMRI</h2>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.4rem;align-items:flex-end">
+      <span class="badge badge-green">Real TRIBE v2 · fMRI</span>
+      <span class="badge badge-amber">Estimated · virality</span>
+    </div>
+  </div>
+
+  <p>
+    <strong style="color:var(--text)">Meta TRIBE v2</strong> is an fMRI encoding model trained on
+    naturalistic video (Algonauts 2025 dataset — Friends + 4 films). It predicts cortical activation
+    across 1,000 Schaefer parcels (7 Yeo networks) from video/audio stimuli — giving us a neuroscience-grounded
+    measure of how strongly an ad engages each brain system.
+  </p>
+  <p>
+    Below: two heatmaps for the same creative context. The
+    <span class="badge badge-green" style="font-size:.68rem">Real TRIBE v2</span> run used confirmed
+    fMRI inference on a mamaearth reel (21 min CPU, shape 9×20484 after Schaefer resampling).
+    The <span class="badge badge-amber" style="font-size:.68rem">Estimated</span> map shows what the
+    model predicts for a high-performing D2C beauty ad using virality dimension scoring.
+  </p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">
+        <span class="pill pill-tribe">Real TRIBE v2</span>
+        Real fMRI inference — mamaearth reel
+      </div>
+      {svg_real}
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <span class="pill pill-est">Estimated</span>
+        Virality dims → network mapping
+      </div>
+      {svg_est}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:2rem">
+    <div class="card-title">Network Breakdown — What Each Region Means for Ads</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Network</th>
+          <th>Real fMRI</th>
+          <th>Estimated</th>
+          <th>Marketing interpretation</th>
+        </tr>
+      </thead>
+      <tbody>{network_rows}</tbody>
+    </table>
+
+    <div class="insight-box" style="margin-top:1.25rem">
+      <p>
+        <strong style="color:#22c55e">Key insight from real fMRI data:</strong>
+        The mamaearth reel shows highest activation in the
+        <strong style="color:#22c55e">Reward Circuit (17%)</strong> and
+        <strong style="color:#ec4899">Limbic system (16%)</strong> —
+        indicating strong dopamine-driven social proof response and emotional resonance.
+        The relatively balanced spread across all 7 networks (13–17%) suggests
+        the content engages the full brain — a hallmark of high-retention video.
+      </p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:2rem">
+    <div class="card-title">How TRIBE v2 fits into the SHOPOS Brand Audit</div>
+    <p>
+      When <strong style="color:var(--text)">Deep Visual Analysis</strong> is enabled on an audit,
+      Agent 8 (Social Media Deep Audit) downloads Instagram Reels from the brand's profile via yt-dlp,
+      runs them through TRIBE v2 locally, and generates a brain activation heatmap for each reel.
+    </p>
+    <p>
+      The heatmap is embedded directly in the audit report alongside the reel's virality score,
+      giving you a neuroscience-grounded view of which brain systems the brand's content is activating —
+      and which it's leaving on the table.
+    </p>
+    <p style="margin-bottom:0">
+      Without Deep Visual enabled, the agent uses the virality dimension scores (LLM-estimated)
+      to generate the <span class="badge badge-amber" style="font-size:.68rem">Estimated</span> version shown above.
+    </p>
+  </div>
+
+  <p style="color:#334155;font-size:.75rem;text-align:center;padding-top:1rem;border-top:1px solid #0f172a">
+    TRIBE v2 · Meta AI Research · CC-BY-NC-4.0 · Algonauts 2025 ·
+    Schaefer-1000 atlas · 7 Yeo functional networks<br>
+    Scores from confirmed local inference: shape (9, 20484) · score 22 · 21 min CPU
+  </p>
+</div>
+</body>
+</html>"""
+    return HTMLResponse(html)
 
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
-"""Orchestrates all 6 agents sequentially, writes progress to DB + console.
+"""Orchestrator — delegates to the agentic orchestrator (ReAct loop).
 
-Sequential execution chosen deliberately for Groq free-tier reliability:
-parallel LLM calls exhaust the token-per-minute limit (~14-20k tokens/min)
-causing cascading 429 retries that make the pipeline slower, not faster.
-Revert to parallel when on a paid LLM tier with higher rate limits.
+The linear sequential pipeline is preserved here for reference but all
+public entry points (run_full_audit, run_all) now delegate to
+agents.agentic_orchestrator which wraps each agent run with a reasoning
+brain that can skip, reorder, and cross-synthesize across agents.
 """
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ from agents.performance_ads import PerformanceAdsAgent
 from agents.geo_visibility import GEOVisibilityAgent
 from agents.store_cro import StoreCROAgent
 from agents.research import ResearchAgent
+from agents.social_profile import SocialProfileAgent
+from agents.social_media_audit import SocialMediaAuditAgent
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -55,12 +57,14 @@ def _log(idx: int, total: int, label: str, elapsed: float, error: str | None = N
 
 
 _AGENT_LABELS = {
-    "brand_basics":    "Brand Basics",
-    "content_catalog": "Content Audit",
-    "performance_ads": "Ad Intelligence",
-    "geo_visibility":  "GEO Visibility",
-    "store_cro":       "Store & CRO",
-    "research":        "Competitive Research",
+    "brand_basics":       "Brand Basics",
+    "content_catalog":    "Content Audit",
+    "performance_ads":    "Ad Intelligence",
+    "geo_visibility":     "GEO Visibility",
+    "store_cro":          "Store & CRO",
+    "research":           "Competitive Research",
+    "social_profile":     "Social & Brand Presence",
+    "social_media_audit": "Social Media Deep Audit",
 }
 
 _ROADMAP_PROMPT = """\
@@ -187,12 +191,14 @@ _MANUAL_TOOL_LINKS = [
 
 def _build_agents(llm, scraper, search):
     return {
-        "brand_basics":    BrandBasicsAgent(llm, scraper, search),
-        "content_catalog": ContentCatalogAgent(llm, scraper, search),
-        "performance_ads": PerformanceAdsAgent(llm, scraper, search),
-        "geo_visibility":  GEOVisibilityAgent(llm, scraper, search),
-        "store_cro":       StoreCROAgent(llm, scraper, search),
-        "research":        ResearchAgent(llm, scraper, search),
+        "brand_basics":       BrandBasicsAgent(llm, scraper, search),
+        "content_catalog":    ContentCatalogAgent(llm, scraper, search),
+        "performance_ads":    PerformanceAdsAgent(llm, scraper, search),
+        "geo_visibility":     GEOVisibilityAgent(llm, scraper, search),
+        "store_cro":          StoreCROAgent(llm, scraper, search),
+        "research":           ResearchAgent(llm, scraper, search),
+        "social_profile":     SocialProfileAgent(llm, scraper, search),
+        "social_media_audit": SocialMediaAuditAgent(llm, search),
     }
 
 
@@ -274,142 +280,19 @@ async def _run_phase1(
 
 # ── Standalone entry point (no DB) ────────────────────────────────────────────
 
-async def run_full_audit(url: str) -> dict:
-    """Run a complete 6-agent audit sequentially without touching the database."""
-    brand_name = _brand_name_from_url(url)
-    llm     = get_client()
-    scraper = WebScraper()
-    search  = SearchAgent()
-    agents  = _build_agents(llm, scraper, search)
+async def run_full_audit(url: str, deep_visual: bool = False) -> dict:
+    """Run a complete agentic audit without touching the database.
 
-    overall_start = time.monotonic()
-    results: dict = {}
-    agent_status: list[dict] = []
-
-    print(f"\nBrand Audit — {url}", flush=True)
-    print(f"Brand: {brand_name}", flush=True)
-    print("-" * 48, flush=True)
-
-    for idx, key in enumerate(AGENT_SEQUENCE, start=1):
-        label = _AGENT_LABELS[key]
-        t0 = time.monotonic()
-        error = None
-        try:
-            result = await agents[key].run(url, brand_name)
-            if "error" in result:
-                error = result["error"]
-        except Exception as exc:
-            error = str(exc)
-            result = _err_result(key, exc)
-        elapsed = time.monotonic() - t0
-        results[key] = result
-        agent_status.append(_make_status(key, result, elapsed, error))
-        _log(idx, 6, label, elapsed, error)
-
-    total_time = round(time.monotonic() - overall_start, 2)
-    overall_coverage, failed_agents = _classify_failure(results)
-    print(f"\n  Completed in {total_time}s", flush=True)
-    if overall_coverage == "critical_failure":
-        print(f"  ⚠  {len(failed_agents)} agents failed — partial report only.", flush=True)
-
-    print("  Generating highest-impact recommendation…", flush=True)
-    one_thing = await _generate_one_thing(llm, results)
-    print("  Generating 30-day action roadmap…", flush=True)
-    roadmap = await _generate_roadmap(llm, results)
-
-    return {
-        "url": url,
-        "brand_name": brand_name,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "total_time_seconds": total_time,
-        "overall_coverage": overall_coverage,
-        "failed_agents": failed_agents,
-        "manual_tools": _MANUAL_TOOL_LINKS if overall_coverage == "critical_failure" else [],
-        "agent_status": agent_status,
-        "one_thing": one_thing,
-        "roadmap": roadmap,
-        "results": results,
-    }
+    Delegates to agents.agentic_orchestrator which wraps the pipeline
+    in a ReAct reasoning loop (plan → act → observe → synthesize).
+    """
+    from agents.agentic_orchestrator import run_full_audit as _agentic_run
+    return await _agentic_run(url, deep_visual=deep_visual)
 
 
 # ── DB-backed entry point (called by FastAPI BackgroundTasks) ──────────────────
 
-async def run_all(audit_id: int) -> None:
-    """Background entry point — sequential 6-agent run, writes progress to DB."""
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        if not audit:
-            return
-        url = audit.url
-        _db_set(session, audit, status="running", progress_pct=0)
-
-    brand_name = _brand_name_from_url(url)
-    llm     = get_client()
-    scraper = WebScraper()
-    search  = SearchAgent()
-    agents  = _build_agents(llm, scraper, search)
-
-    print(f"\nBrand Audit #{audit_id} — {url}", flush=True)
-    print(f"Brand: {brand_name}", flush=True)
-    print("-" * 48, flush=True)
-
-    agent_results: dict = {}
-    failed_count   = 0
-    db_field_map   = {
-        "brand_basics":    "brand_basics",
-        "content_catalog": "content_catalog",
-        "performance_ads": "performance_ads",
-        "geo_visibility":  "geo_visibility",
-        "store_cro":       "store_cro",
-        "research":        "research",
-    }
-
-    for idx, key in enumerate(AGENT_SEQUENCE, start=1):
-        label    = _AGENT_LABELS[key]
-        progress = int((idx - 1) / 6 * 100)
-
-        with Session(engine) as session:
-            audit = session.get(AuditRun, audit_id)
-            _db_set(session, audit, current_agent=key, progress_pct=progress)
-
-        t0 = time.monotonic()
-        try:
-            result = await agents[key].run(url, brand_name)
-            if "error" in result:
-                failed_count += 1
-        except Exception as exc:
-            result = _err_result(key, exc)
-            failed_count += 1
-        elapsed = time.monotonic() - t0
-
-        agent_results[key] = result
-        _log(idx, 6, label, elapsed, result.get("error"))
-
-        with Session(engine) as session:
-            audit = session.get(AuditRun, audit_id)
-            _db_set(session, audit,
-                    **{db_field_map[key]: json.dumps(result)},
-                    progress_pct=int(idx / 6 * 95))
-
-    print("  Generating highest-impact recommendation…", flush=True)
-    one_thing = await _generate_one_thing(llm, agent_results)
-    print("  Generating 30-day action roadmap…", flush=True)
-    roadmap = await _generate_roadmap(llm, agent_results)
-
-    overall_coverage = (
-        "critical_failure" if failed_count >= 4
-        else "partial"     if failed_count > 0
-        else "complete"
-    )
-    with Session(engine) as session:
-        audit = session.get(AuditRun, audit_id)
-        _db_set(session, audit,
-                status="complete",
-                current_agent=None,
-                progress_pct=100,
-                one_thing=one_thing,
-                roadmap_json=json.dumps(roadmap) if roadmap else None)
-
-    print(f"  Audit #{audit_id} complete (coverage: {overall_coverage}).", flush=True)
-    if one_thing:
-        print(f"  ⚡ One thing: {one_thing}", flush=True)
+async def run_all(audit_id: int, deep_visual: bool = False) -> None:
+    """DB-backed agentic audit. Delegates to agents.agentic_orchestrator."""
+    from agents.agentic_orchestrator import run_all as _agentic_run_all
+    await _agentic_run_all(audit_id, deep_visual=deep_visual)

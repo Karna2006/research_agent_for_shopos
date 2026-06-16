@@ -349,6 +349,31 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 
   /* SVG rings — keep stroke */
   font-size:10.5pt;line-height:1.4;
+
+  /* Force ALL details content to display — key fix for blank sections */
+  details > :not(summary){display:block!important}
+  details summary::marker,details summary::-webkit-details-marker{display:none}
+
+  /* Dark-background SVGs (brain maps, heatmaps) — hide rather than print black-on-white */
+  svg[style*="#060d1a"],svg[style*="#0d1829"],
+  .brain-map-wrap svg,
+  .reels-heatmap{display:none!important}
+
+  /* Fix score-ring SVG tracks that are dark */
+  circle[stroke="#2a2a2a"]{stroke:#ddd!important}
+
+  /* Dark inline colour chips → greyscale */
+  [style*="background:#0f172a"],[style*="background:#1e1e1e"],
+  [style*="background:#131313"],[style*="background:#111827"],
+  [style*="background:#0d1117"],[style*="background:#060d1a"],
+  [style*="background:#1a1a1a"],[style*="background:#141414"]{
+    background:#f3f4f6!important;color:#111!important}
+
+  /* Amber/green accent text that washes out on white */
+  [style*="color:#f59e0b"]{color:#b45309!important}
+  [style*="color:#22c55e"]{color:#15803d!important}
+  [style*="color:#3b82f6"]{color:#1d4ed8!important}
+  [style*="color:#ef4444"]{color:#b91c1c!important}
 }
 </style>
 </head>
@@ -571,14 +596,24 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
       <tr><td>Brand</td><td>{{ bb.brand_name | default('—') }}</td></tr>
       <tr><td>Founded</td>
         <td>{{ bb.founding_year | default('—') }}{% if bb.hq %}, {{ bb.hq }}{% endif %}</td></tr>
-      {% if bb.founders %}
+      {% if bb_ceo and bb_ceo != 'Not found publicly' %}
+      <tr><td>CEO</td><td>{{ bb_ceo }}</td></tr>
+      {% elif bb.founders %}
       <tr><td>Founders</td><td>{{ bb.founders | join(', ') }}</td></tr>
       {% endif %}
-      {% if bb.revenue_range %}
+      {% if bb_parent_company and bb_parent_company not in ('Not found publicly', 'Independent') %}
+      <tr><td>Parent Company</td><td>{{ bb_parent_company }}</td></tr>
+      {% endif %}
+      {% if bb_revenue_range and bb_revenue_range != 'Not found publicly' %}
+      <tr><td>Revenue</td><td><strong>{{ bb_revenue_range }}</strong>{% if bb_yoy_growth and bb_yoy_growth != 'Not found publicly' %} <span style="color:var(--green);font-size:.82rem">{{ bb_yoy_growth }}</span>{% endif %}</td></tr>
+      {% elif bb.revenue_range and bb.revenue_range != 'Not found publicly' %}
       <tr><td>Revenue Range</td><td>{{ bb.revenue_range }}</td></tr>
       {% endif %}
-      {% if bb.funding_stage %}
-      <tr><td>Funding Stage</td><td>{{ bb.funding_stage }}</td></tr>
+      {% if bb_store_count and bb_store_count != 'Not found publicly' %}
+      <tr><td>Physical Stores</td><td>{{ bb_store_count }}</td></tr>
+      {% endif %}
+      {% if bb.funding_stage and bb.funding_stage != 'Not found publicly' %}
+      <tr><td>Funding Stage</td><td>{{ bb.funding_stage }}{% if bb_valuation and bb_valuation != 'Not found publicly' %} · Valuation: {{ bb_valuation }}{% endif %}</td></tr>
       {% endif %}
       {% if bb.countries_of_operation %}
       <tr><td>Markets</td><td>{{ bb.countries_of_operation | join(', ') }}</td></tr>
@@ -1115,8 +1150,57 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
       {% if cro_signals.email_capture %}<span class="pill pill-green">✓ Email Capture</span>{% endif %}
       {% if cro_signals.sticky_atc %}<span class="pill pill-green">✓ Sticky ATC</span>{% endif %}
       {% if cro_signals.cross_sell %}<span class="pill pill-green">✓ Cross-sell</span>{% endif %}
+      {% if cro_signals.size_guide_detected %}<span class="pill pill-green">✓ Size Guide</span>{% endif %}
+      {% if cro_signals.wishlist_detected %}<span class="pill pill-green">✓ Wishlist</span>{% endif %}
+      {% if cro_signals.loyalty_detected %}<span class="pill pill-green">✓ Loyalty Program</span>{% endif %}
+      {% if cro_signals.whatsapp_detected %}<span class="pill pill-green">✓ WhatsApp Commerce</span>{% endif %}
+      {% for crm in (cro_signals.email_crm_platforms or []) %}<span class="pill pill-blue">📧 {{ crm }}</span>{% endfor %}
       {% for tw in (cro_signals.trust_signals or []) %}<span class="pill pill-blue">{{ tw }}</span>{% endfor %}
       {% for po in (cro_signals.payment_options or []) %}<span class="pill pill-muted">{{ po }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# — UX Audit — #}
+  {% if cro_ux_audit %}
+  <div class="subsec" style="margin-top:1rem">
+    <div class="subsec-title">UX Quality Audit</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.55rem">
+      {% for label, val in [
+        ('Hero CTA', cro_ux_audit.hero_cta_clarity),
+        ('Search & Filter', cro_ux_audit.search_filter_quality),
+        ('Mobile Navigation', cro_ux_audit.mobile_nav_quality),
+        ('Product Images', cro_ux_audit.pdp_image_quality),
+        ('Reviews', cro_ux_audit.reviews_integration),
+      ] %}
+      {% if val %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.6rem .85rem">
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.25rem">{{ label }}</div>
+        <div style="font-size:.8rem;color:var(--text)">{{ val }}</div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# — Omnichannel UX — #}
+  {% if cro_omnichannel %}
+  <div class="subsec" style="margin-top:1rem">
+    <div class="subsec-title">Omnichannel Signals</div>
+    <div style="display:flex;flex-wrap:wrap;gap:.45rem">
+      {% if cro_omnichannel.whatsapp_commerce and cro_omnichannel.whatsapp_commerce != 'Not detected' %}
+      <span class="pill pill-green">💬 WhatsApp: {{ cro_omnichannel.whatsapp_commerce }}</span>
+      {% endif %}
+      {% if cro_omnichannel.email_crm_platform and cro_omnichannel.email_crm_platform != 'Not detected' %}
+      <span class="pill pill-blue">📧 CRM: {{ cro_omnichannel.email_crm_platform }}</span>
+      {% endif %}
+      {% if cro_omnichannel.loyalty_program == 'Detected' %}
+      <span class="pill pill-green">⭐ Loyalty Program</span>
+      {% endif %}
+      {% if cro_omnichannel.post_purchase_flow %}
+      <span class="pill pill-muted">📦 Post-purchase: {{ cro_omnichannel.post_purchase_flow | truncate(40) }}</span>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -1380,6 +1464,1162 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 <!-- /SECTION:research -->
 
 {# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION 7: SOCIAL & BRAND PRESENCE                                          #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<!-- SECTION:social_profile -->
+<details class="section-accordion">
+  <summary class="section-header">
+    <span class="section-num">07</span>
+    <span class="section-title">Social &amp; Brand Presence</span>
+    {% if sp_score %}
+    <span class="section-score-badge" style="color:{{ sp_score | score_hex }}">{{ sp_score }}/10</span>
+    {% else %}
+    <span class="section-score-badge" style="color:var(--muted)">—</span>
+    {% endif %}
+    <span class="accordion-arrow">▾</span>
+  </summary>
+  <div class="section-body">
+
+  {# ── Score reasoning banner ── #}
+  {% if sp_reasoning %}
+  <div style="background:#111827;border-left:3px solid #3b82f6;border-radius:8px;
+    padding:.85rem 1.1rem;margin-bottom:1.25rem;font-size:.85rem;color:#cbd5e1;line-height:1.55">
+    {{ sp_reasoning }}
+  </div>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+
+  {# ── Instagram card ── #}
+  <div class="card">
+    <div class="subsec-title" style="margin-bottom:.75rem">
+      Instagram
+      {% if sp_instagram.verified %}<span style="font-size:.65rem;color:#f59e0b;margin-left:.4rem">✓ Verified</span>{% endif %}
+      {% if sp_instagram.is_business %}<span style="font-size:.65rem;color:#60a5fa;margin-left:.4rem">Business</span>{% endif %}
+    </div>
+    {% if sp_instagram.username %}
+    <table class="info-table">
+      <tr><td>Handle</td><td>@{{ sp_instagram.username }}</td></tr>
+      {% if sp_instagram.followers is defined and sp_instagram.followers %}
+      <tr><td>Followers</td><td><strong>{{ "{:,}".format(sp_instagram.followers | default(0) | int) }}</strong></td></tr>
+      {% endif %}
+      {% if sp_instagram.following is defined and sp_instagram.following %}
+      <tr><td>Following</td><td>{{ "{:,}".format(sp_instagram.following | default(0) | int) }}</td></tr>
+      {% endif %}
+      {% if sp_instagram.posts_count %}
+      <tr><td>Total Posts</td><td>{{ "{:,}".format(sp_instagram.posts_count | default(0) | int) }}</td></tr>
+      {% endif %}
+      {% if sp_instagram.posting_frequency %}
+      <tr><td>Post Rate</td><td>{{ sp_instagram.posting_frequency }}</td></tr>
+      {% endif %}
+      {% if sp_instagram.engagement_estimate and sp_instagram.engagement_estimate != 'unknown' %}
+      <tr><td>Engagement</td><td>{{ sp_instagram.engagement_estimate }}</td></tr>
+      {% endif %}
+    </table>
+
+    {# Content mix bar chart #}
+    {% set cm = sp_instagram.content_mix or {} %}
+    {% if cm %}
+    <div style="margin-top:.9rem">
+      <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.08em;color:var(--muted);margin-bottom:.45rem">Content Mix</div>
+      {% set photo_pct   = cm.photo_pct   | default(0) | int %}
+      {% set video_pct   = cm.video_pct   | default(0) | int %}
+      {% set carousel_pct = cm.carousel_pct | default(0) | int %}
+      <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px">
+        {% if photo_pct > 0 %}
+        <div style="width:{{ photo_pct }}%;background:#3b82f6" title="Photo {{ photo_pct }}%"></div>
+        {% endif %}
+        {% if video_pct > 0 %}
+        <div style="width:{{ video_pct }}%;background:#a78bfa" title="Video {{ video_pct }}%"></div>
+        {% endif %}
+        {% if carousel_pct > 0 %}
+        <div style="width:{{ carousel_pct }}%;background:#22c55e" title="Carousel {{ carousel_pct }}%"></div>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:.35rem;flex-wrap:wrap">
+        {% if photo_pct > 0 %}
+        <span style="font-size:.67rem;color:#3b82f6">▪ Photo {{ photo_pct }}%</span>
+        {% endif %}
+        {% if video_pct > 0 %}
+        <span style="font-size:.67rem;color:#a78bfa">▪ Video {{ video_pct }}%</span>
+        {% endif %}
+        {% if carousel_pct > 0 %}
+        <span style="font-size:.67rem;color:#22c55e">▪ Carousel {{ carousel_pct }}%</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Top hashtags #}
+    {% if sp_instagram.top_hashtags %}
+    <div style="margin-top:.9rem">
+      <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem">Top Hashtags</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+        {% for tag in sp_instagram.top_hashtags[:8] %}
+        <span style="font-size:.7rem;padding:.15rem .45rem;background:#1e2d45;
+          border-radius:4px;color:#60a5fa">#{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Bio #}
+    {% if sp_instagram.bio %}
+    <div style="margin-top:.9rem;font-size:.78rem;color:#9ca3af;
+      font-style:italic;line-height:1.5;border-top:1px solid var(--border);padding-top:.65rem">
+      "{{ sp_instagram.bio[:160] }}"
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div style="color:var(--muted);font-size:.82rem">Instagram profile not found.</div>
+    {% endif %}
+  </div>{# /Instagram card #}
+
+  {# ── LinkedIn card ── #}
+  <div class="card">
+    <div class="subsec-title" style="margin-bottom:.75rem">LinkedIn</div>
+    {% if sp_linkedin.company_name or sp_linkedin.description %}
+    <table class="info-table">
+      {% if sp_linkedin.company_name %}
+      <tr><td>Company</td><td>{{ sp_linkedin.company_name }}</td></tr>
+      {% endif %}
+      {% if sp_linkedin.employees %}
+      <tr><td>Employees</td><td>{{ sp_linkedin.employees }}</td></tr>
+      {% endif %}
+      {% if sp_linkedin.industry %}
+      <tr><td>Industry</td><td>{{ sp_linkedin.industry }}</td></tr>
+      {% endif %}
+    </table>
+    {% if sp_linkedin.description %}
+    <div style="margin-top:.75rem;font-size:.79rem;color:#9ca3af;line-height:1.55;
+      border-top:1px solid var(--border);padding-top:.65rem">
+      {{ sp_linkedin.description[:280] }}
+    </div>
+    {% endif %}
+    {% else %}
+    <div style="color:var(--muted);font-size:.82rem">LinkedIn page not found.</div>
+    {% endif %}
+  </div>{# /LinkedIn card #}
+
+  </div>{# /2-col grid #}
+
+  {# ── Ad Creative Intelligence ── #}
+  {% if sp_ads %}
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="subsec-title" style="margin-bottom:.75rem">Ad Creative Intelligence</div>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:.85rem">
+      {% if sp_ads.active_ads is not none %}
+      <div>
+        <div style="font-size:.66rem;color:var(--muted);text-transform:uppercase;
+          letter-spacing:.07em;margin-bottom:.2rem">Active Ads</div>
+        <div style="font-size:1.35rem;font-weight:800;color:#e8e8e8">
+          {{ sp_ads.active_ads if sp_ads.active_ads != 'unknown' else '—' }}
+        </div>
+      </div>
+      {% endif %}
+      {% if sp_ads.dominant_hook_type %}
+      <div>
+        <div style="font-size:.66rem;color:var(--muted);text-transform:uppercase;
+          letter-spacing:.07em;margin-bottom:.2rem">Dominant Hook</div>
+        <div style="font-size:.88rem;font-weight:700;color:#f59e0b;text-transform:capitalize">
+          {{ sp_ads.dominant_hook_type }}
+        </div>
+      </div>
+      {% endif %}
+      {% if sp_ads.oldest_ad_date or sp_ads.newest_ad_date %}
+      <div>
+        <div style="font-size:.66rem;color:var(--muted);text-transform:uppercase;
+          letter-spacing:.07em;margin-bottom:.2rem">Ad Dates</div>
+        <div style="font-size:.78rem;color:#9ca3af">
+          {% if sp_ads.oldest_ad_date %}{{ sp_ads.oldest_ad_date }}{% endif %}
+          {% if sp_ads.oldest_ad_date and sp_ads.newest_ad_date %} — {% endif %}
+          {% if sp_ads.newest_ad_date %}{{ sp_ads.newest_ad_date }}{% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# Ad format breakdown #}
+    {% set af = sp_ads.ad_formats or {} %}
+    {% if af.video is defined or af.image is defined or af.carousel is defined %}
+    <div style="margin-bottom:.85rem">
+      <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem">Format Breakdown</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        {% if af.video %}
+        <span style="font-size:.72rem;padding:.2rem .55rem;background:#1e2a45;
+          border-radius:5px;color:#3b82f6">Video {{ af.video }}</span>
+        {% endif %}
+        {% if af.image %}
+        <span style="font-size:.72rem;padding:.2rem .55rem;background:#1a2e1f;
+          border-radius:5px;color:#22c55e">Image {{ af.image }}</span>
+        {% endif %}
+        {% if af.carousel %}
+        <span style="font-size:.72rem;padding:.2rem .55rem;background:#2a1e30;
+          border-radius:5px;color:#a78bfa">Carousel {{ af.carousel }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Creative analysis rows #}
+    {% if sp_ads.creative_analysis %}
+    <div>
+      <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;
+        letter-spacing:.08em;color:var(--muted);margin-bottom:.45rem">Creative Samples</div>
+      {% for ad in sp_ads.creative_analysis %}
+      <div style="padding:.6rem .75rem;background:#0f172a;border-radius:7px;
+        margin-bottom:.45rem;display:flex;align-items:flex-start;gap:.75rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.81rem;color:#e8e8e8;font-weight:600;margin-bottom:.25rem">
+            {{ ad.ad_headline | default('—') }}
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+            {% if ad.hook_type %}
+            <span style="font-size:.67rem;padding:.12rem .4rem;background:#1e2d45;
+              border-radius:4px;color:#60a5fa;text-transform:capitalize">{{ ad.hook_type }}</span>
+            {% endif %}
+            {% if ad.dominant_emotion %}
+            <span style="font-size:.67rem;padding:.12rem .4rem;background:#1a1a2e;
+              border-radius:4px;color:#a78bfa;text-transform:capitalize">{{ ad.dominant_emotion }}</span>
+            {% endif %}
+            {% if ad.has_human %}
+            <span style="font-size:.67rem;padding:.12rem .4rem;background:#1a2e1f;
+              border-radius:4px;color:#22c55e">Has Human</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if ad.visual_hook_strength %}
+        <div style="flex-shrink:0;text-align:center;min-width:48px">
+          <div style="font-size:1.05rem;font-weight:800;
+            color:{{ ad.visual_hook_strength | score_hex }}">{{ ad.visual_hook_strength }}</div>
+          <div style="font-size:.6rem;color:var(--muted)">hook</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}{# /ad creative intelligence #}
+
+  {# ── Top 3 Improvements ── #}
+  {% if sp_improvements %}
+  <div class="subsec">
+    <div class="subsec-title">Top 3 Social Improvements</div>
+    <ul class="check-list">
+      {% for item in sp_improvements %}
+      <li><span class="ci ci-warn">→</span><span>{{ item }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# ── Recent captions sample ── #}
+  {% if sp_instagram.recent_captions_sample %}
+  <div class="subsec" style="margin-top:1rem">
+    <div class="subsec-title">Recent Post Captions (sample)</div>
+    {% for caption in sp_instagram.recent_captions_sample %}
+    <div style="font-size:.78rem;color:#9ca3af;padding:.45rem .65rem;
+      background:#0f172a;border-radius:6px;margin-bottom:.4rem;line-height:1.5;
+      border-left:2px solid #1e3a5f">{{ caption }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  </div>
+</details>
+<!-- /SECTION:social_profile -->
+
+<!-- SECTION:social_media_audit -->
+{% if sma and sma.get('platforms') %}
+<details class="section-accordion">
+<summary class="section-header">
+  <span class="section-num">08</span>
+  <span class="section-title">Social Media Deep Audit</span>
+  {% if sma_scores.get('overall') %}
+  <span class="section-score-badge" style="color:{{ sma_scores.overall | score_hex }}">{{ sma_scores.overall }}/10</span>
+  {% else %}
+  <span class="section-score-badge" style="color:var(--muted)">—</span>
+  {% endif %}
+  <span class="accordion-arrow">▾</span>
+</summary>
+<div class="section-body">
+
+  {# ── Assessment banner ────────────────────────────────────────────────── #}
+  {% if sma_assessment %}
+  <div style="margin-bottom:1.25rem;padding:.9rem 1.1rem;background:#0f172a;border-radius:10px;
+    border-left:3px solid #3b82f6;font-size:.88rem;color:#cbd5e1;line-height:1.6">
+    {{ sma_assessment }}
+  </div>
+  {% endif %}
+
+  {# ── Score ring ───────────────────────────────────────────────────────── #}
+  {% if sma_scores %}
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem">
+    {% set score_dims = [
+      ('platform_presence', 'Platform Presence'),
+      ('content_quality',   'Content Quality'),
+      ('engagement',        'Engagement'),
+      ('content_strategy',  'Content Strategy'),
+      ('brand_consistency', 'Brand Consistency'),
+    ] %}
+    {% for key, label in score_dims %}
+    {% set val = sma_scores.get(key, 0) %}
+    <div style="flex:1;min-width:120px;background:#111;border:1px solid #242424;
+      border-radius:8px;padding:.75rem .9rem;text-align:center">
+      <div style="font-size:1.45rem;font-weight:900;color:{{ val | score_hex }}">{{ val }}</div>
+      <div style="font-size:.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-top:.15rem">{{ label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ── Instagram card ───────────────────────────────────────────────────── #}
+  {% if sma_ig.get('handle') or sma_ig.get('followers') %}
+  <div style="margin-bottom:1.25rem">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+      color:#e1306c;margin-bottom:.65rem">Instagram</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+      <table class="kv-tbl" style="font-size:.82rem">
+        {% if sma_ig.get('handle') %}
+        <tr><td>Handle</td><td>
+          {% if sma_ig.get('url') %}
+          <a href="{{ sma_ig.url }}" target="_blank" rel="noopener" style="color:#e1306c">@{{ sma_ig.handle }}</a>
+          {% else %}@{{ sma_ig.handle }}{% endif %}
+        </td></tr>
+        {% endif %}
+        {% if sma_ig.get('followers') %}
+        <tr><td>Followers</td><td><strong>{{ "{:,}".format(sma_ig.followers | int) }}</strong></td></tr>
+        {% endif %}
+        {% if sma_ig.get('posts_count') %}
+        <tr><td>Total Posts</td><td>{{ "{:,}".format(sma_ig.posts_count | int) }}</td></tr>
+        {% endif %}
+        {% if sma_ig.get('avg_likes') %}
+        <tr><td>Avg Likes</td><td>{{ "{:,}".format(sma_ig.avg_likes | int) }}</td></tr>
+        {% endif %}
+        {% if sma_ig.get('engagement_rate') %}
+        <tr><td>Engagement Rate</td>
+          <td style="color:{{ sma_ig.engagement_rate | score_hex(maxval=5) }};font-weight:700">
+            {{ "%.2f"|format(sma_ig.engagement_rate) }}%
+          </td>
+        </tr>
+        {% endif %}
+        {% if sma_ig.get('is_verified') %}
+        <tr><td>Verified</td><td style="color:#f59e0b">✓ Verified</td></tr>
+        {% endif %}
+      </table>
+      <div>
+        {% if sma_ig.get('bio') %}
+        <div style="font-size:.78rem;color:#9ca3af;line-height:1.5;margin-bottom:.5rem">{{ sma_ig.bio[:180] }}</div>
+        {% endif %}
+        {% if sma_ig.get('top_hashtags') %}
+        <div style="display:flex;flex-wrap:wrap;gap:.25rem">
+          {% for tag in sma_ig.top_hashtags[:8] %}
+          <span style="font-size:.68rem;padding:.15rem .45rem;border-radius:4px;
+            background:rgba(225,48,108,.1);color:#e1306c;border:1px solid rgba(225,48,108,.2)">{{ tag }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Image gallery ────────────────────────────────────────────────────── #}
+  {% if sma_gallery %}
+  <div style="margin-bottom:1.25rem">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+      color:#6b7280;margin-bottom:.65rem">Recent Posts Analysed</div>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+      {% for img in sma_gallery[:8] %}
+      <a href="{{ img.post_url or '#' }}" target="_blank" rel="noopener"
+        title="{{ img.caption[:80] if img.caption else '' }}"
+        style="display:block;width:80px;height:80px;border-radius:6px;overflow:hidden;
+        border:1px solid #242424;flex-shrink:0">
+        <img src="{{ img.thumbnail }}" alt="post"
+          style="width:100%;height:100%;object-fit:cover"
+          onerror="this.parentElement.style.display='none'"/>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── YouTube card ─────────────────────────────────────────────────────── #}
+  {% if sma_yt.get('channel_name') or sma_yt.get('subscribers') %}
+  <div style="margin-bottom:1.25rem">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+      color:#ff0000;margin-bottom:.65rem">YouTube</div>
+    <table class="kv-tbl" style="font-size:.82rem">
+      {% if sma_yt.get('channel_name') %}
+      <tr><td>Channel</td><td>
+        {% if sma_yt.get('url') %}
+        <a href="{{ sma_yt.url }}" target="_blank" rel="noopener" style="color:#ff0000">{{ sma_yt.channel_name }}</a>
+        {% else %}{{ sma_yt.channel_name }}{% endif %}
+      </td></tr>
+      {% endif %}
+      {% if sma_yt.get('subscribers') %}
+      <tr><td>Subscribers</td><td><strong>{{ "{:,}".format(sma_yt.subscribers | int) }}</strong></td></tr>
+      {% endif %}
+      {% if sma_yt.get('total_videos') %}
+      <tr><td>Total Videos</td><td>{{ "{:,}".format(sma_yt.total_videos | int) }}</td></tr>
+      {% endif %}
+      {% if sma_yt.get('avg_views') %}
+      <tr><td>Avg Views</td><td>{{ "{:,}".format(sma_yt.avg_views | int) }}</td></tr>
+      {% endif %}
+    </table>
+    {% if sma_yt.get('recent_videos') %}
+    <div style="margin-top:.65rem">
+      {% for v in sma_yt.recent_videos[:4] %}
+      <div style="padding:.4rem 0;border-bottom:1px solid #1a1a1a;font-size:.8rem">
+        {% if v.get('url') %}
+        <a href="{{ v.url }}" target="_blank" rel="noopener" style="color:#e8e8e8;text-decoration:none">
+          {{ v.get('title', '')[:70] }}
+        </a>
+        {% else %}{{ v.get('title', '')[:70] }}{% endif %}
+        {% if v.get('views') %}
+        <span style="color:#6b7280;margin-left:.4rem">· {{ "{:,}".format(v.views | int) }} views</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Visual analysis ──────────────────────────────────────────────────── #}
+  {% if sma_visual %}
+  <div style="margin-bottom:1.25rem">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+      color:#6b7280;margin-bottom:.65rem">Visual Content Analysis</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+      {% if sma_visual.get('style_consistency') is not none %}
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.2rem">
+          <span>Style Consistency</span>
+          <strong style="color:{{ sma_visual.style_consistency | score_hex }}">{{ sma_visual.style_consistency }}/10</strong>
+        </div>
+        <div style="height:4px;background:#1a1a1a;border-radius:2px">
+          <div style="height:100%;width:{{ (sma_visual.style_consistency / 10 * 100) | int }}%;
+            background:{{ sma_visual.style_consistency | score_hex }};border-radius:2px"></div>
+        </div>
+      </div>
+      {% endif %}
+      {% if sma_visual.get('aesthetic_quality') is not none %}
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.2rem">
+          <span>Aesthetic Quality</span>
+          <strong style="color:{{ sma_visual.aesthetic_quality | score_hex }}">{{ sma_visual.aesthetic_quality }}/10</strong>
+        </div>
+        <div style="height:4px;background:#1a1a1a;border-radius:2px">
+          <div style="height:100%;width:{{ (sma_visual.aesthetic_quality / 10 * 100) | int }}%;
+            background:{{ sma_visual.aesthetic_quality | score_hex }};border-radius:2px"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% if sma_visual.get('dominant_mood') %}
+    <div style="margin-bottom:.4rem">
+      <span style="font-size:.72rem;color:#6b7280">Dominant mood: </span>
+      <span style="font-size:.78rem;font-weight:700;color:#e8e8e8">{{ sma_visual.dominant_mood }}</span>
+      {% if sma_visual.get('production_quality') %}
+      &nbsp;·&nbsp;
+      <span style="font-size:.72rem;color:#6b7280">Production: </span>
+      <span style="font-size:.78rem;color:#e8e8e8">{{ sma_visual.production_quality }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if sma_visual.get('content_type_mix') %}
+    <div style="margin-top:.6rem">
+      <div style="font-size:.7rem;color:#6b7280;margin-bottom:.35rem">Content type mix</div>
+      <div style="display:flex;gap:.25rem;height:8px;border-radius:4px;overflow:hidden">
+        {% set mix = sma_visual.content_type_mix %}
+        {% set mix_colors = {'product':'#3b82f6','lifestyle':'#22c55e','promotional':'#f59e0b','educational':'#a855f7','ugc':'#ec4899'} %}
+        {% for ctype, color in mix_colors.items() %}
+        {% set pct = (mix.get(ctype, 0) * 100) | int %}
+        {% if pct > 0 %}
+        <div style="width:{{ pct }}%;background:{{ color }}" title="{{ ctype }}: {{ pct }}%"></div>
+        {% endif %}
+        {% endfor %}
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.3rem">
+        {% for ctype, color in mix_colors.items() %}
+        {% set pct = (mix.get(ctype, 0) * 100) | int %}
+        {% if pct > 0 %}
+        <span style="font-size:.63rem;color:{{ color }}">{{ ctype }} {{ pct }}%</span>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if sma_visual.get('visual_storytelling') %}
+    <div style="margin-top:.6rem;font-size:.78rem;color:#9ca3af;line-height:1.5">{{ sma_visual.visual_storytelling }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Brand voice ──────────────────────────────────────────────────────── #}
+  {% if sma_text.get('brand_voice') and sma_text.brand_voice not in ('Insufficient data', 'Analysis unavailable') %}
+  <div style="margin-bottom:1.25rem">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+      color:#6b7280;margin-bottom:.65rem">Brand Voice & Strategy</div>
+    <table class="kv-tbl" style="font-size:.82rem">
+      <tr><td>Brand Voice</td><td>{{ sma_text.brand_voice }}</td></tr>
+      {% if sma_text.get('tone') and sma_text.tone != 'unknown' %}
+      <tr><td>Tone</td><td>{{ sma_text.tone }}</td></tr>
+      {% endif %}
+      {% if sma_text.get('cta_usage') and sma_text.cta_usage != 'unknown' %}
+      <tr><td>CTA Usage</td><td style="color:{% if sma_text.cta_usage == 'strong' %}#22c55e{% elif sma_text.cta_usage == 'moderate' %}#f59e0b{% else %}#ef4444{% endif %}">
+        {{ sma_text.cta_usage | title }}</td></tr>
+      {% endif %}
+      {% if sma_text.get('hashtag_strategy') and sma_text.hashtag_strategy != 'unknown' %}
+      <tr><td>Hashtag Strategy</td><td>{{ sma_text.hashtag_strategy }}</td></tr>
+      {% endif %}
+    </table>
+    {% if sma_text.get('content_pillars') %}
+    <div style="margin-top:.65rem;display:flex;flex-wrap:wrap;gap:.3rem">
+      {% for p in sma_text.content_pillars %}
+      <span style="font-size:.72rem;padding:.18rem .52rem;border-radius:4px;
+        background:#1a1a1a;border:1px solid #2a2a2a;color:#a78bfa">{{ p }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Strengths / Gaps / Recommendations ───────────────────────────────── #}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+    {% if sma_strengths %}
+    <div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+        color:#22c55e;margin-bottom:.5rem">Strengths</div>
+      {% for s in sma_strengths %}
+      <div style="display:flex;gap:.4rem;margin-bottom:.35rem;font-size:.81rem">
+        <span style="color:#22c55e;flex-shrink:0">✓</span>
+        <span style="color:#a3a3a3">{{ s }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if sma_gaps %}
+    <div>
+      <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+        color:#ef4444;margin-bottom:.5rem">Gaps</div>
+      {% for g in sma_gaps %}
+      <div style="display:flex;gap:.4rem;margin-bottom:.35rem;font-size:.81rem">
+        <span style="color:#ef4444;flex-shrink:0">△</span>
+        <span style="color:#a3a3a3">{{ g }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if sma_recs %}
+  <div style="margin-bottom:1rem">
+    <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+      color:#f59e0b;margin-bottom:.5rem">Recommendations</div>
+    {% for r in sma_recs %}
+    <div style="display:flex;gap:.5rem;margin-bottom:.4rem;padding:.45rem .65rem;
+      background:#0f1f0f;border-radius:6px;border-left:2px solid #22c55e">
+      <span style="color:#f59e0b;font-weight:700;flex-shrink:0">{{ loop.index }}.</span>
+      <span style="font-size:.82rem;color:#cbd5e1">{{ r }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if sma_edge %}
+  <div style="margin-bottom:.75rem;padding:.7rem 1rem;background:#1a1000;border-radius:8px;
+    border:1px solid #3a2900;font-size:.82rem;color:#fde68a">
+    <span style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+      color:#f59e0b;display:block;margin-bottom:.25rem">Competitive Edge</span>
+    {{ sma_edge }}
+  </div>
+  {% endif %}
+
+  {% if sma_urgency %}
+  <div>
+    <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#ef4444">
+      Urgent Actions</span>
+    {% for u in sma_urgency %}
+    <div style="margin-top:.3rem;font-size:.81rem;color:#fca5a5">⚡ {{ u }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+</details>
+{% else %}
+<details class="section-accordion">
+<summary class="section-header">
+  <span class="section-num">08</span>
+  <span class="section-title">Social Media Deep Audit</span>
+  <span class="section-score-badge" style="color:var(--muted)">—</span>
+  <span class="accordion-arrow">▾</span>
+</summary>
+<div class="section-body">
+  <div style="padding:1.5rem;background:#0c1117;border:1px solid #1e2a1e;border-radius:10px;text-align:center">
+    <div style="font-size:2rem;margin-bottom:.5rem">📱</div>
+    <div style="font-size:.95rem;font-weight:600;color:#6b7280;margin-bottom:.4rem">Social Audit Not Run</div>
+    {% if sma and sma.get('skip_reason') %}
+    <div style="font-size:.82rem;color:#4b5563;max-width:420px;margin:0 auto;line-height:1.55">
+      {{ sma.skip_reason }}. Run the audit again once social profiles are confirmed — this section includes content strategy, engagement benchmarks, and Reels neural scoring.
+    </div>
+    {% else %}
+    <div style="font-size:.82rem;color:#4b5563;max-width:420px;margin:0 auto;line-height:1.55">
+      No verified Instagram presence was detected during scraping. This section runs only when follower data or profile bio is available. If the brand has an active Instagram, re-run the audit — the social scraper may have been temporarily blocked.
+    </div>
+    {% endif %}
+  </div>
+</div>
+</details>
+{% endif %}
+<!-- /SECTION:social_media_audit -->
+
+<!-- SECTION:reels_neural -->
+{% if sma_tribe_available and sma_brand_brain_map %}
+<details open id="section-reels_neural" class="audit-section">
+<summary class="section-header">
+  <span class="section-title">Reels Neural Engagement · Meta TRIBE v2</span>
+  <span style="font-size:.68rem;color:#a855f7;font-weight:500;margin-left:.5rem">fMRI predictions</span>
+</summary>
+<div class="section-body">
+
+  {# ── Brand Aggregate Brain Map ─────────────────────────────────────────────── #}
+  <div style="background:#0a0f1e;border:1px solid #1e3a5f;border-radius:12px;padding:1rem 1.1rem 1rem;margin-bottom:1.25rem">
+    <div style="display:flex;align-items:baseline;gap:.6rem;margin-bottom:.65rem">
+      <span style="font-size:.78rem;font-weight:800;color:#e2e8f0;text-transform:uppercase;letter-spacing:.07em">
+        Brand Neural Profile
+      </span>
+      <span style="font-size:.62rem;color:#a855f7;font-weight:500">
+        · {{ sma_brand_brain_map.get('reels_analyzed', 0) }} Reel{{ 's' if sma_brand_brain_map.get('reels_analyzed', 0) != 1 else '' }} analysed · Meta TRIBE v2 fMRI
+      </span>
+    </div>
+    {% if sma_brand_brain_map.get('anatomical_svg') %}
+    <div style="display:flex;gap:1.25rem;align-items:flex-start;flex-wrap:wrap;margin:.25rem 0 .75rem">
+      <div style="flex:1;min-width:220px">{{ sma_brand_brain_map.get('anatomical_svg', '') | safe }}</div>
+      <div style="flex:1;min-width:220px">{{ sma_brand_brain_map.get('brain_map_svg', '') | safe }}</div>
+    </div>
+    {% else %}
+    <div style="margin:.25rem 0 .75rem">{{ sma_brand_brain_map.get('brain_map_svg', '') | safe }}</div>
+    {% endif %}
+    <div style="font-size:.61rem;color:#374151">
+      Source: <span style="color:#22c55e">Meta TRIBE v2 · real fMRI encoding predictions</span>
+      &nbsp;·&nbsp; CC-BY-NC-4.0 (non-commercial research use only)
+    </div>
+  </div>
+
+  {# ── Per-Reel cards ──────────────────────────────────────────────────────── #}
+  {% for reel in sma_reels_tribe %}
+  {% if not reel.get('error') and reel.get('brain_map_svg') %}
+  {% set ne = reel.get('neural_engagement') or {} %}
+  {% set ne_score = ne.get('neural_engagement_score') %}
+  {% set ne_tier = ne.get('tier', '') %}
+  {% set tier_color = '#22c55e' if ne_tier == 'High' else ('#f59e0b' if ne_tier == 'Medium' else '#ef4444') %}
+  <div style="background:#0d1117;border:1px solid #1e293b;border-radius:10px;padding:.9rem 1rem;margin-bottom:1rem">
+
+    {# Reel header row #}
+    <div style="display:flex;gap:.85rem;align-items:flex-start;margin-bottom:.75rem">
+      {% if reel.get('thumbnail') %}
+      <a href="{{ reel.reel_url or '#' }}" target="_blank" rel="noopener" style="flex-shrink:0">
+        <img src="{{ reel.thumbnail }}" alt="Reel thumbnail"
+          style="width:52px;height:52px;object-fit:cover;border-radius:7px;border:1px solid #1e3a5f"/>
+      </a>
+      {% endif %}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.78rem;color:#94a3b8;line-height:1.45;margin-bottom:.3rem">
+          {{ reel.get('caption', '')[:140] }}{% if reel.get('caption', '')|length > 140 %}…{% endif %}
+        </div>
+        <div style="display:flex;gap:.45rem;flex-wrap:wrap">
+          {% if reel.get('like_count') %}
+          <span style="font-size:.68rem;padding:.14rem .42rem;border-radius:4px;background:#1e293b;color:#64748b">
+            ♥ {{ "{:,}".format(reel.like_count | int) }} likes
+          </span>
+          {% endif %}
+          {% if reel.get('video_view_count') %}
+          <span style="font-size:.68rem;padding:.14rem .42rem;border-radius:4px;background:#1e293b;color:#64748b">
+            ▶ {{ "{:,}".format(reel.video_view_count | int) }} views
+          </span>
+          {% endif %}
+          {% if ne_score is not none %}
+          <span style="font-size:.68rem;padding:.14rem .55rem;border-radius:4px;background:{{ tier_color }}22;color:{{ tier_color }};font-weight:700">
+            Neural {{ ne_score }}/100 · {{ ne_tier }}
+          </span>
+          {% endif %}
+          {% if ne.get('early_hook_strong') %}
+          <span style="font-size:.68rem;padding:.14rem .42rem;border-radius:4px;background:rgba(34,197,94,.08);color:#22c55e">
+            Strong hook
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# Brain simulation video — replaces static SVG when video is available #}
+    {% set reel_loop_idx = loop.index0 %}
+    {% if reel.get('sim_video_path') and audit_id %}
+    <div style="margin:.35rem 0 .6rem">
+      <div style="font-size:.7rem;color:#4ade80;font-weight:600;margin-bottom:.4rem;letter-spacing:.03em">
+        ▶ BRAIN SIMULATION · fMRI activation as reel plays
+        <span style="color:#334155;font-weight:400;margin-left:.5rem">Left: stimulus · Right: predicted brain response (5s lag)</span>
+      </div>
+      <video
+        controls preload="metadata" playsinline
+        style="width:100%;border-radius:8px;border:1px solid #1e3a5f;background:#000;max-height:260px"
+        src="/audit/{{ audit_id }}/tribe-video/{{ reel_loop_idx }}/brain">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    {% elif reel.get('anatomical_svg') %}
+    <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin:.35rem 0 .6rem">
+      <div style="flex:1;min-width:200px">{{ reel.anatomical_svg | safe }}</div>
+      <div style="flex:1;min-width:200px">{{ reel.brain_map_svg | safe }}</div>
+    </div>
+    {% else %}
+    <div style="margin:.35rem 0 .6rem">{{ reel.brain_map_svg | safe }}</div>
+    {% endif %}
+
+    {# Interpretation #}
+    {% if ne.get('interpretation') %}
+    <div style="font-size:.78rem;color:#cbd5e1;line-height:1.5;padding:.45rem .65rem;
+      background:#0f172a;border-radius:6px;border-left:2px solid {{ tier_color }}">
+      {{ ne.interpretation }}
+    </div>
+    {% endif %}
+
+    {# Consistency + hook ratio badges #}
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.45rem">
+      {% if ne.get('consistency_score') is not none %}
+      <span style="font-size:.7rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:#94a3b8">
+        Consistency {{ ne.consistency_score }}%
+      </span>
+      {% endif %}
+      {% if ne.get('n_trs_analyzed') %}
+      <span style="font-size:.7rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:#64748b">
+        {{ ne.n_trs_analyzed }} TRs analysed
+      </span>
+      {% endif %}
+      {% if reel.get('reel_url') %}
+      <a href="{{ reel.reel_url }}" target="_blank" rel="noopener"
+        style="font-size:.7rem;padding:.16rem .48rem;border-radius:5px;background:#1e293b;
+               color:#60a5fa;text-decoration:none">
+        View Reel →
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% elif reel.get('error') %}
+  <div style="background:#0d1117;border:1px dashed #374151;border-radius:8px;padding:.65rem .85rem;
+    margin-bottom:.6rem;font-size:.75rem;color:#6b7280">
+    ⚠ {{ reel.get('reel_url', 'Reel') }} — {{ reel.error }}
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  <div style="font-size:.61rem;color:#374151;margin-top:.5rem">
+    Meta TRIBE v2 predicts fMRI cortical activations when a human watches the video.
+    7 Yeo functional networks · Schaefer-1000 parcellation · CC-BY-NC-4.0
+  </div>
+
+</div>
+</details>
+{% elif sma and sma.get('platforms') %}
+{# Tribe not available — show a teaser / unavailable notice #}
+<details id="section-reels_neural" class="audit-section">
+<summary class="section-header">
+  <span class="section-title">Reels Neural Engagement · Meta TRIBE v2</span>
+  <span style="font-size:.68rem;color:#4b5563;font-weight:500;margin-left:.5rem">not processed</span>
+</summary>
+<div class="section-body">
+  <div style="padding:1.2rem;background:#0d1117;border:1px dashed #1e3a5f;border-radius:10px;
+    text-align:center;color:#6b7280;font-size:.82rem;line-height:1.6">
+    No Reels with video content were found in this brand's public Instagram posts,
+    or TRIBE v2 inference was skipped.<br>
+    <span style="font-size:.72rem;color:#374151">
+      TRIBE v2 requires downloadable Reels via yt-dlp and the model weights (~several GB) to be cached.
+    </span>
+  </div>
+</div>
+</details>
+{% endif %}
+<!-- /SECTION:reels_neural -->
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION: FINANCIAL & BRAND SNAPSHOT                                        #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<!-- SECTION:financial_snapshot -->
+{% set _has_fin = bb_revenue_range or bb_store_count or bb_valuation or bb_yoy_growth or bb_parent_company or bb_ceo %}
+<details class="section-accordion">
+  <summary class="section-header" style="background:linear-gradient(135deg,#0d1a0d,#0a1a0a)">
+    <span class="section-num" style="color:var(--green)">💰</span>
+    <span class="section-title">Financial &amp; Brand Snapshot</span>
+    <span class="section-score-badge" style="color:var(--green);border-color:rgba(34,197,94,.3)">
+      {% if bb_revenue_range and bb_revenue_range != 'Not found publicly' %}{{ bb_revenue_range }}{% else %}Public data{% endif %}
+    </span>
+    <span class="accordion-arrow" style="color:var(--green)">▾</span>
+  </summary>
+  <div class="section-body">
+
+    {# Financial table #}
+    <div class="subsec">
+      <div class="subsec-title">Financial Snapshot</div>
+      <table class="info-table" style="border-collapse:collapse">
+        <tbody>
+          {% for label, val in [
+            ('Revenue (est.)',      bb_revenue_range),
+            ('YoY Growth',          bb_yoy_growth),
+            ('Valuation',           bb_valuation),
+            ('Funding Stage',       bb.funding_stage),
+            ('Store Count',         bb_store_count),
+            ('Founded',             bb.founding_year),
+            ('CEO / Founders',      bb_ceo),
+            ('Parent Company',      bb_parent_company),
+            ('HQ',                  bb.hq),
+          ] %}
+          {% if val and val != 'Not found publicly' and val != 'Independent' %}
+          <tr>
+            <td style="padding:.5rem .75rem;font-size:.8rem;color:var(--muted);white-space:nowrap;width:36%">{{ label }}</td>
+            <td style="padding:.5rem .75rem;font-size:.86rem;font-weight:600;color:var(--text)">{{ val }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Domain split analysis #}
+    {% if bb_domain_variants %}
+    <div class="subsec">
+      <div class="subsec-title">Domain Analysis</div>
+      <div class="card" style="border-left:3px solid {% if bb_domain_variants.secondary %}var(--amber){% else %}var(--green){% endif %}">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.55rem">
+          {% if bb_domain_variants.primary %}
+          <span style="font-size:.82rem"><strong>Primary:</strong> {{ bb_domain_variants.primary }}</span>
+          {% endif %}
+          {% if bb_domain_variants.secondary %}
+          <span style="font-size:.82rem;color:var(--amber)"><strong>Secondary:</strong> {{ bb_domain_variants.secondary }}</span>
+          {% endif %}
+        </div>
+        {% if bb_domain_variants.seo_note %}
+        <div style="font-size:.82rem;color:var(--muted);line-height:1.5">{{ bb_domain_variants.seo_note }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Awards / press #}
+    {% if bb_awards %}
+    <div class="subsec">
+      <div class="subsec-title">Awards &amp; Recognition</div>
+      <ul class="exec-list" style="list-style:none;padding:0">
+        {% for award in bb_awards[:5] %}
+        <li style="padding:.35rem 0;padding-left:1.2rem;position:relative;border-bottom:1px solid var(--border);font-size:.84rem">
+          <span style="position:absolute;left:0;color:var(--amber)">★</span>{{ award }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {# Category expansion table #}
+    {% if bb_category_expansion %}
+    <div class="subsec">
+      <div class="subsec-title">Category Expansion Tracker</div>
+      <table class="info-table" style="border-collapse:collapse">
+        <thead>
+          <tr>
+            <th style="padding:.4rem .75rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)">Category</th>
+            <th style="padding:.4rem .75rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)">Status</th>
+            <th style="padding:.4rem .75rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exp in bb_category_expansion %}
+          {% set s_color = '#22c55e' if exp.status == 'Launched' else ('#f59e0b' if exp.status in ['Testing', 'Planned'] else '#6b7280') %}
+          <tr>
+            <td style="padding:.45rem .75rem;font-size:.84rem;font-weight:600;color:var(--text)">{{ exp.category }}</td>
+            <td style="padding:.45rem .75rem">
+              <span style="font-size:.73rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;background:{{ s_color }}22;color:{{ s_color }}">{{ exp.status }}</span>
+            </td>
+            <td style="padding:.45rem .75rem;font-size:.82rem;color:var(--muted)">{{ exp.note or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {# Competitive moat #}
+    {% set _moat = bb_moat or res_moat %}
+    {% if _moat %}
+    <div class="subsec">
+      <div class="subsec-title">Competitive Moat</div>
+      <div class="card" style="border-left:3px solid var(--blue);font-size:.88rem;line-height:1.65;color:var(--text)">{{ _moat }}</div>
+    </div>
+    {% endif %}
+
+  </div>
+</details>
+<!-- /SECTION:financial_snapshot -->
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION: COMPETITIVE LANDSCAPE                                              #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<!-- SECTION:competitive_landscape -->
+{% set _has_comp = res.top_competitors and res.top_competitors | length > 0 %}
+{% if _has_comp %}
+<details class="section-accordion">
+  <summary class="section-header" style="background:linear-gradient(135deg,#1a0a0a,#1a0a0d)">
+    <span class="section-num" style="color:var(--red)">⚔</span>
+    <span class="section-title">Competitive Landscape</span>
+    <span class="section-score-badge" style="color:var(--red);border-color:rgba(239,68,68,.3)">
+      {{ res.top_competitors | length }} rivals mapped
+    </span>
+    <span class="accordion-arrow" style="color:var(--red)">▾</span>
+  </summary>
+  <div class="section-body">
+
+    {# Competitor table with threat levels #}
+    <div class="subsec">
+      <div class="subsec-title">Direct Competitors</div>
+      <div style="display:flex;flex-direction:column;gap:.65rem">
+        {% for comp in res.top_competitors %}
+        {% set threat = comp.threat_level or 'Medium' %}
+        {% set t_color = '#ef4444' if threat == 'High' else ('#f59e0b' if threat == 'Medium' else '#22c55e') %}
+        {% set t_icon = '🔴' if threat == 'High' else ('🟡' if threat == 'Medium' else '🟢') %}
+        <div class="card" style="border-left:3px solid {{ t_color }}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;flex-wrap:wrap">
+            <div>
+              <div style="display:flex;align-items:center;gap:.55rem;margin-bottom:.25rem">
+                <span style="font-size:.92rem;font-weight:700;color:var(--text)">{{ comp.name }}</span>
+                <span style="font-size:.72rem;font-weight:700;padding:.12rem .45rem;border-radius:4px;background:{{ t_color }}22;color:{{ t_color }}">{{ t_icon }} {{ threat }} threat</span>
+                {% if comp.price_range %}
+                <span style="font-size:.72rem;color:var(--muted)">{{ comp.price_range }}</span>
+                {% endif %}
+              </div>
+              <div style="font-size:.82rem;color:var(--muted);margin-bottom:.3rem">{{ comp.positioning or '' }}</div>
+              {% if comp.why_they_win %}
+              <div style="font-size:.8rem;color:#f97316"><strong>Why they win:</strong> {{ comp.why_they_win }}</div>
+              {% endif %}
+              {% if comp.threat_reason %}
+              <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">{{ comp.threat_reason }}</div>
+              {% endif %}
+            </div>
+            {% if comp.url %}
+            <a href="{{ comp.url }}" target="_blank" style="font-size:.73rem;color:var(--blue);white-space:nowrap;flex-shrink:0">↗ Visit</a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Where brand wins vs loses #}
+    {% if res.where_brand_wins or res.where_brand_loses %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.25rem">
+      {% if res.where_brand_wins %}
+      <div class="card" style="border-left:3px solid var(--green)">
+        <div class="subsec-title" style="color:var(--green);border-bottom:none;margin-bottom:.55rem">Where brand wins ✓</div>
+        <ul class="exec-list wins" style="list-style:none;padding:0">
+          {% for win in res.where_brand_wins[:4] %}
+          <li style="padding:.3rem 0;padding-left:1.1rem;position:relative;font-size:.82rem;border-bottom:1px solid var(--border)">
+            <span style="position:absolute;left:0;color:var(--green)">✓</span>{{ win }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% if res.where_brand_loses %}
+      <div class="card" style="border-left:3px solid var(--red)">
+        <div class="subsec-title" style="color:var(--red);border-bottom:none;margin-bottom:.55rem">Where brand loses ✗</div>
+        <ul class="exec-list" style="list-style:none;padding:0">
+          {% for loss in res.where_brand_loses[:4] %}
+          <li style="padding:.3rem 0;padding-left:1.1rem;position:relative;font-size:.82rem;border-bottom:1px solid var(--border)">
+            <span style="position:absolute;left:0;color:var(--red)">✗</span>{{ loss }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# Omnichannel signals #}
+    {% set _omni = res_omnichannel %}
+    {% if _omni %}
+    <div class="subsec">
+      <div class="subsec-title">Omnichannel &amp; Offline</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.65rem">
+        {% for label, val, icon in [
+          ('Offline Stores', _omni.offline_stores_detected, '🏪'),
+          ('Franchise Model', _omni.franchise_model, '🤝'),
+          ('WhatsApp Commerce', _omni.whatsapp_commerce, '💬'),
+          ('Email / CRM', _omni.email_crm, '📧'),
+        ] %}
+        {% if val and val != 'Not detected' and val != 'Unknown' %}
+        <div class="card" style="padding:.75rem 1rem">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.3rem">{{ icon }} {{ label }}</div>
+          <div style="font-size:.85rem;font-weight:600;color:var(--text)">{{ val }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        {% if _omni.o2o_gap and _omni.o2o_gap != 'Not applicable (pure D2C)' %}
+        <div class="card" style="grid-column:1/-1;padding:.75rem 1rem;border-left:3px solid var(--amber)">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin-bottom:.3rem">⚠ O2O Gap</div>
+          <div style="font-size:.84rem;color:var(--text)">{{ _omni.o2o_gap }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# International signals #}
+    {% if res_international and res_international != 'No signals detected' %}
+    <div class="subsec">
+      <div class="subsec-title">International Expansion Signals</div>
+      <div class="card" style="border-left:3px solid var(--blue);font-size:.85rem;line-height:1.6;color:var(--text)">🌍 {{ res_international }}</div>
+    </div>
+    {% endif %}
+
+  </div>
+</details>
+{% endif %}
+<!-- /SECTION:competitive_landscape -->
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION: PRIORITY FRAMEWORK                                                 #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<!-- SECTION:priority_framework -->
+{% set _total_recs = (priority_recs.red | length) + (priority_recs.yellow | length) + (priority_recs.green | length) %}
+{% if _total_recs > 0 %}
+<details class="section-accordion">
+  <summary class="section-header" style="background:linear-gradient(135deg,#1a0d00,#1a1000)">
+    <span class="section-num" style="color:var(--amber)">🎯</span>
+    <span class="section-title">Priority Action Framework</span>
+    <span class="section-score-badge" style="color:var(--amber);border-color:rgba(245,158,11,.3)">
+      {{ _total_recs }} prioritised fixes
+    </span>
+    <span class="accordion-arrow" style="color:var(--amber)">▾</span>
+  </summary>
+  <div class="section-body">
+
+    <p style="font-size:.82rem;color:var(--muted);margin-bottom:1.25rem;line-height:1.55">
+      Recommendations ranked by impact × effort. 🔴 Fix immediately · 🟡 Build in Q3 · 🟢 Medium-term
+    </p>
+
+    {% for tier, tier_label, tier_color, tier_bg, tier_icon, tier_timeline in [
+      ('red',    'Fix Immediately',  '#ef4444', 'rgba(239,68,68,.08)',   '🔴', 'This week'),
+      ('yellow', 'Build This Quarter', '#f59e0b', 'rgba(245,158,11,.08)', '🟡', 'This quarter'),
+      ('green',  'Medium-Term',      '#22c55e', 'rgba(34,197,94,.08)',   '🟢', 'Next quarter+'),
+    ] %}
+    {% set tier_recs = priority_recs[tier] %}
+    {% if tier_recs %}
+    <div style="margin-bottom:1.75rem">
+      <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.85rem">
+        <span style="font-size:1.1rem">{{ tier_icon }}</span>
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:{{ tier_color }}">{{ tier_label }}</span>
+        <span style="font-size:.72rem;padding:.12rem .45rem;border-radius:4px;background:{{ tier_bg }};color:{{ tier_color }};border:1px solid {{ tier_color }}44">{{ tier_timeline }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.65rem">
+        {% for rec in tier_recs %}
+        <div class="card" style="border-left:3px solid {{ tier_color }};padding:1rem 1.15rem">
+          <div style="font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.35rem">{{ rec.fix }}</div>
+          <div style="display:flex;gap:.55rem;flex-wrap:wrap;margin-bottom:.35rem">
+            {% if rec.effort %}
+            <span style="font-size:.71rem;padding:.1rem .4rem;border-radius:4px;background:var(--card2);color:var(--muted)">Effort: {{ rec.effort }}</span>
+            {% endif %}
+            {% if rec.impact_estimate %}
+            <span style="font-size:.71rem;padding:.1rem .4rem;border-radius:4px;background:{{ tier_bg }};color:{{ tier_color }}">{{ rec.impact_estimate }}</span>
+            {% endif %}
+            {% if rec.time_to_see_results %}
+            <span style="font-size:.71rem;padding:.1rem .4rem;border-radius:4px;background:var(--card2);color:var(--muted)">⏱ {{ rec.time_to_see_results }}</span>
+            {% endif %}
+            {% if rec.source %}
+            <span style="font-size:.71rem;padding:.1rem .4rem;border-radius:4px;background:rgba(59,130,246,.1);color:var(--blue)">{{ rec.source }}</span>
+            {% endif %}
+          </div>
+          {% if rec.impact_metric %}
+          <div style="font-size:.78rem;color:var(--muted)">Improves: <strong style="color:var(--text)">{{ rec.impact_metric }}</strong></div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+  </div>
+</details>
+{% endif %}
+<!-- /SECTION:priority_framework -->
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+{# SECTION: 10-DIMENSION SCORECARD                                             #}
+{# ═══════════════════════════════════════════════════════════════════════════ #}
+<!-- SECTION:scorecard -->
+<details class="section-accordion">
+  <summary class="section-header" style="background:linear-gradient(135deg,#0a0a1a,#0d0d20)">
+    <span class="section-num" style="color:var(--purple)">◈</span>
+    <span class="section-title">10-Dimension Audit Scorecard</span>
+    <span class="section-score-badge" style="color:var(--purple);border-color:rgba(167,139,250,.3)">
+      {{ scorecard_overall }}/100 overall
+    </span>
+    <span class="accordion-arrow" style="color:var(--purple)">▾</span>
+  </summary>
+  <div class="section-body">
+
+    {# Overall score bar #}
+    {% set sc_color = '#22c55e' if scorecard_overall >= 70 else ('#f59e0b' if scorecard_overall >= 50 else '#ef4444') %}
+    <div style="margin-bottom:1.5rem;padding:1rem 1.25rem;background:var(--card);border:1px solid var(--border);border-radius:var(--r)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem">
+        <span style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)">Overall Brand Health Score</span>
+        <span style="font-size:1.6rem;font-weight:800;color:{{ sc_color }}">{{ scorecard_overall }}<span style="font-size:.85rem;font-weight:500;color:var(--muted)">/100</span></span>
+      </div>
+      <div style="height:8px;background:#1e1e1e;border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:{{ scorecard_overall }}%;background:{{ sc_color }};border-radius:4px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.4rem">
+        {% if scorecard_overall >= 70 %}Strong performer — maintain and accelerate
+        {% elif scorecard_overall >= 50 %}Above average — targeted improvements will compound quickly
+        {% elif scorecard_overall >= 35 %}Below average — foundational fixes will have high ROI
+        {% else %}Critical gaps — prioritise red items immediately{% endif %}
+      </div>
+    </div>
+
+    {# 10 dimension cards #}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.75rem">
+      {% for card in scorecard_10 %}
+      {% set c_color = '#22c55e' if card.score >= 70 else ('#f59e0b' if card.score >= 50 else '#ef4444') %}
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:.9rem 1.1rem;position:relative;overflow:hidden">
+        {# Background fill bar #}
+        <div style="position:absolute;bottom:0;left:0;width:{{ card.score }}%;height:3px;background:{{ c_color }};opacity:.6"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.35rem">
+          <div>
+            <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)">{{ card.icon }} {{ card.dim }}</div>
+          </div>
+          <span style="font-size:1.25rem;font-weight:800;color:{{ c_color }};flex-shrink:0;margin-left:.5rem">{{ card.score }}</span>
+        </div>
+        {# Score bar #}
+        <div style="height:4px;background:#1e1e1e;border-radius:2px;overflow:hidden;margin-bottom:.45rem">
+          <div style="height:100%;width:{{ card.score }}%;background:{{ c_color }};border-radius:2px"></div>
+        </div>
+        {% if card.note %}
+        <div style="font-size:.75rem;color:var(--muted);line-height:1.45">{{ card.note | truncate(90) }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</details>
+<!-- /SECTION:scorecard -->
+
+{# ═══════════════════════════════════════════════════════════════════════════ #}
 {# FOOTER                                                                      #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <footer>
@@ -1512,6 +2752,23 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 })();
 </script>
 <style>@keyframes ap-spin{to{transform:rotate(360deg)}}</style>
+
+<script>
+/* ── PDF print: open all <details> before printing, restore after ── */
+(function(){
+  var _closedDetails = [];
+  window.addEventListener('beforeprint', function(){
+    document.querySelectorAll('details:not([open])').forEach(function(d){
+      d.setAttribute('open','');
+      _closedDetails.push(d);
+    });
+  });
+  window.addEventListener('afterprint', function(){
+    _closedDetails.forEach(function(d){ d.removeAttribute('open'); });
+    _closedDetails = [];
+  });
+})();
+</script>
 
 </body>
 </html>

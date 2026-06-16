@@ -4,6 +4,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import re as _re
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import quote as _url_quote
@@ -555,12 +556,269 @@ def _render_changes_banner(changes: dict) -> str:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
+def _render_agentic_brain_section(audit_data: dict) -> str:
+    """Build the Reasoning Brain panel HTML for injection into the audit report.
+
+    Shows: pattern badge, executive narrative, signal grid, cross-insights,
+    collapsible reasoning trace and decisions log.
+    Only rendered when agentic_meta is present in the audit data.
+    """
+    meta = audit_data.get("agentic_meta") or {}
+    signals = audit_data.get("signals") or []
+    cross_insights = audit_data.get("cross_insights") or []
+    trace = audit_data.get("reasoning_trace") or []
+    decisions = audit_data.get("decisions") or []
+
+    if not meta and not signals:
+        return ""
+
+    # Pattern badge
+    pattern = meta.get("pattern") or audit_data.get("pattern_detected")
+    posture = meta.get("posture") or "optimize"
+    pattern_colors = {
+        "invisible_brand":       ("#ef4444", "Invisible Brand"),
+        "ghost_advertiser":      ("#f97316", "Ghost Advertiser"),
+        "social_darling":        ("#a855f7", "Social Darling"),
+        "great_product_bad_store": ("#f59e0b", "Great Product, Bad Store"),
+        "ai_search_gap":         ("#3b82f6", "AI Search Gap"),
+        "conversion_crisis":     ("#ef4444", "Conversion Crisis"),
+        "hidden_gem":            ("#22c55e", "Hidden Gem"),
+    }
+    posture_colors = {
+        "triage": "#ef4444", "optimize": "#f59e0b",
+        "accelerate": "#22c55e", "defend": "#3b82f6",
+    }
+    p_color, p_label = pattern_colors.get(pattern or "", ("#6b7280", pattern or ""))
+    pos_color = posture_colors.get(posture, "#6b7280")
+
+    pattern_badge = ""
+    if pattern:
+        pattern_badge = (
+            f'<span style="display:inline-flex;align-items:center;gap:.3rem;'
+            f'padding:.22rem .75rem;border-radius:999px;font-size:.73rem;font-weight:700;'
+            f'background:{p_color}22;color:{p_color};border:1px solid {p_color}55;'
+            f'margin-right:.5rem">'
+            f'◈ {p_label}</span>'
+        )
+    posture_badge = (
+        f'<span style="display:inline-flex;align-items:center;'
+        f'padding:.22rem .75rem;border-radius:999px;font-size:.73rem;font-weight:700;'
+        f'background:{pos_color}22;color:{pos_color};border:1px solid {pos_color}55">'
+        f'{posture.capitalize()}</span>'
+    )
+
+    # Narrative
+    narrative = meta.get("narrative", "")
+    core_challenge = meta.get("core_challenge", "")
+    root_cause = meta.get("root_cause", "")
+    hidden_opp = meta.get("hidden_opportunity", "")
+    contradictions = meta.get("contradictions") or []
+    confidence = meta.get("confidence", "medium")
+    conf_color = {"high": "#22c55e", "medium": "#f59e0b", "low": "#ef4444"}.get(confidence, "#6b7280")
+
+    narrative_html = ""
+    if narrative:
+        narrative_html = (
+            f'<p style="font-size:.9rem;color:#cbd5e1;line-height:1.75;'
+            f'padding:.85rem 1.1rem;background:#0d1f3c;border-radius:8px;'
+            f'border-left:3px solid #3b82f6;margin:.85rem 0 0">{narrative}</p>'
+        )
+
+    meta_grid_items = []
+    if core_challenge:
+        meta_grid_items.append(("Core Challenge", core_challenge, "#ef4444"))
+    if root_cause:
+        meta_grid_items.append(("Root Cause", root_cause, "#f97316"))
+    if hidden_opp:
+        meta_grid_items.append(("Hidden Opportunity", hidden_opp, "#22c55e"))
+    if contradictions:
+        meta_grid_items.append(("Contradiction", contradictions[0], "#a855f7"))
+
+    meta_grid_html = ""
+    if meta_grid_items:
+        items = ""
+        for label, text, color in meta_grid_items:
+            items += (
+                f'<div style="background:#111;border:1px solid #1e1e1e;border-left:3px solid {color};'
+                f'border-radius:8px;padding:.75rem 1rem">'
+                f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+                f'letter-spacing:.09em;color:{color};margin-bottom:.3rem">{label}</div>'
+                f'<div style="font-size:.82rem;color:#e2e8f0;line-height:1.55">{text}</div>'
+                f'</div>'
+            )
+        meta_grid_html = (
+            f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));'
+            f'gap:.65rem;margin-top:.85rem">{items}</div>'
+        )
+
+    # Signal grid
+    sev_colors = {"critical": "#ef4444", "high": "#f97316", "medium": "#f59e0b", "low": "#6b7280"}
+    type_icons = {"risk": "⚠", "opportunity": "◆", "anomaly": "◉", "confirmation": "✓"}
+
+    signals_html = ""
+    if signals:
+        sig_items = ""
+        for s in signals:
+            sc = sev_colors.get(s.get("severity", "medium"), "#6b7280")
+            ic = type_icons.get(s.get("type", "risk"), "•")
+            action = s.get("triggers_action") or ""
+            action_tag = (
+                f'<span style="font-size:.63rem;padding:.1rem .38rem;border-radius:4px;'
+                f'background:#1e1e1e;color:#6b7280;margin-top:.25rem;display:inline-block">'
+                f'→ {action}</span>'
+            ) if action else ""
+            sig_items += (
+                f'<div style="background:#111;border:1px solid #1e1e1e;border-left:3px solid {sc};'
+                f'border-radius:8px;padding:.6rem .9rem">'
+                f'<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.18rem">'
+                f'<span style="font-size:.68rem;font-weight:700;color:{sc};text-transform:uppercase">'
+                f'{s.get("severity","").upper()}</span>'
+                f'<span style="font-size:.68rem;color:#4b5563">{s.get("source","")}</span>'
+                f'</div>'
+                f'<div style="font-size:.82rem;color:#e2e8f0;font-weight:500;line-height:1.4">'
+                f'{ic} {s.get("content","")}</div>'
+                f'<div style="font-size:.72rem;color:#6b7280;margin-top:.18rem">{s.get("evidence","")}</div>'
+                f'{action_tag}'
+                f'</div>'
+            )
+        signals_html = (
+            f'<div style="margin-top:1rem">'
+            f'<div style="font-size:.63rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.09em;color:#6b7280;margin-bottom:.55rem">'
+            f'Agentic Signals · {len(signals)} detected</div>'
+            f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));'
+            f'gap:.5rem">{sig_items}</div>'
+            f'</div>'
+        )
+
+    # Cross-insights
+    cross_html = ""
+    if cross_insights:
+        items = "".join(
+            f'<div style="font-size:.82rem;color:#93c5fd;line-height:1.6;'
+            f'padding:.35rem 0;border-bottom:1px solid #1e1e1e">'
+            f'<span style="color:#3b82f6;margin-right:.4rem">◈</span>{ci}'
+            f'</div>'
+            for ci in cross_insights
+        )
+        cross_html = (
+            f'<div style="margin-top:1rem;padding:.85rem 1rem;background:#0c1829;'
+            f'border:1px solid #1e3a5f;border-radius:8px">'
+            f'<div style="font-size:.63rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.09em;color:#3b82f6;margin-bottom:.5rem">Cross-Agent Insights</div>'
+            f'{items}'
+            f'</div>'
+        )
+
+    # Reasoning trace (collapsible)
+    trace_html = ""
+    if trace:
+        trace_lines = "".join(
+            f'<div style="font-size:.73rem;color:#4b5563;font-family:monospace;'
+            f'padding:.18rem 0;border-bottom:1px solid #111;line-height:1.4">{t}</div>'
+            for t in trace
+        )
+        trace_html = (
+            f'<details style="margin-top:.85rem">'
+            f'<summary style="font-size:.73rem;font-weight:700;color:#6b7280;'
+            f'cursor:pointer;list-style:none;padding:.4rem 0">'
+            f'▸ Reasoning Trace ({len(trace)} steps)</summary>'
+            f'<div style="margin-top:.5rem;padding:.75rem;background:#080808;'
+            f'border:1px solid #1e1e1e;border-radius:6px;max-height:280px;overflow-y:auto">'
+            f'{trace_lines}</div></details>'
+        )
+
+    # Decisions log (collapsible)
+    decisions_html = ""
+    if decisions:
+        d_rows = "".join(
+            f'<div style="display:flex;gap:.75rem;padding:.35rem 0;'
+            f'border-bottom:1px solid #111;align-items:flex-start">'
+            f'<span style="font-size:.65rem;color:#f59e0b;font-family:monospace;'
+            f'flex-shrink:0;margin-top:.05rem">{d.get("at_seconds","?")}s</span>'
+            f'<div><span style="font-size:.73rem;color:#e2e8f0;font-weight:600">'
+            f'{d.get("step","")}</span>'
+            f'<div style="font-size:.71rem;color:#6b7280;margin-top:.1rem">'
+            f'{d.get("rationale","")} → <em style="color:#a0a0a0">{d.get("action","")}</em>'
+            f'</div></div></div>'
+            for d in decisions
+        )
+        decisions_html = (
+            f'<details style="margin-top:.5rem">'
+            f'<summary style="font-size:.73rem;font-weight:700;color:#6b7280;'
+            f'cursor:pointer;list-style:none;padding:.4rem 0">'
+            f'▸ Brain Decisions ({len(decisions)} calls)</summary>'
+            f'<div style="margin-top:.5rem;padding:.75rem;background:#080808;'
+            f'border:1px solid #1e1e1e;border-radius:6px;max-height:260px;overflow-y:auto">'
+            f'{d_rows}</div></details>'
+        )
+
+    return f"""
+<div style="margin:2rem 1rem 0;font-family:system-ui,sans-serif">
+  <details class="section-accordion" open>
+    <summary class="section-header"
+      style="background:linear-gradient(135deg,#0a0a1a,#0d1f3c)">
+      <span class="section-num" style="color:#3b82f6">⬡</span>
+      <span class="section-title">Agentic Reasoning Brain</span>
+      <span class="section-score-badge" style="color:#3b82f6;border-color:#1e3a5f">
+        {len(signals)} signals · {len(decisions)} decisions
+        &nbsp;<span style="color:{conf_color}">{confidence} confidence</span>
+      </span>
+      <span class="accordion-arrow">⌄</span>
+    </summary>
+    <div class="section-body">
+      <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.65rem">
+        {pattern_badge}{posture_badge}
+      </div>
+      {narrative_html}
+      {meta_grid_html}
+      {signals_html}
+      {cross_html}
+      {trace_html}
+      {decisions_html}
+      <div style="font-size:.62rem;color:#374151;margin-top:.85rem;border-top:1px solid #1e1e1e;padding-top:.5rem">
+        ReAct pattern (Reason → Act → Observe → Synthesize) ·
+        {len(trace)} trace steps · {len(cross_insights)} cross-agent insights
+      </div>
+    </div>
+  </details>
+</div>"""
+
+
+def _failed_section_placeholder(agent_key: str) -> str:
+    label = _SECTION_LABELS.get(agent_key, agent_key)
+    return (
+        '<details class="section-accordion" open>'
+        '<summary class="section-header" style="cursor:default">'
+        f'<span class="section-title">{label}</span>'
+        '<span class="section-score-badge" style="color:#6b7280">—</span>'
+        '</summary>'
+        '<div class="section-body" style="padding:1.25rem 1.5rem;color:#6b7280;font-size:.87rem">'
+        '&#9888; This agent did not receive input or timed out — no data available for this section.'
+        '</div></details>'
+    )
+
+
 def generate_audit_report(audit_data: dict) -> str:
     """Render the full 6-section audit report as an HTML string."""
     audit_data = validate_scores(audit_data)
     ctx = _build_audit_context(audit_data)
     template = _env.get_template("audit_report.html")
     html = template.render(**ctx)
+
+    # Replace sections for failed/timed-out agents with a placeholder
+    results = audit_data.get("results") or audit_data
+    for key, result in results.items():
+        if isinstance(result, dict) and result.get("status") in ("timeout", "failed"):
+            placeholder = _failed_section_placeholder(key)
+            section_pattern = rf'<!--\s*SECTION:{_re.escape(key)}\s*-->.*?<!--\s*/SECTION:{_re.escape(key)}\s*-->'
+            replacement = f'<!-- SECTION:{key} -->{placeholder}<!-- /SECTION:{key} -->'
+            html = _re.sub(section_pattern, replacement, html, flags=_re.DOTALL)
+
+    # Inject agentic brain section before the standard footer callout
+    agentic_brain_html = _render_agentic_brain_section(audit_data)
+    if agentic_brain_html:
+        html = html.replace("</body>", agentic_brain_html + "\n</body>", 1)
 
     # Inject "Skip the Re-audit" callout + sources panel before </body>
     skip_reaudit_html = """
@@ -721,12 +979,14 @@ def _citation_status(idx: int, likelihood: str) -> str:
 def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
     results = audit_data.get("results") or audit_data
 
-    brand_basics    = results.get("brand_basics",    {}) or {}
-    content_catalog = results.get("content_catalog", {}) or {}
-    performance_ads = results.get("performance_ads", {}) or {}
-    geo_visibility  = results.get("geo_visibility",  {}) or {}
-    store_cro       = results.get("store_cro",       {}) or {}
-    research        = results.get("research",        {}) or {}
+    brand_basics      = results.get("brand_basics",      {}) or {}
+    content_catalog   = results.get("content_catalog",   {}) or {}
+    performance_ads   = results.get("performance_ads",   {}) or {}
+    geo_visibility    = results.get("geo_visibility",    {}) or {}
+    store_cro         = results.get("store_cro",         {}) or {}
+    research          = results.get("research",          {}) or {}
+    social_profile    = results.get("social_profile",    {}) or {}
+    social_media_audit = results.get("social_media_audit", {}) or {}
 
     bb_a  = brand_basics.get("analysis")    or {}
     cc_a  = content_catalog.get("analysis") or {}
@@ -734,6 +994,7 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
     geo_a = geo_visibility.get("analysis")  or {}
     cro_a = store_cro.get("analysis")       or {}
     res_a = research.get("analysis")        or {}
+    sp_a  = social_profile.get("analysis")  or {}
 
     health = _overall_health(results)
     wins, gaps = _top_wins_gaps(results)
@@ -868,7 +1129,147 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
     # ── Whitespace Score (from research agent) ────────────────────────────────
     whitespace = (results.get("research") or {}).get("whitespace") or {}
 
+    # ── 10-Dimension Scorecard ────────────────────────────────────────────────
+    def _to_score(val, maxval=10):
+        try:
+            v = float(val or 0)
+            return round(v / maxval * 100)
+        except (TypeError, ValueError):
+            return None
+
+    _sma_scores = (social_media_audit.get("scores") or {})
+    _sma_overall = _try_int(_sma_scores.get("overall"), 0) * 10  # 1-10 → 0-100
+
+    _bb_fields_present = sum(1 for f in ["brand_name", "founding_year", "founders", "hq",
+                                          "core_categories", "target_audience", "key_strengths"]
+                             if bb_a.get(f))
+    _brand_pos_score = round(50 + (_bb_fields_present / 7) * 30 + min(20, _try_int(res_a.get("research_score"), 5) * 2))
+
+    _ux_score_raw = cro_a.get("ux_score") or cro_a.get("cro_score")
+    _ux_score = _to_score(_ux_score_raw, 10)
+
+    scorecard_10 = [
+        {
+            "dim": "Brand Positioning",
+            "score": min(100, _brand_pos_score),
+            "note": bb_a.get("brand_positioning") or res_a.get("brand_positioning_vs_market", "")[:80],
+            "icon": "◈",
+        },
+        {
+            "dim": "Website UX",
+            "score": _ux_score,
+            "note": (cro_a.get("ux_audit") or {}).get("hero_cta_clarity", "") or
+                    (cro_a.get("funnel_friction_points") or [""])[0],
+            "icon": "⬡",
+        },
+        {
+            "dim": "Mobile Performance",
+            "score": _try_int(ps_wrap.get("mobile_score") or cro_a.get("pagespeed_mobile"), 0) or None,
+            "note": f"LCP {lcp} · CLS {cls}" if lcp and cls else "",
+            "icon": "⚡",
+        },
+        {
+            "dim": "Content Quality",
+            "score": _to_score(cc_a.get("pdp_quality_score"), 10),
+            "note": (cc_a.get("pdp_weaknesses") or [""])[0],
+            "icon": "✦",
+        },
+        {
+            "dim": "SEO & Discoverability",
+            "score": _try_int(geo_a.get("geo_score"), 0) or None,
+            "note": geo_a.get("ai_citation_likelihood_reason", "")[:80],
+            "icon": "⊕",
+        },
+        {
+            "dim": "Social Presence",
+            "score": _to_score(sp_a.get("social_presence_score") or
+                               social_profile.get("social_presence_score"), 10),
+            "note": (sp_a.get("instagram") or {}).get("followers", "") or "",
+            "icon": "◉",
+        },
+        {
+            "dim": "Social Content Quality",
+            "score": _to_score(_sma_scores.get("content_quality"), 10),
+            "note": (social_media_audit.get("top_3_strengths") or [""])[0],
+            "icon": "▲",
+        },
+        {
+            "dim": "Paid Ads Strength",
+            "score": _to_score(pa_a.get("hook_strength_score"), 10),
+            "note": pa_a.get("best_performing_creative_type", "")[:80],
+            "icon": "◆",
+        },
+        {
+            "dim": "Conversion Optimization",
+            "score": _to_score(cro_a.get("cro_score"), 10),
+            "note": ((cro_a.get("top_5_cro_fixes") or [{}])[0] or {}).get("fix", "")[:80],
+            "icon": "↗",
+        },
+        {
+            "dim": "Competitive Position",
+            "score": _to_score(res_a.get("research_score"), 10),
+            "note": (res_a.get("where_brand_wins") or [""])[0],
+            "icon": "⚔",
+        },
+    ]
+    # Filter None scores to avoid rendering broken cards
+    for card in scorecard_10:
+        if card["score"] is None:
+            card["score"] = 50  # default neutral when data unavailable
+        else:
+            card["score"] = max(0, min(100, card["score"]))
+
+    scorecard_overall = round(sum(c["score"] for c in scorecard_10) / len(scorecard_10))
+
+    # ── Priority Framework (🔴/🟡/🟢 recommendations) ────────────────────────
+    def _collect_all_recs(results_dict: dict) -> list[dict]:
+        recs = []
+        for section_key, rec_field in [
+            ("content_catalog",  "top_3_improvements"),
+            ("geo_visibility",   "geo_improvement_roadmap"),
+            ("store_cro",        "top_5_cro_fixes"),
+            ("performance_ads",  "top_3_ad_quick_wins"),
+            ("research",         "strategic_recommendations"),
+        ]:
+            sec = results_dict.get(section_key, {}) or {}
+            ana = sec.get("analysis", {}) or {}
+            items = ana.get(rec_field) or []
+            for item in items:
+                if isinstance(item, dict) and item.get("fix"):
+                    recs.append({
+                        "fix": item.get("fix", ""),
+                        "effort": item.get("effort", "Med"),
+                        "impact_metric": item.get("impact_metric", ""),
+                        "impact_estimate": item.get("impact_estimate", ""),
+                        "time_to_see_results": item.get("time_to_see_results", ""),
+                        "confidence": item.get("confidence", "medium"),
+                        "source": section_key.replace("_", " ").title(),
+                    })
+        return recs
+
+    def _classify_priority(rec: dict) -> str:
+        effort = (rec.get("effort") or "").lower()
+        confidence = (rec.get("confidence") or "").lower()
+        time_str = (rec.get("time_to_see_results") or "").lower()
+        # Red: low effort, high confidence, fast results
+        if effort == "low" and confidence == "high":
+            return "red"
+        if effort == "low" and ("24" in time_str or "48" in time_str or "hours" in time_str):
+            return "red"
+        # Green: high effort or slow results
+        if effort == "high" or "month" in time_str or "quarter" in time_str:
+            return "green"
+        return "yellow"
+
+    all_recs = _collect_all_recs(results)
+    priority_recs = {
+        "red":    [r for r in all_recs if _classify_priority(r) == "red"][:4],
+        "yellow": [r for r in all_recs if _classify_priority(r) == "yellow"][:4],
+        "green":  [r for r in all_recs if _classify_priority(r) == "green"][:4],
+    }
+
     return {
+        "audit_id":      audit_data.get("audit_id", ""),
         "url":           audit_data.get("url", ""),
         "brand_name":    bb_a.get("brand_name") or audit_data.get("brand_name", "Brand"),
         "generated_at":  _now_ist(),
@@ -927,16 +1328,68 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
         "review_velocity":  review_velocity,
         "spark_hist":       spark_hist,
         "spark_pred":       spark_pred,
+        # social profile (Agent 7)
+        "sp":                  sp_a,
+        "sp_instagram":        social_profile.get("instagram")              or {},
+        "sp_linkedin":         social_profile.get("linkedin")               or {},
+        "sp_ads":              social_profile.get("ad_creative_intelligence") or {},
+        "sp_score":            social_profile.get("social_presence_score",  0),
+        "sp_reasoning":        social_profile.get("social_score_reasoning", ""),
+        "sp_improvements":     social_profile.get("top_3_social_improvements") or [],
+        # social media deep audit (Agent 8)
+        "sma":                   social_media_audit,
+        "sma_ig":                (social_media_audit.get("platforms") or {}).get("instagram") or {},
+        "sma_yt":                (social_media_audit.get("platforms") or {}).get("youtube")   or {},
+        "sma_visual":            social_media_audit.get("visual_analysis")        or {},
+        "sma_text":              social_media_audit.get("text_analysis")          or {},
+        "sma_scores":            social_media_audit.get("scores")                 or {},
+        "sma_gallery":           social_media_audit.get("image_gallery")          or [],
+        "sma_strengths":         social_media_audit.get("top_3_strengths")        or [],
+        "sma_gaps":              social_media_audit.get("top_3_gaps")             or [],
+        "sma_recs":              social_media_audit.get("top_3_recommendations")  or [],
+        "sma_assessment":        social_media_audit.get("overall_assessment",     ""),
+        "sma_edge":              social_media_audit.get("competitive_edge",       ""),
+        "sma_urgency":           social_media_audit.get("urgency_areas")          or [],
+        # Reels TRIBE v2 neural engagement
+        "sma_reels_tribe":       social_media_audit.get("reels_tribe")            or [],
+        "sma_brand_brain_map":   social_media_audit.get("brand_brain_map")        or {},
+        "sma_tribe_available":   social_media_audit.get("tribe_available",        False),
+        # 10-Dimension Scorecard
+        "scorecard_10":          scorecard_10,
+        "scorecard_overall":     scorecard_overall,
+        # Priority Framework (🔴 Fix now / 🟡 Q3 / 🟢 Medium-term)
+        "priority_recs":         priority_recs,
+        # Brand basics extras
+        "bb_domain_variants":    bb_a.get("domain_variants") or {},
+        "bb_category_expansion": bb_a.get("category_expansion") or [],
+        "bb_parent_company":     bb_a.get("parent_company", ""),
+        "bb_ceo":                bb_a.get("ceo", ""),
+        "bb_store_count":        bb_a.get("store_count", ""),
+        "bb_awards":             bb_a.get("awards") or [],
+        "bb_revenue_range":      bb_a.get("revenue_range", ""),
+        "bb_yoy_growth":         bb_a.get("yoy_growth", ""),
+        "bb_valuation":          bb_a.get("valuation", ""),
+        "bb_moat":               bb_a.get("competitive_moat", ""),
+        # Research extras
+        "res_moat":              res_a.get("competitive_moat", ""),
+        "res_omnichannel":       res_a.get("omnichannel_signals") or {},
+        "res_international":     res_a.get("international_signals", ""),
+        # CRO extras
+        "cro_ux_audit":          cro_a.get("ux_audit") or {},
+        "cro_omnichannel":       cro_a.get("omnichannel_ux") or {},
+        "cro_signals_raw":       store_cro.get("cro_signals") or {},
     }
 
 
 _SECTION_LABELS = {
-    "brand_basics":    "Brand Basics",
-    "content_catalog": "Content & Catalog",
-    "performance_ads": "Performance & Ads",
-    "geo_visibility":  "GEO & AI Visibility",
-    "store_cro":       "Store & CRO",
-    "research":        "Competitive Intel",
+    "brand_basics":       "Brand Basics",
+    "content_catalog":    "Content & Catalog",
+    "performance_ads":    "Performance & Ads",
+    "geo_visibility":     "GEO & AI Visibility",
+    "store_cro":          "Store & CRO",
+    "research":           "Competitive Intel",
+    "social_profile":     "Social & Brand Presence",
+    "social_media_audit": "Social Media Deep Audit",
 }
 
 _CONFIDENCE_BADGE = {
@@ -1077,7 +1530,12 @@ def generate_section(agent_key: str, audit_data: dict) -> str:
     The returned section always has its ``<details>`` element set to ``open``
     so it's immediately visible when appended during progressive reveal.
     """
-    import re as _re
+    # Short-circuit: agent timed out or failed — return placeholder without rendering
+    results = audit_data.get("results") or audit_data
+    agent_result = results.get(agent_key) or {}
+    if isinstance(agent_result, dict) and agent_result.get("status") in ("timeout", "failed"):
+        return _failed_section_placeholder(agent_key)
+
     audit_data = validate_scores(audit_data)
     ctx = _build_audit_context(audit_data)
     template = _env.get_template("audit_report.html")
@@ -1090,11 +1548,10 @@ def generate_section(agent_key: str, audit_data: dict) -> str:
 
     section_html = match.group(1).strip()
     # Force open so the section is visible during live reveal
-    section_html = section_html.replace(
-        '<details class="section-accordion">',
-        '<details class="section-accordion" open>',
-        1,
-    )
+    for closed_tag in ('<details class="section-accordion">', '<details class="audit-section">', '<details>'):
+        if closed_tag in section_html:
+            section_html = section_html.replace(closed_tag, closed_tag.replace('>', ' open>', 1), 1)
+            break
     return section_html
 
 
@@ -1160,21 +1617,24 @@ def _build_virality_context(virality_data: dict) -> dict:
             viral_angles.append({"text": str(a), "platform": "", "hook": "", "reach": ""})
 
     return {
-        "product_name":    virality_data.get("product_name") or analysis.get("product_name") or "Product",
-        "url":             virality_data.get("url") or "",
-        "score":           score,
-        "grade":           grade,
-        "grade_color":     grade_color,
-        "dimensions":      dimensions,
-        "killer_hook":     analysis.get("killer_hook", ""),
-        "viral_angles":    viral_angles,
-        "best_platforms":  _safe_list(analysis.get("best_platforms")),
-        "ideal_creator":   analysis.get("ideal_creator_profile", ""),
-        "risk_factors":    _safe_list(analysis.get("risk_factors")),
-        "comparable":      _safe_list(analysis.get("comparable_viral_products")),
-        "generated_at":    _now_ist(),
-        "scrape_mode":     scrape_mode,
-        "visual_signals":  visual_signals,
-        "text_signals":    text_signals,
-        "fallback_warning": fallback_warning,
+        "product_name":        virality_data.get("product_name") or analysis.get("product_name") or "Product",
+        "url":                 virality_data.get("url") or "",
+        "score":               score,
+        "grade":               grade,
+        "grade_color":         grade_color,
+        "dimensions":          dimensions,
+        "killer_hook":         analysis.get("killer_hook", ""),
+        "viral_angles":        viral_angles,
+        "best_platforms":      _safe_list(analysis.get("best_platforms")),
+        "ideal_creator":       analysis.get("ideal_creator_profile", ""),
+        "risk_factors":        _safe_list(analysis.get("risk_factors")),
+        "comparable":          _safe_list(analysis.get("comparable_viral_products")),
+        "generated_at":        _now_ist(),
+        "scrape_mode":         scrape_mode,
+        "visual_signals":      visual_signals,
+        "text_signals":        text_signals,
+        "fallback_warning":    fallback_warning,
+        "brain_map_svg":       virality_data.get("brain_map_svg") or "",
+        "brain_map_source":    virality_data.get("brain_map_source") or "virality_dims",
+        "brain_network_scores": virality_data.get("brain_network_scores") or {},
     }

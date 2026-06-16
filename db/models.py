@@ -9,6 +9,8 @@ AGENT_SEQUENCE = [
     "geo_visibility",
     "store_cro",
     "research",
+    "social_profile",
+    "social_media_audit",
 ]
 
 
@@ -25,6 +27,8 @@ class AuditRun(SQLModel, table=True):
     geo_visibility: Optional[str] = None
     store_cro: Optional[str] = None
     research: Optional[str] = None
+    social_profile: Optional[str] = None
+    social_media_audit: Optional[str] = None
     error: Optional[str] = None
     report_html: Optional[str] = None
     share_token: Optional[str] = None
@@ -32,6 +36,9 @@ class AuditRun(SQLModel, table=True):
     monitoring: bool = False
     changes_summary: Optional[str] = None   # JSON — LLM-generated change diff
     roadmap_json: Optional[str] = None      # JSON — 30-day action roadmap
+    analyst_brief_json: Optional[str] = None  # JSON — analyst brief + verdict
+    cross_findings_json: Optional[str] = None  # JSON — cross-agent pattern list
+    agentic_meta_json: Optional[str] = None   # JSON — WorkingMemory.to_report_dict()
 
 
 class CompareRun(SQLModel, table=True):
@@ -78,3 +85,15 @@ class ViralityRun(SQLModel, table=True):
     score: Optional[int] = None
     result: Optional[str] = None      # JSON blob
     error: Optional[str] = None
+
+
+class BrandConnector(SQLModel, table=True):
+    """Stores third-party API tokens per brand URL for deep private data access."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    brand_url: str = Field(index=True)
+    shopify_token: Optional[str] = None       # Shopify Admin API access token
+    shopify_store_url: Optional[str] = None   # e.g. https://mystore.myshopify.com
+    meta_token: Optional[str] = None          # Meta Marketing API access token
+    meta_account_id: Optional[str] = None     # e.g. act_1234567890
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

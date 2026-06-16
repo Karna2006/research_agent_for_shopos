@@ -53,11 +53,40 @@ if TYPE_CHECKING:
     from scrapers.search import SearchAgent as SearchAgentT
 
 _PRODUCT_PATTERNS = [
-    r"/products/[^?#\"'\s]+",
-    r"/shop/[^?#\"'\s]+",
-    r"/item/[^?#\"'\s]+",
+    r"/products/[a-zA-Z0-9_-]",
+    r"(?<!/cdn)/shop/[a-zA-Z0-9_-]",
+    r"/item/[a-zA-Z0-9_-]",
+    r"/p/[a-zA-Z0-9_-]",
+    r"/product/[a-zA-Z0-9_-]",
+    r"/catalogue/[a-zA-Z0-9_-]",
 ]
+_IMAGE_EXT_RE = re.compile(
+    r"\.(png|jpg|jpeg|gif|svg|webp|ico|avif|woff|woff2|ttf|css|js)(\?.*)?$", re.I
+)
+_CDN_PATH_RE = re.compile(r"/cdn/|/assets/|/static/|/images?/|/media/", re.I)
 _ABOUT_SLUGS = ["/about", "/about-us", "/our-story", "/story", "/brand"]
+
+_SHOPIFY_SIGNALS = re.compile(
+    r"cdn\.shopify\.com|Shopify\.shop|shopify_section|\/cdn\/shop\/", re.I
+)
+_WOOCOMMERCE_SIGNALS = re.compile(r"woocommerce|wp-content\/plugins|add-to-cart=", re.I)
+_MAGENTO_SIGNALS = re.compile(r"Magento|mage\/|requirejs-config", re.I)
+
+
+def _detect_platform_from_html(html: str, links: list[str] | None = None) -> str:
+    """Best-effort platform detection from raw HTML + link list."""
+    combined = html or ""
+    if links:
+        combined += " " + " ".join(links)
+    if not combined.strip():
+        return "unknown"
+    if _SHOPIFY_SIGNALS.search(combined):
+        return "shopify"
+    if _WOOCOMMERCE_SIGNALS.search(combined):
+        return "woocommerce"
+    if _MAGENTO_SIGNALS.search(combined):
+        return "magento"
+    return "custom"
 
 
 def _find_product_urls(links: list[str], base_url: str, limit: int = 3) -> list[str]:
@@ -67,6 +96,8 @@ def _find_product_urls(links: list[str], base_url: str, limit: int = 3) -> list[
     for link in links:
         full = link if link.startswith("http") else urljoin(base, link)
         if full in seen:
+            continue
+        if _IMAGE_EXT_RE.search(full) or _CDN_PATH_RE.search(full):
             continue
         if any(re.search(p, full) for p in _PRODUCT_PATTERNS):
             found.append(full)
@@ -95,6 +126,43 @@ def _pdp_summary(pdp: dict) -> str:
         f"IN STOCK: {pdp.get('in_stock', '')}\n"
         f"DESCRIPTION (truncated):\n{pdp.get('description', '')[:600]}\n"
     )
+
+
+async def _fetch_shopify_pdp_json(product_url: str) -> dict | None:
+    """Fetch Shopify product data via /{handle}.json — bypasses HTML scraping entirely."""
+    import httpx as _httpx
+    from bs4 import BeautifulSoup as _BS
+    json_url = product_url.rstrip("/") + ".json"
+    try:
+        async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as cl:
+            r = await cl.get(json_url, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code != 200:
+            return None
+        p = r.json().get("product", {})
+        if not p:
+            return None
+        # Strip HTML from body_html
+        body_html = p.get("body_html") or ""
+        try:
+            description = _BS(body_html, "html.parser").get_text(" ", strip=True)
+        except Exception:
+            description = body_html
+        variant = (p.get("variants") or [{}])[0]
+        price = variant.get("price", "")
+        in_stock = variant.get("available")
+        return {
+            "product_name": p.get("title", ""),
+            "price":        f"₹{price}" if price else "",
+            "description":  description[:800],
+            "in_stock":     in_stock,
+            "cta_text":     "Add to Cart",
+            "rating":       "",
+            "reviews_count": "",
+            "tags":         p.get("tags", ""),
+            "product_type": p.get("product_type", ""),
+        }
+    except Exception:
+        return None
 
 
 class ContentCatalogAgent:
@@ -128,20 +196,56 @@ class ContentCatalogAgent:
             homepage = homepage_result.value or {}
             blocked = homepage_result.confidence == "unavailable"
 
-            # 2. Find product URLs from homepage links
+            # 2. Detect platform from raw HTML + all links (catches redirect-based Shopify stores)
+            page_html = homepage.get("page_html", "")
+            catalog_platform = _detect_platform_from_html(page_html, homepage.get("links", []))
             product_urls = _find_product_urls(homepage.get("links", []), url)
             pdp_summaries: list[str] = []
 
-            # 3. Scrape up to 3 PDPs
+            # 3a. For Shopify (or unknown platform): try /products.json if homepage gave no PDP links.
+            # Works for redirect-based stores (rarerabbit.in → thehouseofrare.com) where the
+            # scraper gets a blocked page with no Shopify signals yet.
+            if not product_urls and catalog_platform not in ("woocommerce", "magento"):
+                try:
+                    from agents.brand_basics import _resolve_shopify_base
+                    import httpx as _httpx
+                    shopify_base = await _resolve_shopify_base(url)
+                    if shopify_base:
+                        async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as _cl:
+                            _r = await _cl.get(f"{shopify_base}/products.json?limit=3")
+                        if _r.status_code == 200:
+                            _prods = _r.json().get("products", [])
+                            if _prods:
+                                catalog_platform = "shopify"
+                            product_urls = [
+                                f"{shopify_base}/products/{p['handle']}"
+                                for p in _prods[:3] if p.get("handle")
+                            ]
+                            print(
+                                f"  [content_catalog] Shopify /products.json → "
+                                f"{len(product_urls)} PDP URLs",
+                                flush=True,
+                            )
+                except Exception as _se:
+                    print(f"  [content_catalog] Shopify PDP lookup failed — {_se}", flush=True)
+
+            # 3b. Fetch up to 3 PDPs — Shopify JSON API first, HTML scraper fallback
             for pdp_url in product_urls[:3]:
                 try:
-                    pdp_result = await self.scraper.scrape_pdp(pdp_url)
-                    sources.append(pdp_result)
-                    pdp = pdp_result.value or {}
-                    if pdp_result.ok and pdp.get("product_name"):
+                    pdp: dict | None = None
+                    if catalog_platform == "shopify":
+                        pdp = await _fetch_shopify_pdp_json(pdp_url)
+                        if pdp:
+                            print(f"  [content_catalog] Shopify JSON PDP: {pdp['product_name'][:50]}", flush=True)
+                    if not pdp:
+                        # Non-Shopify or JSON fetch failed — fall back to HTML scraper
+                        pdp_result = await self.scraper.scrape_pdp(pdp_url)
+                        sources.append(pdp_result)
+                        pdp = (pdp_result.value or {}) if (pdp_result.ok and pdp_result.value) else None
+                    if pdp and pdp.get("product_name"):
                         pdp_summaries.append(_pdp_summary(pdp))
-                except Exception:
-                    pass
+                except Exception as _pdp_exc:
+                    print(f"  [content_catalog] PDP fetch skipped — {_pdp_exc}", flush=True)
 
             # 4. Scrape About page if found
             about_text = ""
@@ -152,8 +256,8 @@ class ContentCatalogAgent:
                     sources.append(about_result)
                     about_page = about_result.value or {}
                     about_text = about_page.get("body_text", "")[:1500]
-                except Exception:
-                    pass
+                except Exception as _about_exc:
+                    print(f"  [content_catalog] About page scrape skipped — {_about_exc}", flush=True)
 
             # 5. Pre-compute content signals (no LLM)
             all_pdp_text = " ".join(pdp_summaries)
@@ -201,6 +305,22 @@ PRODUCT PAGES AUDITED ({len(pdp_summaries)} of {len(product_urls)} found):
                 analysis["benefit_vs_feature"] = bf_label
 
             fallbacks = [dr.fallback_method for dr in sources if dr.fallback_used and dr.fallback_method]
+
+            # Catalog coverage note — explains 0-PDP result clearly
+            if len(pdp_summaries) == 0:
+                if blocked:
+                    catalog_status_note = "site_blocked_no_pdp_access"
+                elif catalog_platform == "shopify":
+                    catalog_status_note = "shopify_pdp_links_not_found_on_homepage"
+                elif catalog_platform in ("woocommerce", "magento"):
+                    catalog_status_note = f"{catalog_platform}_pdp_links_not_found"
+                else:
+                    catalog_status_note = "non_shopify_platform_catalog_not_available"
+            else:
+                catalog_status_note = "pdps_scraped_successfully"
+
+            out["catalog_platform"] = catalog_platform
+            out["catalog_status_note"] = catalog_status_note
             out["product_urls_found"] = product_urls
             out["pdps_scraped"] = len(pdp_summaries)
             out["precomputed_signals"] = {

@@ -87,17 +87,28 @@ Output a single JSON object with exactly these fields:
 {
   "brand_name": "string",
   "founding_year": "string or 'Not found publicly'",
-  "founders": ["string"],
+  "founders": ["string — full name, role e.g. 'Manish Bhatt, Co-founder & CEO'"],
+  "ceo": "string — current CEO name or 'Not found publicly'",
+  "parent_company": "string — parent entity / holding company or 'Independent'",
   "hq": "City, Country or 'Not found publicly'",
   "countries_of_operation": ["string"],
-  "revenue_range": "e.g. '$1M–$5M' or 'Not found publicly'",
+  "revenue_range": "e.g. '₹500Cr–₹600Cr' or 'Not found publicly'",
+  "yoy_growth": "e.g. '+35% YoY' or 'Not found publicly'",
   "funding_stage": "Bootstrapped | Seed | Series A | etc. or 'Not found publicly'",
+  "valuation": "e.g. '₹2,000Cr' or 'Not found publicly'",
+  "store_count": "integer or 'Not found publicly' — number of physical retail stores",
+  "awards": ["string — notable awards, rankings, press mentions"],
   "core_categories": ["string"],
+  "category_expansion": [
+    {"category": "string", "status": "Launched | Testing | Planned | Rumoured", "note": "string"}
+  ],
+  "domain_variants": {"primary": "string e.g. 'example.in'", "secondary": "string e.g. 'example.com' or null", "seo_note": "string — e.g. 'Domain split may dilute SEO authority' or 'Single canonical domain'"},
   "target_audience": "1–2 sentence description",
   "brand_positioning": "1 sentence",
   "social_channels": {"platform": "handle or follower count if visible"},
   "tone_of_voice": "Premium | Playful | Utilitarian | Aspirational",
-  "key_strengths": ["string"]
+  "key_strengths": ["string"],
+  "competitive_moat": "string — 1–2 sentences on what makes this brand defensible vs competitors"
 }"""
 
     CONTENT_AUDIT = f"""\
@@ -167,6 +178,11 @@ research_score (1-10): Rate the brand's overall competitive positioning. \
 Consider: differentiation clarity, whitespace captured, trend alignment, \
 community strength, and strategic moat vs identified competitors.
 
+THREAT LEVEL SCORING (for each competitor):
+  🔴 High: Directly competing for same customer, similar price point, growing fast
+  🟡 Medium: Overlapping customer, different angle, not yet dominant
+  🟢 Low: Adjacent category or premium/budget split, minimal direct overlap
+
 Output a single JSON object with exactly these fields:
 {{
   "research_score": 0,
@@ -176,9 +192,20 @@ Output a single JSON object with exactly these fields:
       "url": "string",
       "positioning": "string",
       "price_range": "string",
-      "why_they_win": "string"
+      "why_they_win": "string",
+      "threat_level": "High | Medium | Low",
+      "threat_reason": "string — 1 sentence why this threat level"
     }}
   ],
+  "competitive_moat": "string — what makes the brand defensible. Consider: community, distribution, IP, brand equity, price positioning, supply chain",
+  "international_signals": "string — any signals of international expansion plans, press mentions about global markets, or 'No signals detected'",
+  "omnichannel_signals": {{
+    "offline_stores_detected": "string — estimated store count from search or 'Not detected'",
+    "franchise_model": "string — 'Franchise' | 'Company-owned' | 'Mixed' | 'Unknown'",
+    "o2o_gap": "string — describe the offline-to-online gap or 'Not applicable (pure D2C)'",
+    "whatsapp_commerce": "string — 'Active' | 'Basic link only' | 'Not detected'",
+    "email_crm": "string — detected platform e.g. 'Klaviyo', 'Mailchimp', or 'Not detected'"
+  }},
   "brand_positioning_vs_market": "paragraph",
   "whitespace_opportunities": ["string"],
   "category_trends": ["string"],
@@ -248,7 +275,7 @@ Output a single JSON object with exactly these fields:
 {LANGUAGE_INSTRUCTION}
 
 You are a Shopify CRO specialist and conversion funnel expert. \
-Audit an ecommerce store's technical health and conversion funnel based on the data provided.
+Audit an ecommerce store's technical health, UX quality, and conversion funnel based on the data provided.
 
 {_RUBRIC_1_10}
 
@@ -265,6 +292,10 @@ cro_score (1-10): Composite of funnel friction + trust signals + mobile UX. \
 10 = frictionless checkout, strong trust, fast mobile. \
 5 = average Shopify store. 1-2 = broken checkout, no trust signals, slow.
 
+ux_score (1-10): UX quality score for navigation, search, filtering, and product discovery. \
+10 = best-in-class UX, intuitive navigation, powerful filters, rich PDPs. \
+5 = functional but generic. 1-2 = confusing navigation, no filters, poor mobile UX.
+
 Output a single JSON object with exactly these fields:
 {{
   "platform_detected": "Shopify | WooCommerce | Custom",
@@ -276,6 +307,22 @@ Output a single JSON object with exactly these fields:
     "fid": "string display value"
   }},
   "cro_score": 0,
+  "ux_score": 0,
+  "ux_audit": {{
+    "hero_cta_clarity": "string — describe the homepage hero CTA and how clear it is",
+    "search_filter_quality": "Basic | None | Good | Advanced — assess the search and filter UX",
+    "size_guide_present": true,
+    "wishlist_present": true,
+    "reviews_integration": "string — e.g. 'Yotpo star ratings on PDP' or 'No reviews visible'",
+    "mobile_nav_quality": "Poor | Basic | Good | Excellent",
+    "pdp_image_quality": "string — e.g. 'Multiple angles, zoom enabled' or 'Single image, no zoom'"
+  }},
+  "omnichannel_ux": {{
+    "whatsapp_commerce": "Active | Basic link only | Not detected",
+    "email_crm_platform": "string — e.g. 'Klaviyo detected', 'Mailchimp', 'Not detected'",
+    "post_purchase_flow": "string — e.g. 'Order tracking page, upsell visible' or 'Basic confirmation only'",
+    "loyalty_program": "Detected | Not detected"
+  }},
   "funnel_friction_points": ["string"],
   "cart_abandonment_signals": ["string"],
   "payment_options_found": ["string"],

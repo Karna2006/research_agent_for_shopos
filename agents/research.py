@@ -1,10 +1,13 @@
 """Agent 6: Competitive intelligence — rivals, positioning gaps, market opportunities."""
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from llm.prompts import Prompts
 from scrapers.result import DataResult
+from scrapers.trends import get_brand_trends
+from agents.tracxn_researcher import fetch_tracxn_profile
 
 if TYPE_CHECKING:
     from llm.client import GroqClient
@@ -77,19 +80,33 @@ class ResearchAgent:
             except Exception:
                 category = "ecommerce"
 
-            # Four targeted searches
-            competitors_results = self.search.search(
-                f"{brand_name} competitors alternative brands India", max_results=8
+            # Four targeted searches + Google Trends + Tracxn (all parallel)
+            (
+                competitors_results,
+                market_results,
+                trends_results,
+                reddit_results,
+                google_trends,
+                tracxn_data,
+            ) = await asyncio.gather(
+                asyncio.to_thread(self.search.search,
+                    f"{brand_name} competitors alternative brands India", max_results=8),
+                asyncio.to_thread(self.search.search,
+                    f"{brand_name} market position India 2024 2025", max_results=5),
+                asyncio.to_thread(self.search.search,
+                    f"{category} market trends India 2025", max_results=5),
+                asyncio.to_thread(self.search.search,
+                    f"{brand_name} reviews reddit honest opinion", max_results=5),
+                get_brand_trends(brand_name, geo="IN"),
+                fetch_tracxn_profile(url),
+                return_exceptions=True,
             )
-            market_results = self.search.search(
-                f"{brand_name} market position India 2024 2025", max_results=5
-            )
-            trends_results = self.search.search(
-                f"{category} market trends India 2025", max_results=5
-            )
-            reddit_results = self.search.search(
-                f"{brand_name} reviews reddit honest opinion", max_results=5
-            )
+            if isinstance(competitors_results, Exception): competitors_results = []
+            if isinstance(market_results, Exception): market_results = []
+            if isinstance(trends_results, Exception): trends_results = []
+            if isinstance(reddit_results, Exception): reddit_results = []
+            if isinstance(google_trends, Exception): google_trends = {}
+            if isinstance(tracxn_data, Exception): tracxn_data = {}
             sources.append(DataResult(
                 value={
                     "competitors": competitors_results,
@@ -101,9 +118,28 @@ class ResearchAgent:
                 confidence="inferred",
             ))
 
+            # Format Google Trends signal
+            _gt_line = ""
+            if google_trends and not google_trends.get("error"):
+                _gt_line = (
+                    f"\nGOOGLE TRENDS (India): relative_interest={google_trends.get('relative_interest','?')}/100 "
+                    f"| direction={google_trends.get('trend_direction','?')} "
+                    f"| peak_week={google_trends.get('peak_week','?')}"
+                )
+
+            # Format Tracxn funding signal (if key is set)
+            _tx_line = ""
+            if tracxn_data and not tracxn_data.get("note") and tracxn_data.get("company_name"):
+                _tx_line = (
+                    f"\nTRACXN FUNDING: stage={tracxn_data.get('stage','?')} "
+                    f"| total={tracxn_data.get('funding_display','undisclosed')} "
+                    f"| investors={','.join((tracxn_data.get('investors') or [])[:3])} "
+                    f"| founded={tracxn_data.get('founded','?')}"
+                )
+
             user_content = f"""BRAND: {brand_name}
 URL: {url}
-INFERRED CATEGORY: {category}
+INFERRED CATEGORY: {category}{_gt_line}{_tx_line}
 
 {_fmt_block('COMPETITOR / ALTERNATIVE SEARCH', competitors_results)}
 
@@ -159,6 +195,8 @@ INFERRED CATEGORY: {category}
             }
 
             out["category_inferred"] = category
+            out["google_trends"] = google_trends if isinstance(google_trends, dict) else {}
+            out["tracxn"] = tracxn_data if isinstance(tracxn_data, dict) else {}
             out["search_counts"] = {
                 "competitors": len(competitors_results),
                 "market": len(market_results),

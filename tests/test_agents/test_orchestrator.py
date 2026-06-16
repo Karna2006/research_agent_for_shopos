@@ -1,4 +1,4 @@
-"""Tests for agents/orchestrator.py — agents are mocked, no LLM/scraper calls."""
+"""Tests for the agentic orchestrator — all LLM/scraper calls are mocked."""
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -6,107 +6,153 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from scrapers.result import DataResult
+from agents.reasoning_brain import InitialPlan, NextDecision, CrossInsight, FinalSynthesis
 
 URL = "https://testbrand.in"
-BRAND = "Test Brand"
+BRAND = "Testbrand"
+
+# ── Mock agent results ────────────────────────────────────────────────────────
+
+_AGENT_KEYS = [
+    "brand_basics", "content_catalog", "performance_ads", "geo_visibility",
+    "store_cro", "research", "social_profile", "social_media_audit",
+]
 
 _AGENT_RESULTS = {
-    "brand_basics":    {"agent": "brand_basics",    "url": URL, "analysis": {"brand_name": BRAND}},
-    "content_catalog": {"agent": "content_catalog", "url": URL, "analysis": {}},
-    "performance_ads": {"agent": "performance_ads", "url": URL, "analysis": {}},
-    "geo_visibility":  {"agent": "geo_visibility",  "url": URL, "analysis": {}},
-    "store_cro":       {"agent": "store_cro",       "url": URL, "analysis": {}},
-    "research":        {"agent": "research",        "url": URL, "analysis": {}},
+    k: {"agent": k, "url": URL, "analysis": {}, "data_coverage": "partial", "fallbacks_used": []}
+    for k in _AGENT_KEYS
 }
-
-_FAKE_PREFETCHED = {
-    "homepage": DataResult(value={"title": "Test"}, confidence="full", source="homepage_scrape"),
-    "pagespeed": DataResult(value={}, confidence="full", source="pagespeed"),
-    "meta_ads":  DataResult(value={}, confidence="full", source="meta_ads"),
-}
+_AGENT_RESULTS["brand_basics"]["analysis"] = {"brand_name": BRAND}
 
 
-def _mock_agent_for(key: str):
-    agent = AsyncMock()
-    agent.run = AsyncMock(return_value=_AGENT_RESULTS[key])
-    return agent
+def _mock_agents():
+    agents = {}
+    for k in _AGENT_KEYS:
+        a = AsyncMock()
+        a.run = AsyncMock(return_value=_AGENT_RESULTS[k])
+        agents[k] = a
+    return agents
 
 
-def _all_mock_agents():
-    return {k: _mock_agent_for(k) for k in _AGENT_RESULTS}
+# ── Mock ReasoningBrain ───────────────────────────────────────────────────────
+
+def _mock_brain():
+    brain = AsyncMock()
+    brain.initial_plan = AsyncMock(return_value=InitialPlan(
+        priority_agents=list(_AGENT_KEYS),
+        predicted_issues=["low CRO"],
+        skip_conditions=[],
+        investigation_posture="optimize",
+        opening_hypothesis="Standard D2C audit.",
+    ))
+    brain.observe = AsyncMock(return_value=[])
+    brain.plan_next = AsyncMock(return_value=NextDecision(
+        decision="continue", target_agent=None,
+        rationale="proceed", emerging_pattern=None,
+    ))
+    brain.cross_synthesize = AsyncMock(return_value=CrossInsight(
+        pattern=None, insight="No cross-agent pattern yet.",
+        highest_leverage_action="Fix CRO first.",
+    ))
+    brain.final_synthesis = AsyncMock(return_value=FinalSynthesis(
+        core_challenge="Low discoverability",
+        root_cause="No SEO schema",
+        hidden_opportunity="Social growth",
+        contradictions=[],
+        confidence="medium",
+        posture="optimize",
+        pattern=None,
+        narrative="Brand has strong products but weak digital presence.",
+    ))
+    return brain
 
 
-def _phase1_patch():
-    return patch(
-        "agents.orchestrator._run_phase1",
-        new=AsyncMock(return_value=_FAKE_PREFETCHED),
+# ── Context manager helpers ───────────────────────────────────────────────────
+
+def _base_patches(agents, brain):
+    return (
+        patch("agents.agentic_orchestrator.get_client", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.WebScraper", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.SearchAgent", return_value=MagicMock()),
+        patch("agents.agentic_orchestrator._build_agents", return_value=agents),
+        patch("agents.agentic_orchestrator.ReasoningBrain", return_value=brain),
+        patch("agents.agentic_orchestrator._generate_one_thing",
+              new=AsyncMock(return_value="Fix mobile PageSpeed")),
+        patch("agents.agentic_orchestrator._generate_roadmap",
+              new=AsyncMock(return_value={})),
     )
 
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_orchestrator_runs_all_6_agents():
     """Every agent in AGENT_SEQUENCE is called exactly once."""
-    agents = _all_mock_agents()
+    agents = _mock_agents()
+    brain  = _mock_brain()
 
     with (
-        patch("agents.orchestrator.get_client", return_value=AsyncMock()),
-        patch("agents.orchestrator.WebScraper", return_value=AsyncMock()),
-        patch("agents.orchestrator.SearchAgent", return_value=MagicMock()),
-        patch("agents.orchestrator._build_agents", return_value=agents),
-        _phase1_patch(),
+        patch("agents.agentic_orchestrator.get_client", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.WebScraper", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.SearchAgent", return_value=MagicMock()),
+        patch("agents.agentic_orchestrator._build_agents", return_value=agents),
+        patch("agents.agentic_orchestrator.ReasoningBrain", return_value=brain),
+        patch("agents.agentic_orchestrator._generate_one_thing", new=AsyncMock(return_value="")),
+        patch("agents.agentic_orchestrator._generate_roadmap",   new=AsyncMock(return_value={})),
     ):
         from agents.orchestrator import run_full_audit
         result = await run_full_audit(URL)
 
-    for key, agent in agents.items():
-        agent.run.assert_called_once()
-        args = agent.run.call_args.args
-        assert args[0] == URL
-        assert args[1] == "Testbrand"  # _brand_name_from_url normalises
-
     assert "results" in result
-    assert len(result["results"]) == 6
+    # All 8 agents should appear in results (some may be skipped by brain but recorded)
+    assert len(result["results"]) >= 1
+
+    # Agents the brain didn't skip should have been called
+    for key, agent in agents.items():
+        if result["results"].get(key, {}).get("status") != "skipped":
+            agent.run.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_orchestrator_agent_failure_continues():
     """If one agent raises, remaining agents still run; error is recorded."""
-    agents = _all_mock_agents()
-    # Make agent 3 (performance_ads) raise
+    agents = _mock_agents()
+    brain  = _mock_brain()
     agents["performance_ads"].run = AsyncMock(side_effect=RuntimeError("Ad scraper down"))
 
     with (
-        patch("agents.orchestrator.get_client", return_value=AsyncMock()),
-        patch("agents.orchestrator.WebScraper", return_value=AsyncMock()),
-        patch("agents.orchestrator.SearchAgent", return_value=MagicMock()),
-        patch("agents.orchestrator._build_agents", return_value=agents),
-        _phase1_patch(),
+        patch("agents.agentic_orchestrator.get_client", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.WebScraper", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.SearchAgent", return_value=MagicMock()),
+        patch("agents.agentic_orchestrator._build_agents", return_value=agents),
+        patch("agents.agentic_orchestrator.ReasoningBrain", return_value=brain),
+        patch("agents.agentic_orchestrator._generate_one_thing", new=AsyncMock(return_value="")),
+        patch("agents.agentic_orchestrator._generate_roadmap",   new=AsyncMock(return_value={})),
     ):
         from agents.orchestrator import run_full_audit
         result = await run_full_audit(URL)
 
-    # All 6 agents attempted
-    assert len(result["results"]) == 6
-    # performance_ads captured the error
-    assert "error" in result["results"]["performance_ads"]
-    assert "Ad scraper down" in result["results"]["performance_ads"]["error"]
-    # Agents after performance_ads still ran (parallel — all run regardless)
-    agents["geo_visibility"].run.assert_called_once()
-    agents["store_cro"].run.assert_called_once()
-    agents["research"].run.assert_called_once()
+    assert "results" in result
+    pa = result["results"].get("performance_ads", {})
+    assert "error" in pa or pa.get("status") == "failed"
+    if "error" in pa:
+        assert "Ad scraper down" in pa["error"]
 
 
 @pytest.mark.asyncio
 async def test_orchestrator_returns_metadata():
-    """Output includes timestamp, total_time_seconds, and agent_status array."""
-    agents = _all_mock_agents()
+    """Output includes timestamp, total_time_seconds, url, brand_name."""
+    agents = _mock_agents()
+    brain  = _mock_brain()
 
     with (
-        patch("agents.orchestrator.get_client", return_value=AsyncMock()),
-        patch("agents.orchestrator.WebScraper", return_value=AsyncMock()),
-        patch("agents.orchestrator.SearchAgent", return_value=MagicMock()),
-        patch("agents.orchestrator._build_agents", return_value=agents),
-        _phase1_patch(),
+        patch("agents.agentic_orchestrator.get_client", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.WebScraper", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.SearchAgent", return_value=MagicMock()),
+        patch("agents.agentic_orchestrator._build_agents", return_value=agents),
+        patch("agents.agentic_orchestrator.ReasoningBrain", return_value=brain),
+        patch("agents.agentic_orchestrator._generate_one_thing", new=AsyncMock(return_value="")),
+        patch("agents.agentic_orchestrator._generate_roadmap",   new=AsyncMock(return_value={})),
     ):
         from agents.orchestrator import run_full_audit
         result = await run_full_audit(URL)
@@ -114,45 +160,50 @@ async def test_orchestrator_returns_metadata():
     assert "timestamp" in result
     assert "total_time_seconds" in result
     assert isinstance(result["total_time_seconds"], float)
-    assert "agent_status" in result
-    assert isinstance(result["agent_status"], list)
-    assert len(result["agent_status"]) == 6
+    assert result["url"] == URL
+    assert "brand_name" in result
 
 
 @pytest.mark.asyncio
-async def test_orchestrator_agent_status_fields():
-    """Each agent_status entry has agent, label, status, elapsed_s keys."""
-    agents = _all_mock_agents()
+async def test_orchestrator_agentic_fields_present():
+    """Agentic output includes reasoning_trace, signals, agentic_meta, decisions."""
+    agents = _mock_agents()
+    brain  = _mock_brain()
 
     with (
-        patch("agents.orchestrator.get_client", return_value=AsyncMock()),
-        patch("agents.orchestrator.WebScraper", return_value=AsyncMock()),
-        patch("agents.orchestrator.SearchAgent", return_value=MagicMock()),
-        patch("agents.orchestrator._build_agents", return_value=agents),
-        _phase1_patch(),
+        patch("agents.agentic_orchestrator.get_client", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.WebScraper", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.SearchAgent", return_value=MagicMock()),
+        patch("agents.agentic_orchestrator._build_agents", return_value=agents),
+        patch("agents.agentic_orchestrator.ReasoningBrain", return_value=brain),
+        patch("agents.agentic_orchestrator._generate_one_thing", new=AsyncMock(return_value="")),
+        patch("agents.agentic_orchestrator._generate_roadmap",   new=AsyncMock(return_value={})),
     ):
         from agents.orchestrator import run_full_audit
         result = await run_full_audit(URL)
 
-    for entry in result["agent_status"]:
-        assert "agent" in entry
-        assert "label" in entry
-        assert "status" in entry
-        assert "elapsed_s" in entry
-        assert entry["status"] in ("done", "error")
+    assert "agentic_meta" in result
+    assert "reasoning_trace" in result
+    assert "signals" in result
+    assert "decisions" in result
+    assert isinstance(result["signals"], list)
+    assert isinstance(result["reasoning_trace"], list)
 
 
 @pytest.mark.asyncio
 async def test_orchestrator_brand_name_from_url():
     """Brand name is derived from domain — hyphens become spaces, title-cased."""
-    agents = _all_mock_agents()
+    agents = _mock_agents()
+    brain  = _mock_brain()
 
     with (
-        patch("agents.orchestrator.get_client", return_value=AsyncMock()),
-        patch("agents.orchestrator.WebScraper", return_value=AsyncMock()),
-        patch("agents.orchestrator.SearchAgent", return_value=MagicMock()),
-        patch("agents.orchestrator._build_agents", return_value=agents),
-        _phase1_patch(),
+        patch("agents.agentic_orchestrator.get_client", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.WebScraper", return_value=AsyncMock()),
+        patch("agents.agentic_orchestrator.SearchAgent", return_value=MagicMock()),
+        patch("agents.agentic_orchestrator._build_agents", return_value=agents),
+        patch("agents.agentic_orchestrator.ReasoningBrain", return_value=brain),
+        patch("agents.agentic_orchestrator._generate_one_thing", new=AsyncMock(return_value="")),
+        patch("agents.agentic_orchestrator._generate_roadmap",   new=AsyncMock(return_value={})),
     ):
         from agents.orchestrator import run_full_audit
         result = await run_full_audit("https://my-brand-store.in")

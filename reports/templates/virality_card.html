@@ -185,6 +185,22 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
   <div class="grade-subtitle">Virality Potential Score</div>
 </div>
 
+<!-- ── Brain Activation Map ─────────────────────────────────────────────── -->
+{% if brain_map_svg %}
+<div class="card">
+  <h2>Brain Activation Map
+    <span style="font-size:.68rem;color:var(--muted);font-weight:400"> · How this content triggers the mind</span>
+  </h2>
+  <div style="margin:.5rem 0 .75rem">{{ brain_map_svg | safe }}</div>
+  {% set src_color = "#22c55e" if brain_map_source == "tribe_v2" else "#f59e0b" %}
+  {% set src_label = "Meta TRIBE v2 · fMRI predictions" if brain_map_source == "tribe_v2" else "Estimated · based on virality dimensions" %}
+  <div style="font-size:.61rem;color:#374151;margin-top:.25rem">
+    Source: <span style="color:{{ src_color }}">{{ src_label }}</span>
+    &nbsp;·&nbsp; CC-BY-NC-4.0 (non-commercial research use only)
+  </div>
+</div>
+{% endif %}
+
 <!-- ── Dimension bars ─────────────────────────────────────────────────────── -->
 <div class="card">
   <h2>Score Breakdown</h2>

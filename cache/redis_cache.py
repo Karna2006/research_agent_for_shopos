@@ -135,3 +135,18 @@ class CacheManager:
 
         await self._mem.delete(key)
         logger.info("Cache DEL  [memory] %s", key)
+
+    async def flush_all(self) -> int:
+        """Wipe every key. Returns count of entries cleared."""
+        if self._redis is not None:
+            try:
+                await self._redis.flushdb()
+                logger.info("Cache FLUSH [redis] all keys")
+                return -1  # Redis doesn't return count from flushdb
+            except Exception as exc:
+                logger.warning("Cache: Redis FLUSH failed. %s", exc)
+
+        count = len(self._mem._store)
+        self._mem._store.clear()
+        logger.info("Cache FLUSH [memory] %d keys cleared", count)
+        return count

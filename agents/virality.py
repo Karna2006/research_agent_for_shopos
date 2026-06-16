@@ -16,9 +16,12 @@ import asyncio
 import colorsys
 import io
 import json
+import logging
 import re
 from collections import Counter
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from llm.client import GroqClient
@@ -122,6 +125,26 @@ Output ONLY valid JSON:
   "risk_factors": ["what could prevent this from going viral"],
   "comparable_viral_products": ["products that went viral and why similar/different"]
 }"""
+
+# ── Llama 4 Scout visual analysis prompt ───────────────────────────────────────
+
+VISUAL_ANALYSIS_PROMPT = """\
+You are a visual marketing expert analyzing a product image for viral potential.
+Analyze the image and output ONLY valid JSON:
+{
+  "dominant_emotion": "string — what emotion this image triggers instantly",
+  "visual_hook_strength": 0,
+  "lifestyle_vs_studio": "lifestyle|studio|product-only",
+  "color_impact": 0,
+  "transformation_visible": false,
+  "human_presence": false,
+  "professional_quality": 0,
+  "visual_strengths": ["what works visually"],
+  "visual_gaps": ["what's missing visually"],
+  "recommended_visual_change": "single most impactful visual improvement"
+}
+visual_hook_strength, color_impact, professional_quality: integers 0-10.
+"""
 
 # ── Grade + weight helpers ──────────────────────────────────────────────────────
 
@@ -485,21 +508,102 @@ class ViralityPredictor:
             text_signals:   dict = {}
 
             if scrape_mode == "url_based":
-                print(
-                    f"  [virality] Extracting visual signals from "
-                    f"{len(resolved_images)} image URLs…", flush=True,
-                )
+                logger.info("Extracting visual signals from %d image URLs", len(resolved_images))
                 visual_signals = await _extract_visual_signals(resolved_images, scraped)
                 text_signals   = _extract_text_signals(
                     resolved_name, resolved_desc, resolved_price,
                     resolved_rating, resolved_review_count,
                 )
-                print(
-                    f"  [virality] Visual: {visual_signals.get('image_count')} images, "
-                    f"{visual_signals.get('images_analyzed')} downloaded, "
-                    f"color={visual_signals.get('primary_color_name')}, "
-                    f"lifestyle={visual_signals.get('has_lifestyle_shot')}", flush=True,
+                logger.info(
+                    "Visual: %d images, %d downloaded, color=%s, lifestyle=%s",
+                    visual_signals.get('image_count'), visual_signals.get('images_analyzed'),
+                    visual_signals.get('primary_color_name'), visual_signals.get('has_lifestyle_shot'),
                 )
+
+            # ── STEP 2.5: Llama 4 Scout vision analysis (first product image) ──
+            llm_visual_analysis: dict = {}
+            if scrape_mode == "url_based" and resolved_images:
+                first_image = next(
+                    (img for img in resolved_images if img.startswith(("http://", "https://"))),
+                    None,
+                )
+                if first_image:
+                    try:
+                        raw_vision = await self.llm.analyze_image(
+                            system_prompt=VISUAL_ANALYSIS_PROMPT,
+                            image_url=first_image,
+                            text_prompt=(
+                                f"Analyze this product image for {resolved_name} "
+                                f"in the {category} category."
+                            ),
+                        )
+                        # Strip markdown fences if present
+                        clean = re.sub(
+                            r"^```(?:json)?\s*|\s*```$", "", raw_vision.strip(),
+                            flags=re.MULTILINE,
+                        ).strip()
+                        llm_visual_analysis = json.loads(clean or "{}")
+                        # Coerce fields that should be integers
+                        for _field in ("visual_hook_strength", "color_impact", "professional_quality"):
+                            _v = llm_visual_analysis.get(_field)
+                            if isinstance(_v, str):
+                                _m = re.search(r"\d+", _v)
+                                llm_visual_analysis[_field] = int(_m.group()) if _m else 0
+                        logger.info(
+                            "Vision analysis: emotion=%s, hook=%s/10",
+                            llm_visual_analysis.get('dominant_emotion'),
+                            llm_visual_analysis.get('visual_hook_strength'),
+                        )
+                    except Exception as _ve:
+                        logger.warning("Vision analysis skipped: %s", _ve)
+
+            # ── STEP 2.6: DeepGaze IIE visual attention heatmap ───────────────
+            visual_attention: dict = {}
+            if scrape_mode == "url_based" and resolved_images:
+                _first_image = next(
+                    (img for img in resolved_images if img.startswith(("http://", "https://"))),
+                    None,
+                )
+                if _first_image:
+                    try:
+                        from agents.visual_attention import VisualAttentionAnalyzer
+                        _attn = VisualAttentionAnalyzer()
+                        visual_attention = await _attn.analyze_image_url(_first_image)
+                        if visual_attention.get("error"):
+                            logger.warning("Attention heatmap skipped: %s", visual_attention['error'])
+                        else:
+                            logger.info(
+                                "Attention heatmap: focus=%s, dist=%s",
+                                visual_attention.get('attention_focus'),
+                                visual_attention.get('attention_distribution'),
+                            )
+                    except Exception as _ae:
+                        visual_attention = {"heatmap_base64": None, "error": str(_ae)}
+                        logger.warning("Attention heatmap error: %s", _ae)
+
+            # ── STEP 2.7: TRIBE v2 neural engagement (video content) ─────────
+            neural_engagement: dict = {}
+            if scrape_mode == "url_based":
+                try:
+                    from agents.neural_engagement import NeuralEngagementAnalyzer
+                    _ne = NeuralEngagementAnalyzer()
+                    neural_engagement = await _ne.analyze(
+                        product_url=url,
+                        scraped=scraped,
+                        brand_name=resolved_name,
+                        search_agent=self.search,
+                    )
+                    if neural_engagement.get("error"):
+                        logger.warning("Neural engagement skipped: %s", neural_engagement['error'])
+                    else:
+                        logger.info(
+                            "Neural engagement: score=%s, tier=%s",
+                            neural_engagement.get('neural_engagement_score'),
+                            neural_engagement.get('tier'),
+                        )
+                except Exception as _nee:
+                    neural_engagement = {"error": str(_nee)}
+                    logger.warning("Neural engagement error: %s", _nee)
 
             # ── STEP 3: Social search signals ──────────────────────────────────
             tiktok_results = self.search.search(
@@ -574,12 +678,63 @@ class ViralityPredictor:
                         "Add a product URL for image-based visual analysis."
                     )
 
-            out["score"]          = raw.get("overall_virality_score")
-            out["grade"]          = raw.get("grade")
-            out["analysis"]       = raw
-            out["scrape_mode"]    = scrape_mode
-            out["visual_signals"] = visual_signals
-            out["text_signals"]   = text_signals
+            out["score"]               = raw.get("overall_virality_score")
+            out["grade"]               = raw.get("grade")
+            out["analysis"]            = raw
+            out["scrape_mode"]         = scrape_mode
+            out["visual_signals"]      = visual_signals
+            out["llm_visual_analysis"] = llm_visual_analysis
+            out["visual_attention"]    = {
+                "heatmap_available":      visual_attention.get("heatmap_base64") is not None,
+                "heatmap_base64":         visual_attention.get("heatmap_base64"),
+                "attention_focus":        visual_attention.get("attention_focus"),
+                "primary_attention_area": visual_attention.get("primary_attention_area"),
+                "attention_distribution": visual_attention.get("attention_distribution"),
+                "concentration_pct":      visual_attention.get("concentration_pct"),
+                "interpretation":         visual_attention.get("interpretation"),
+                "powered_by":             visual_attention.get(
+                    "powered_by", "DeepGaze IIE — human visual attention model"
+                ),
+                "error":                  visual_attention.get("error"),
+            } if visual_attention else {
+                "heatmap_available": False, "error": "analysis not run",
+            }
+            out["neural_engagement"]   = neural_engagement
+
+            # ── STEP 2.8: Brain activation map ────────────────────────────────
+            # Uses real TRIBE v2 parcel predictions when available;
+            # falls back to virality dimension scores for a psychological mapping.
+            try:
+                from agents.brain_map import (
+                    build_from_tribe, build_from_virality, tribe_preds_to_network_scores
+                )
+                _tribe_preds = neural_engagement.get("_raw_preds")  # set by _compute_score if exported
+                if _tribe_preds is not None:
+                    import numpy as _np
+                    _preds_arr = _np.array(_tribe_preds)
+                    out["brain_map_svg"] = build_from_tribe(
+                        _preds_arr, ad_label=resolved_name
+                    )
+                    out["brain_network_scores"] = tribe_preds_to_network_scores(_preds_arr)
+                    out["brain_map_source"] = "tribe_v2"
+                else:
+                    # Fallback: use virality dimension scores
+                    out["brain_map_svg"] = build_from_virality(
+                        raw, ad_label=resolved_name
+                    )
+                    from agents.brain_map import virality_dims_to_network_scores
+                    out["brain_network_scores"] = virality_dims_to_network_scores(
+                        raw.get("dimensions") or {}
+                    )
+                    out["brain_map_source"] = "virality_dims"
+                logger.info("Brain map generated")
+            except Exception as _bme:
+                out["brain_map_svg"] = None
+                out["brain_network_scores"] = {}
+                out["brain_map_source"] = "error"
+                logger.warning("Brain map error: %s", _bme)
+
+            out["text_signals"]        = text_signals
             out["product_data_used"] = {
                 "name":     resolved_name,
                 "category": category,
@@ -602,6 +757,8 @@ class ViralityPredictor:
                 out["virality_trajectory"] = {"error": str(tex)}
 
         except Exception as exc:
+            import traceback as _tb
+            logger.error("Virality predict failed: %s", exc, exc_info=True)
             out["error"] = str(exc)
 
         return out

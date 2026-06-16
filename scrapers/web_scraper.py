@@ -1,4 +1,4 @@
-"""Playwright-based scraper — renders JS pages and returns DataResult."""
+"""Web scraper — Scrapling primary, Playwright fallback, returns DataResult."""
 from __future__ import annotations
 
 import json
@@ -10,6 +10,12 @@ import httpx
 from playwright.async_api import async_playwright, Browser, Page, TimeoutError as PWTimeout
 
 from scrapers.result import DataResult
+
+try:
+    from scrapling.fetchers import StealthyFetcher, DynamicFetcher
+    _SCRAPLING_AVAILABLE = True
+except ImportError:
+    _SCRAPLING_AVAILABLE = False
 
 _CLOUDFLARE_SIGNALS = [
     "cf-ray",
@@ -134,10 +140,56 @@ async def _safe_all_attr(page: Page, selector: str, attr: str, limit: int = 20) 
         return []
 
 
-async def _httpx_fallback(url: str) -> dict[str, Any] | None:
-    """Lightweight httpx scrape used when Playwright is blocked by Cloudflare.
+def _parse_html_to_dict(url: str, html: str) -> dict[str, Any]:
+    """Extract text, title, links from raw HTML — shared by all fallback paths."""
+    title_m = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
+    meta_m  = re.search(
+        r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)["\']',
+        html, re.IGNORECASE,
+    )
+    clean = re.sub(r'<style[^>]*>.*?</style>', ' ', html, flags=re.DOTALL | re.IGNORECASE)
+    clean = re.sub(r'<script[^>]*>.*?</script>', ' ', clean, flags=re.DOTALL | re.IGNORECASE)
+    body_text = re.sub(r'<[^>]+>', ' ', clean)
+    body_text = re.sub(r'\s{3,}', '\n\n', body_text).strip()
+    links = re.findall(r'href=["\']([^"\'#][^"\']*)["\']', html)[:50]
+    # Extract h1/h2/h3
+    headings = re.findall(r'<h[1-3][^>]*>\s*(.*?)\s*</h[1-3]>', html, re.IGNORECASE | re.DOTALL)
+    headings = [re.sub(r'<[^>]+>', '', h).strip() for h in headings if h.strip()][:10]
+    return {
+        "url":              url,
+        "blocked":          False,
+        "title":            (title_m.group(1).strip() if title_m else ""),
+        "meta_description": (meta_m.group(1) if meta_m else ""),
+        "body_text":        body_text[:8000],
+        "headings":         headings,
+        "images":           [],
+        "links":            links,
+        "schema_json_ld":   _extract_json_ld(html),
+        "page_html":        html[:50000],
+    }
 
-    Strips tags to extract body text; no JS execution.
+
+async def _cffi_fallback(url: str) -> dict[str, Any] | None:
+    """curl-cffi fallback — impersonates Chrome TLS fingerprint, bypasses Akamai/Cloudflare WAF.
+
+    Used for sites like Nykaa that block both Playwright (HTTP/2 error) and plain httpx (403).
+    curl_cffi is already in requirements.txt (curl-cffi>=0.7.0).
+    """
+    try:
+        from curl_cffi.requests import AsyncSession
+        async with AsyncSession(impersonate="chrome124") as session:
+            r = await session.get(url, timeout=20, allow_redirects=True)
+            if r.status_code >= 500:
+                return None
+            html = r.text
+            return _parse_html_to_dict(url, html)
+    except Exception:
+        return None
+
+
+async def _httpx_fallback(url: str) -> dict[str, Any] | None:
+    """Plain httpx fallback (HTTP/1.1) — used for Cloudflare-blocked sites that allow static fetch.
+
     Returns a page-like dict or None if also blocked/failed.
     """
     try:
@@ -145,33 +197,19 @@ async def _httpx_fallback(url: str) -> dict[str, Any] | None:
             r = await client.get(url, headers=_BROWSER_HEADERS)
             if r.status_code >= 500:
                 return None
-            html = r.text
-            title_m = re.search(r'<title[^>]*>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
-            meta_m = re.search(
-                r'<meta[^>]+name=["\']description["\'][^>]+content=["\']([^"\']*)["\']',
-                html, re.IGNORECASE,
-            )
-            body_text = re.sub(r'<[^>]+>', ' ', html)
-            body_text = re.sub(r'\s{3,}', '\n\n', body_text).strip()
-            links = re.findall(r'href=["\']([^"\'#][^"\']*)["\']', html)[:50]
-            return {
-                "url": url,
-                "blocked": False,
-                "title": (title_m.group(1).strip() if title_m else ""),
-                "meta_description": (meta_m.group(1) if meta_m else ""),
-                "body_text": body_text[:8000],
-                "headings": [],
-                "images": [],
-                "links": links,
-                "schema_json_ld": _extract_json_ld(html),
-                "page_html": html[:50000],
-            }
+            if r.status_code == 403:
+                # 403 from WAF → try curl-cffi with real TLS fingerprint
+                return await _cffi_fallback(url)
+            return _parse_html_to_dict(url, r.text)
     except Exception:
         return None
 
 
+_SCRAPLING_TIMEOUT = 90_000   # 90 s — quality over latency
+_SCRAPLING_WAIT    = 1_500    # extra ms after network-idle before returning
+
 class WebScraper:
-    def __init__(self, headless: bool = True, timeout_ms: int = 30_000):
+    def __init__(self, headless: bool = True, timeout_ms: int = 60_000):
         self._headless = headless
         self._timeout = timeout_ms
 
@@ -214,8 +252,107 @@ class WebScraper:
         html = await page.content()
         return page, headers, html, status
 
+    def _parse_page(self, soup: Any, url: str, source: str) -> DataResult:
+        """Parse a Scrapling/BeautifulSoup page object into a DataResult."""
+        html = str(soup)
+
+        title_tag = soup.find("title")
+        title = title_tag.get_text(strip=True) if title_tag else ""
+
+        meta_tag = soup.find("meta", attrs={"name": re.compile(r"^description$", re.IGNORECASE)})
+        meta_description = (meta_tag.get("content") or "").strip() if meta_tag else ""
+
+        headings: list[str] = []
+        for tag in ("h1", "h2", "h3"):
+            for el in soup.find_all(tag)[:10]:
+                text = el.get_text(strip=True)
+                if text:
+                    headings.append(text)
+
+        images = [
+            img.get("src", "").strip()
+            for img in soup.find_all("img", src=True)
+            if img.get("src", "").strip()
+        ][:30]
+
+        links = [
+            a.get("href", "").strip()
+            for a in soup.find_all("a", href=True)
+            if a.get("href", "").strip()
+        ][:50]
+
+        # Remove <style>/<script> nodes before text extraction — Shopify sites inject
+        # large CSS blocks directly in <body>, which pollute body_text otherwise.
+        try:
+            for el in soup.find_all(["style", "script"]):
+                el.decompose()
+        except Exception:
+            pass
+        body_text = soup.get_text(separator=" ")
+        body_text = re.sub(r"\s{3,}", "\n\n", body_text).strip()
+
+        return DataResult(
+            value={
+                "url": url,
+                "blocked": False,
+                "title": title,
+                "meta_description": meta_description,
+                "body_text": body_text[:8000],
+                "headings": headings,
+                "images": images,
+                "links": links,
+                "schema_json_ld": _extract_json_ld(html),
+                "page_html": html[:50000],
+            },
+            source=source,
+            source_url=url,
+            confidence="verified",
+        )
+
     async def scrape_page(self, url: str) -> DataResult:
-        """General page scrape → DataResult wrapping title, meta, headings, body, schema."""
+        """General page scrape → DataResult.
+
+        Attempt order:
+          1. Scrapling StealthyFetcher  (stealth + Cloudflare-bypass, 90s)
+          2. Scrapling DynamicFetcher   (full JS rendering, 90s)
+          3. Playwright fallback        (full control, 60s)
+        """
+        if _SCRAPLING_AVAILABLE:
+            # Attempt 1: StealthyFetcher — stealth UA + Cloudflare solve + network idle
+            try:
+                page = await StealthyFetcher.fetch(
+                    url,
+                    headless=True,
+                    network_idle=True,
+                    timeout=_SCRAPLING_TIMEOUT,
+                    wait=_SCRAPLING_WAIT,
+                    solve_cloudflare=True,
+                    google_search=True,
+                )
+                if page and page.status == 200:
+                    return self._parse_page(page.soup, url, "scrapling_stealth")
+            except Exception:
+                pass
+
+            # Attempt 2: DynamicFetcher — full JS render, waits for network idle
+            try:
+                page = await DynamicFetcher.fetch(
+                    url,
+                    headless=True,
+                    network_idle=True,
+                    timeout=_SCRAPLING_TIMEOUT,
+                    wait=_SCRAPLING_WAIT,
+                )
+                if page:
+                    return self._parse_page(page.soup, url, "scrapling_dynamic")
+            except Exception:
+                pass
+
+        # Attempt 3: Playwright fallback
+        return await self._playwright_scrape(url)
+
+    async def _playwright_scrape(self, url: str) -> DataResult:
+        """Original Playwright-based scrape — used when Scrapling is unavailable or fails."""
         source = "homepage_scrape"
         try:
             async with async_playwright() as pw:
@@ -306,17 +443,161 @@ class WebScraper:
                 manual_check_url=url,
             )
         except Exception as exc:
+            err_str = str(exc)
+            # HTTP/2 protocol errors from aggressive WAFs (Nykaa, Myntra, Ajio, Purplle)
+            # — retry with curl-cffi which mimics real Chrome TLS fingerprint
+            if "HTTP2_PROTOCOL_ERROR" in err_str or "ERR_HTTP2" in err_str:
+                cffi_data = await _cffi_fallback(url)
+                if cffi_data:
+                    return DataResult(
+                        value=cffi_data,
+                        source=source,
+                        source_url=url,
+                        confidence="inferred",
+                        fallback_used=True,
+                        fallback_method="cffi_chrome124",
+                    )
             return DataResult(
                 value=None,
                 source=source,
                 source_url=url,
                 confidence="unavailable",
-                error=str(exc),
+                error=err_str,
             )
 
+    def _parse_pdp_from_soup(self, soup: Any, url: str) -> DataResult:
+        """Parse a Scrapling soup object into a PDP DataResult.
+
+        Extracts product name, price, description, images, reviews from JSON-LD
+        and common CSS selectors — no Playwright page object needed.
+        """
+        html = str(soup)
+        schemas = _extract_json_ld(html)
+        product_schema: dict = {}
+        for s in schemas:
+            if isinstance(s, dict) and s.get("@type") == "Product":
+                product_schema = s
+                break
+            if isinstance(s, list):
+                for item in s:
+                    if isinstance(item, dict) and item.get("@type") == "Product":
+                        product_schema = item
+                        break
+
+        product_name = (
+            product_schema.get("name")
+            or (soup.find("h1") or {}).get_text(strip=True) if hasattr(soup, "find") else ""
+        )
+
+        price_raw = ""
+        offers = product_schema.get("offers")
+        if isinstance(offers, dict):
+            price_raw = str(offers.get("price", ""))
+        elif isinstance(offers, list) and offers:
+            price_raw = str(offers[0].get("price", ""))
+        if not price_raw and hasattr(soup, "select"):
+            for sel in ('[class*="price"]', ".price", "#price", ".product-price"):
+                els = soup.select(sel)
+                if els:
+                    price_raw = els[0].get_text(strip=True)
+                    break
+
+        description = product_schema.get("description", "")
+        if not description and hasattr(soup, "select"):
+            for sel in ('[class*="description"]', "#description", '[class*="product-desc"]'):
+                els = soup.select(sel)
+                if els:
+                    description = els[0].get_text(separator=" ", strip=True)
+                    break
+
+        images: list[str] = []
+        if hasattr(soup, "find_all"):
+            for img in soup.find_all("img", src=True)[:15]:
+                src = img.get("src", "").strip()
+                if src and "product" in src.lower():
+                    images.append(src)
+            if not images:
+                images = [img.get("src", "").strip() for img in soup.find_all("img", src=True)[:10] if img.get("src")]
+
+        rating_raw = product_schema.get("aggregateRating", {})
+        rating = str(rating_raw.get("ratingValue", "")) if isinstance(rating_raw, dict) else ""
+        reviews_count = str(rating_raw.get("reviewCount", "")) if isinstance(rating_raw, dict) else ""
+
+        availability = ""
+        in_stock = True
+        if isinstance(offers, dict):
+            availability = offers.get("availability", "")
+        elif isinstance(offers, list) and offers:
+            availability = offers[0].get("availability", "")
+        if "OutOfStock" in availability:
+            in_stock = False
+
+        return DataResult(
+            value={
+                "url": url,
+                "blocked": False,
+                "product_name": (product_name or "").strip(),
+                "price": price_raw.strip(),
+                "description": (description or "")[:2000].strip(),
+                "images": images,
+                "reviews_count": reviews_count.strip(),
+                "rating": rating.strip(),
+                "in_stock": in_stock,
+                "cta_text": "",
+            },
+            source="pdp_scrape",
+            source_url=url,
+            confidence="verified",
+        )
+
     async def scrape_pdp(self, url: str) -> DataResult:
-        """Product detail page scrape → DataResult wrapping name, price, description, reviews."""
+        """Product detail page scrape → DataResult wrapping name, price, description, reviews.
+
+        Attempt order:
+          1. Scrapling StealthyFetcher  (stealth + Cloudflare, 90s)
+          2. Scrapling DynamicFetcher   (full JS, 90s)
+          3. Playwright                 (fallback, 60s)
+        """
         source = "pdp_scrape"
+
+        # ── Attempt 1: Scrapling StealthyFetcher ────────────────────────────
+        if _SCRAPLING_AVAILABLE:
+            try:
+                page = await StealthyFetcher.fetch(
+                    url,
+                    headless=True,
+                    network_idle=True,
+                    timeout=_SCRAPLING_TIMEOUT,
+                    wait=_SCRAPLING_WAIT,
+                    solve_cloudflare=True,
+                    google_search=True,
+                )
+                if page and page.status == 200:
+                    result = self._parse_pdp_from_soup(page.soup, url)
+                    if result.value and result.value.get("product_name"):
+                        result.source = "pdp_scrape_stealth"
+                        return result
+            except Exception:
+                pass
+
+            # ── Attempt 2: Scrapling DynamicFetcher ─────────────────────────
+            try:
+                page = await DynamicFetcher.fetch(
+                    url,
+                    headless=True,
+                    network_idle=True,
+                    timeout=_SCRAPLING_TIMEOUT,
+                    wait=_SCRAPLING_WAIT,
+                )
+                if page:
+                    result = self._parse_pdp_from_soup(page.soup, url)
+                    if result.value and result.value.get("product_name"):
+                        result.source = "pdp_scrape_dynamic"
+                        return result
+            except Exception:
+                pass
+
+        # ── Attempt 3: Playwright ────────────────────────────────────────────
         try:
             async with async_playwright() as pw:
                 browser = await pw.chromium.launch(headless=self._headless)
@@ -450,6 +731,14 @@ class WebScraper:
                 confidence="unavailable",
                 error=str(exc),
             )
+
+        return DataResult(
+            value=None,
+            source=source,
+            source_url=url,
+            confidence="unavailable",
+            error="All scrape attempts failed",
+        )
 
     async def detect_platform(self, url: str) -> str:
         """Return 'shopify' | 'woocommerce' | 'custom' by inspecting headers + HTML.

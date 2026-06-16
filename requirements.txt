@@ -17,6 +17,12 @@ google-generativeai>=0.8.0
 
 # Scraping
 playwright>=1.45.0
+scrapling>=0.3.0          # stealth + dynamic fetchers; uses Playwright's browser under the hood
+# Scrapling browser-fetcher extras (not auto-installed by scrapling's declared deps)
+curl-cffi>=0.7.0          # StealthyFetcher TLS fingerprinting
+patchright>=1.0.0         # patched Playwright for stealth mode
+msgspec>=0.18.0           # config validation inside scrapling
+browserforge>=1.0.0       # header/fingerprint generation
 httpx>=0.27.0
 beautifulsoup4>=4.12.0
 
@@ -33,10 +39,29 @@ chronos-forecasting>=1.3.0 # Amazon Chronos time-series foundation model
 prophet>=1.1.5             # Meta Prophet seasonality-aware forecasting (fallback)
 numpy>=1.26.0              # polynomial regression fallback — always available
 
+# Social media
+instaloader>=4.10.0        # Instagram public profile scraping (no login required)
+
+# Visual attention / saliency
+# deepgaze_pytorch          # install from source: pip install git+https://github.com/matthias-k/DeepGaze.git
+# openai-clip               # install from source: pip install git+https://github.com/openai/CLIP.git
+scipy>=1.10.0              # saliency metrics helper
+matplotlib>=3.7.0          # heatmap overlay rendering (uses Agg backend — no display needed)
+
+# Neural engagement — Meta TRIBE v2
+# Install tribev2: cd ../tribeV2 && pip install -e .
+# Set TRIBE_CHECKPOINT_DIR to local checkpoint dir or HuggingFace repo id (e.g. facebook/tribev2)
+yt-dlp>=2024.1.1           # media downloader for YouTube, Instagram, TikTok, 1000+ sites
+
 # NLP / ML (rules-based replacements for LLM calls)
 vaderSentiment>=3.3.2     # Review sentiment — replaces LLM sentiment inference
+
+# Orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
 
 # Utilities
 python-dotenv>=1.0.0
 rich>=13.7.0
 python-jose[cryptography]>=3.3.0
+opencv-python-headless>=4.8.0

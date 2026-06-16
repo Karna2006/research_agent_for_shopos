@@ -7,13 +7,19 @@
 
 **Q: I mentioned TRIBE v2 in my notes. Did you use it?**
 
-No — and here's why that was the right call.
+Yes — but in a very specific and honest scope.
 
-TRIBE v2 is Meta's brain fMRI encoder. It predicts neural activity from video and audio stimuli for neuroscience research. It has no pip package, no time-series API, and no ecommerce-relevant capability. Implementing it here would mean writing integration code that silently falls back to numpy linear regression 100% of the time, while labelling the output "Powered by TRIBE v2 — Meta's Predictive Foundation Model." That would be dishonest to any client reading the report.
+TRIBE v2 is Meta's fMRI encoding model trained on naturalistic video/audio stimuli (Friends sitcom + 4 films, Algonauts 2025). It predicts cortical activations across 1,000 brain parcels (Schaefer atlas, Yeo-7 networks) from continuous video/audio streams. It is not a general image model, not a time-series model, and not pip-installable from PyPI.
 
-Instead, I used **Chronos** (Amazon, MIT license) — a genuine time-series foundation model designed exactly for predicting sequences like review velocity, price trajectories, and demand patterns. Same feature, honest implementation. The model correctly identifies that a product with 50 reviews/week accelerating vs. one at 50 reviews/week decelerating tells a very different demand story.
+We integrated it in two contexts:
 
-This is the kind of check I do before writing any line of code — verify the tool actually does what the name implies.
+1. **Virality Predictor (Step 2.7):** Any product video URL (YouTube, Instagram, TikTok) gets downloaded via yt-dlp, run through TRIBE v2 locally, and produces a neural engagement score (0-100) plus per-network activation breakdown. Score = mean absolute z-score activation normalised to 0-100, calibrated at 0.40 z-score = 100.
+
+2. **Agent 8 — Social Media Deep Audit (optional `deep_visual=True`):** Instagram Reels are downloaded via yt-dlp, run through TRIBE v2 (first 9 seconds — configurable via `TRIBE_HOOK_SECONDS`), and the audit report embeds per-reel brain activation heatmaps across the 7 Yeo functional networks.
+
+The 9-second hook window was a deliberate design choice. TRIBE v2's fMRI predictions are most actionable in the first hook window of a reel — the first seconds that either stop the scroll or lose the viewer. Processing the full reel (30-60s) gives marginally more data at 4× the CPU cost.
+
+What we did NOT do: use TRIBE v2 as a time-series forecasting model. That would have been dishonest. For price trajectory and demand forecasting we use Chronos (Amazon, MIT license) — a genuine time-series foundation model designed exactly for sequences. Same feature surface, honest implementation of each model's actual capability.
 
 ---
 
@@ -21,7 +27,9 @@ This is the kind of check I do before writing any line of code — verify the to
 
 Two reasons: cost and speed.
 
-OpenAI GPT-4 and Anthropic Claude are paid APIs. A full 6-agent audit makes approximately 8-10 LLM calls. At OpenAI pricing that's ~$0.30-0.50 per audit. At scale (100 audits/day) that's $1,000-1,500/month in LLM costs alone before infrastructure.
+OpenAI GPT-4 and Anthropic Claude are paid APIs. A full 8-agent audit makes approximately 8-10 LLM calls. At OpenAI pricing that's ~$0.30-0.50 per audit. At scale (100 audits/day) that's $1,000-1,500/month in LLM costs alone before infrastructure.
+
+In production, we run a three-tier LLM chain: Groq llama-3.3-70b as primary, Groq llama-3.1-8b as fallback when the 70B hits rate limits, and Gemini 2.0 Flash (Google, free tier via `GEMINI_API_KEY`) as a third tier when both Groq tiers are exhausted simultaneously. This three-tier chain means the system self-heals from rate limit events rather than returning empty results. The tier transitions are automatic and transparent to the user.
 
 Groq's free tier gives us Llama 3.1 70B — genuinely capable of structured JSON output — at zero cost for the prototype. At production scale, Groq pricing is approximately $0.05 per full audit. The quality difference for structured data extraction tasks (not creative writing) is negligible.
 
@@ -43,13 +51,13 @@ When Mastra is not configured, the Python orchestrator handles everything direct
 
 **Q: How long does an audit take and why?**
 
-Current: approximately 2 minutes. Original sequential design: approximately 5 minutes.
+Currently approximately 2-3 minutes for a standard audit. Original sequential design: approximately 5 minutes.
 
-The optimisation was phased parallelism. We identified that 4 of the 6 agents (Content, Ads, GEO, Store) only need the brand URL and brand name — they don't depend on each other's output. We run them concurrently with `asyncio.gather`. The Research agent runs last because it benefits from knowing what the Content and GEO agents found.
+The optimisation is phased parallelism. After Brand Basics validates the brand, 5 independent agents (Content, Ads, GEO, Store, Research) run concurrently. These agents have no cross-dependencies — they only need the brand URL and brand name. Wall-clock time for those 5 agents is ~50s instead of ~2min sequential.
 
-Phase breakdown: ~30s data gathering → ~20s Brand Basics → ~90s four parallel agents → ~30s Research → ~10s compile. The 90-second parallel phase replaces what would have been 200+ seconds sequential.
+There is one important constraint: we gate concurrent agents at 2 via an `asyncio.Semaphore(2)` at the agent level. Without this gate, we discovered in production that all 5 agents firing LLM calls simultaneously saturated Groq's free-tier RPM limit (30 req/min), causing all agents to receive empty responses and return zero scores. The gate keeps peak throughput at ~27 req/min — safely under the limit. The remaining 3 agents queue and start as slots free up. The total wall-clock cost of the gate is minimal (~5-10s) since agents typically take 15-25s each.
 
-At Groq's rate limits, parallel LLM calls queue automatically — we never see rate limit errors during parallel phases because Groq queues excess calls rather than rejecting them.
+Phase breakdown: ~18s Brand Basics → ~50s 5 parallel agents (gated at 2) → ~40s Social agents → ~20s brain synthesis + roadmap. Total: ~2:30 standard.
 
 ---
 
@@ -64,6 +72,20 @@ Three-layer fallback, transparent to the user:
 The report section shows a yellow banner: *"⚠️ Homepage scrape blocked — data sourced from search results only."* The Data Sources panel marks that section as `confidence: inferred` instead of `verified`.
 
 The audit never crashes. It always produces a report — the coverage may be partial, but it's clear about what it knows vs. what it couldn't access.
+
+---
+
+**Q: What prevents the LLM from returning empty results under load?**
+
+Three mechanisms working together:
+
+1. **Semaphore gate at the agent level.** `_AGENT_LLM_GATE = asyncio.Semaphore(2)` in the orchestrator ensures at most 2 agents are making LLM calls simultaneously. This caps peak RPM consumption regardless of how many agents are queued in parallel.
+
+2. **Minimum call spacing.** `_MIN_CALL_SPACING = 2.2s` inside the LLM client ensures no two API calls are fired closer than 2.2 seconds apart (even within the allowed 2-concurrent cap). Combined, this gives ~27 req/min sustained throughput versus Groq's 30 req/min limit.
+
+3. **Retry on empty response.** Groq occasionally returns HTTP 200 with an empty response body under heavy quota pressure rather than a 429 error. The LLM client now detects `content == ""` and treats it as a soft rate limit — waits 10s (first retry) or 20s (second retry) then tries again. A higher-level outer retry in `analyze_structured()` adds two more attempts at 25s and 50s spacing. Between these layers, the system self-recovers from transient quota pressure rather than propagating zeros into the report.
+
+We discovered this the hard way: a production audit of orangesugar.in returned all-zeros because all 5 parallel agents got empty LLM responses simultaneously and we had no retry logic for that case.
 
 ---
 
@@ -124,11 +146,12 @@ The earlier version was vague because it passed only 6 numbers to the LLM. The c
 | Playwright scraping | $0 (self-hosted) |
 | PageSpeed API | $0 (free public API) |
 | DuckDuckGo search | $0 (no API key needed) |
+| NVIDIA NIM vision (MiniMax VL-01) | $0 (free during promo, `build.nvidia.com`) |
 | Render hosting | $0 (free tier) |
 | SQLite / Neon (free tier) | $0 |
 | **Total current cost** | **$0** |
 
-At scale (1,000 audits/day): Groq at $0.05/audit = $50/day = $1,500/month. The main cost is infrastructure and a paid Groq tier. Still an order of magnitude cheaper than OpenAI.
+At scale (1,000 audits/day): Groq at $0.05/audit = $50/day = $1,500/month. The main cost is infrastructure and a paid Groq tier. Still an order of magnitude cheaper than OpenAI. (Cost basis: 8 agents per full audit.)
 
 ---
 
@@ -148,7 +171,7 @@ Three known failure modes:
 
 1. **Playwright blocks (~15% of sites):** Cloudflare-protected sites reject automated browsers. Handled with search-only fallback. At scale, a rotating proxy service (Brightdata, ~$0.001/request) eliminates most of this.
 
-2. **Groq rate limits at high volume:** Free tier limits ~30 requests/minute. At 10 concurrent audits, this is hit. Solution: paid Groq tier or request queuing with Redis.
+2. **Groq rate limits at high volume:** Free tier: 30 requests/minute. With 5 parallel agents running concurrently, this was our first production bug — all-zeros results when burst traffic exceeded the RPM limit. Fixed with agent-level semaphore + minimum call spacing + retry-on-empty. At scale, paid Groq tier removes this entirely.
 
 3. **SQLite under concurrent writes:** Fine for the prototype. PostgreSQL (Neon free tier already configured) handles production load without changes to the application code.
 
