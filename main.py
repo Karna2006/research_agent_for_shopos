@@ -631,9 +631,9 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
     <div class="sh">Try an example</div>
     <div class="ex-cards">
       <div class="ex-card" id="exc-0" onclick="loadViralityExample(0)">
-        <div class="ex-icon">✨</div>
-        <div class="ex-name">Chanel Foundation</div>
-        <div class="ex-meta">Nykaa · Luxury Beauty</div>
+        <div class="ex-icon">👔</div>
+        <div class="ex-name">Rare Rabbit Linen Shirt</div>
+        <div class="ex-meta">Premium Menswear · 79/100 A</div>
         <div class="ex-badge" id="excb-0">Pre-cached</div>
       </div>
       <div class="ex-card" id="exc-1" onclick="loadViralityExample(1)">
@@ -1383,12 +1383,12 @@ async function startAudit() {
 /* ── FIX 3: Virality example data ─────────────────────────────────────────── */
 const VIRALITY_EXAMPLES = [
   {
-    url: 'https://rarerabbit.in/products/rare-rabbit-men-shirts',
-    product_name: 'Rare Rabbit Oxford Shirt',
-    description: '100% premium cotton Oxford weave shirt. Available in 12 colors. Regular fit.',
+    url: 'https://rarerabbit.in/products/linen-spread-collar-shirt',
+    product_name: 'Rare Rabbit Premium Linen Shirt',
+    description: 'Premium linen spread collar shirt in muted earth tones. Smart-casual.',
     category: 'premium menswear',
     _cached: true,
-    _idx: 0,
+    _idx: 2,
   },
   {
     url: 'https://www.boat-lifestyle.com/products/airdopes-141',
