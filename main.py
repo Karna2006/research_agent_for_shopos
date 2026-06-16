@@ -1502,6 +1502,14 @@ const DIM_KEYS = [
 ];
 
 function renderVirality(data) {
+  // If there's a pre-rendered server report (e.g. TRIBE v2), show it in an iframe
+  if (data.virality_card_url) {
+    document.getElementById('v-result').innerHTML =
+      `<iframe src="${data.virality_card_url}" frameborder="0"
+        style="width:100%;height:82vh;min-height:600px;border:1px solid #1e1e1e;
+               border-radius:10px;background:#0a0a0a;display:block"></iframe>`;
+    return;
+  }
   const score    = data.score || 0;
   const grade    = data.grade || 'D';
   const analysis = data.analysis || data;
