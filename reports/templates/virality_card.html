@@ -337,8 +337,8 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
       <div class="ne-tier {{ ne_tier }}">{{ ne.get("tier") or "—" }}</div>
     </div>
     <div class="ne-cell">
-      <div class="ne-val">{{ ne.get("n_trs_analyzed", 0) }}s</div>
-      <div class="ne-sub">Video TRs<br>Analysed</div>
+      <div class="ne-val">{{ ne.get("n_trs_analyzed", 0) }}</div>
+      <div class="ne-sub">TRs<br>Analysed</div>
     </div>
     <div class="ne-cell">
       <div class="ne-val">{{ ne.get("consistency_score", 0) }}</div>
@@ -366,7 +366,8 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
     <div class="ne-br-row">
       <span class="ne-br-label">Mean Activation</span>
       <div class="ne-br-bar-bg">
-        <div class="ne-br-bar-fill" style="width:{{ [((ne.get("mean_absolute_activation") or 0) * 1000) | round | int, 100] | min }}%"></div>
+        {% set act_pct = [((ne.get("mean_absolute_activation") or 0) / 0.5 * 100) | round | int, 100] | min %}
+        <div class="ne-br-bar-fill" style="width:{{ act_pct }}%"></div>
       </div>
       <span class="ne-br-val">{{ "%.3f" | format(ne.get("mean_absolute_activation") or 0) }}</span>
     </div>
@@ -384,22 +385,30 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
 
   <!-- ── Brain network scores ────────────────────────────────────────────────── -->
   {% if brain_network_scores %}
+  {% set net_vals = brain_network_scores.values() | list %}
+  {% set net_max  = net_vals | max %}
+  {% if net_max > 0 %}
+  {% set net_labels = {
+    "control": "Control", "default": "Default Mode", "attention": "Attention",
+    "limbic": "Limbic", "motor": "Motor", "visual": "Visual", "reward": "Reward"
+  } %}
   <div style="margin-top:1.1rem;padding-top:1rem;border-top:1px solid #2d1f5e">
     <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
          color:#7c3aed;margin-bottom:.65rem">Cortical Network Activation</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
       {% for net_name, net_val in brain_network_scores.items() %}
+      {% set net_pct = ((net_val / net_max) * 100) | round | int %}
       <div class="ne-br-row" style="margin-bottom:.3rem">
-        <span class="ne-br-label" style="width:110px;font-size:.72rem">{{ net_name }}</span>
+        <span class="ne-br-label" style="width:110px;font-size:.72rem">{{ net_labels.get(net_name, net_name | title) }}</span>
         <div class="ne-br-bar-bg">
-          {% set net_pct = [net_val | round | int, 100] | min %}
-        <div class="ne-br-bar-fill" style="width:{{ net_pct }}%"></div>
+          <div class="ne-br-bar-fill" style="width:{{ net_pct }}%"></div>
         </div>
-        <span class="ne-br-val">{{ net_val | round | int }}</span>
+        <span class="ne-br-val" style="font-size:.68rem">{{ "%.3f" | format(net_val) }}</span>
       </div>
       {% endfor %}
     </div>
   </div>
+  {% endif %}
   {% endif %}
 
   {% endif %}{# end ne #}
@@ -438,8 +447,8 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
       <span class="denom">/100</span>
     </div>
   </div>
-  <div class="grade-badge">{{ grade }}</div>
-  <div class="grade-subtitle">Virality Potential Score</div>
+  <div class="grade-badge">{{ grade[0] if grade else "—" }}</div>
+  <div class="grade-subtitle">{{ grade if grade else "Virality Potential Score" }}</div>
 </div>
 
 <!-- ── Dimension bars ─────────────────────────────────────────────────────── -->
