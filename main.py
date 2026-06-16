@@ -637,10 +637,10 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
         <div class="ex-badge" id="excb-0">Pre-cached</div>
       </div>
       <div class="ex-card" id="exc-1" onclick="loadViralityExample(1)">
-        <div class="ex-icon">🧂</div>
-        <div class="ex-name">Himalayan Salt Scrub</div>
-        <div class="ex-meta">Skincare · Wellness</div>
-        <div class="ex-badge" id="excb-1">Live</div>
+        <div class="ex-icon">🎧</div>
+        <div class="ex-name">boAt Airdopes 141</div>
+        <div class="ex-meta">TWS Earbuds · TRIBE v2 fMRI</div>
+        <div class="ex-badge" id="excb-1">Pre-cached</div>
       </div>
       <div class="ex-card" id="exc-2" onclick="loadViralityExample(2)">
         <div class="ex-icon">👕</div>
@@ -1391,11 +1391,12 @@ const VIRALITY_EXAMPLES = [
     _idx: 0,
   },
   {
-    url: '',
-    product_name: 'Himalayan Pink Salt Body Scrub',
-    description: '100% natural exfoliating scrub with Himalayan pink salt, coconut oil, and lavender essential oil. Removes dead skin, leaves skin glowing. Vegan, cruelty-free.',
-    category: 'skincare / wellness',
-    _cached: false,
+    url: 'https://www.boat-lifestyle.com/products/airdopes-141',
+    product_name: 'boAt Airdopes 141',
+    description: 'True wireless earbuds with 42 hours playtime, BEAST™ mode for gaming, IPX4 water resistance, and low-latency Bluetooth 5.1. Available in 10 colours.',
+    category: 'audio / TWS earbuds',
+    _cached: true,
+    _idx: 3,
   },
   {
     url: '',
