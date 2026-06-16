@@ -942,11 +942,11 @@ def _top_wins_gaps(results: dict) -> tuple[list[str], list[str]]:
 
     cc = _get(results, "content_catalog", "analysis") or {}
     for s in _safe_list(cc.get("pdp_strengths"))[:1]:
-        wins.append(s)
+        wins.append(s if isinstance(s, str) else s.get("fix") or s.get("improvement") or str(s))
     for s in _safe_list(cc.get("pdp_weaknesses"))[:2]:
-        gaps.append(s)
+        gaps.append(s if isinstance(s, str) else s.get("fix") or s.get("issue") or str(s))
     for s in _safe_list(cc.get("top_3_improvements"))[:1]:
-        gaps.append(s)
+        gaps.append(s if isinstance(s, str) else s.get("fix") or s.get("improvement") or str(s))
 
     geo = _get(results, "geo_visibility", "analysis") or {}
     for s in _safe_list(geo.get("schema_missing"))[:1]:
@@ -1219,7 +1219,7 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
         else:
             card["score"] = max(0, min(100, card["score"]))
 
-    scorecard_overall = round(sum(c["score"] for c in scorecard_10) / len(scorecard_10))
+    scorecard_overall = health  # use same weighted formula as header ring
 
     # ── Priority Framework (🔴/🟡/🟢 recommendations) ────────────────────────
     def _collect_all_recs(results_dict: dict) -> list[dict]:
