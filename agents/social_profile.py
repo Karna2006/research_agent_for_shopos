@@ -492,6 +492,11 @@ class SocialProfileAgent:
                 else "full"
             )
 
+            # Attach clickable profile URLs to output dicts
+            if instagram.get("username"):
+                instagram["profile_url"] = f"https://www.instagram.com/{instagram['username']}/"
+            if linkedin_url:
+                linkedin["profile_url"] = linkedin_url
             out["instagram"] = instagram
             out["linkedin"] = linkedin
             out["ad_creative_intelligence"] = ad_creative_intelligence

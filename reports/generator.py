@@ -1378,6 +1378,16 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
         "cro_ux_audit":          cro_a.get("ux_audit") or {},
         "cro_omnichannel":       cro_a.get("omnichannel_ux") or {},
         "cro_signals_raw":       store_cro.get("cro_signals") or {},
+        # Source hyperlinks (for in-report citations)
+        "cc_product_urls":       content_catalog.get("product_urls_found") or [],
+        "sp_instagram_url":      (social_profile.get("instagram") or {}).get("profile_url") or "",
+        "sp_linkedin_url":       (social_profile.get("linkedin") or {}).get("profile_url") or "",
+        "geo_wikipedia_url":     geo_visibility.get("wikipedia_url") or "",
+        "res_google_trends_url": (
+            f"https://trends.google.com/trends/explore?geo=IN&q={_url_quote(bb_a.get('brand_name') or audit_data.get('brand_name', ''), safe='')}"
+            if (bb_a.get("brand_name") or audit_data.get("brand_name")) else ""
+        ),
+        "res_tracxn_url":        (research.get("tracxn") or {}).get("tracxn_url") or "",
     }
 
 

@@ -94,6 +94,7 @@ class GEOVisibilityAgent:
                 f"site:wikipedia.org {brand_name}", max_results=3
             )
             on_wikipedia = any("wikipedia.org" in r.get("url", "") for r in wiki_results)
+            wiki_url = next((r["url"] for r in wiki_results if "wikipedia.org" in r.get("url", "")), "")
             sources.append(DataResult(
                 value=wiki_results,
                 source="duckduckgo_search",
@@ -155,6 +156,7 @@ Brand appeared in {total_brand_mentions} out of {len(ai_queries) * 5} AI-simulat
             out["category_inferred"] = category
             out["schema_types_found"] = schema_types
             out["on_wikipedia"] = on_wikipedia
+            out["wikipedia_url"] = wiki_url
             out["ai_simulation_visibility_pct"] = ai_visibility_pct
             out["analysis"] = analysis
             out["sources_used"] = [dr.to_dict() for dr in sources]

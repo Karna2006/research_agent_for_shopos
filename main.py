@@ -6,6 +6,58 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import asyncio
+import io as _io
+import logging as _logging
+import os as _os
+import sys as _sys
+
+
+class _SafeStream:
+    """Wraps stdout/stderr so that writes never raise if the underlying fd is closed.
+
+    tqdm, logging StreamHandler, and other libs call write/flush on sys.stderr
+    directly. If the fd is closed (e.g. server started as a background task and
+    the output file was deleted), those calls raise ValueError. This wrapper
+    silently swallows the error so TRIBE v2 and other thread-executor code keeps
+    running.
+    """
+    def __init__(self, wrapped: _io.TextIOWrapper) -> None:
+        self._wrapped = wrapped
+
+    def write(self, msg: str) -> int:
+        try:
+            return self._wrapped.write(msg)
+        except (ValueError, OSError):
+            return 0
+
+    def flush(self) -> None:
+        try:
+            self._wrapped.flush()
+        except (ValueError, OSError):
+            pass
+
+    def fileno(self) -> int:
+        try:
+            return self._wrapped.fileno()
+        except (ValueError, OSError, _io.UnsupportedOperation):
+            return -1
+
+    @property
+    def closed(self) -> bool:
+        return getattr(self._wrapped, "closed", True)
+
+    def __getattr__(self, name: str):
+        return getattr(self._wrapped, name)
+
+
+_sys.stdout = _SafeStream(_sys.stdout)  # type: ignore[assignment]
+_sys.stderr = _SafeStream(_sys.stderr)  # type: ignore[assignment]
+
+# Route all logging to a file — never trust sys.stderr in long-running server
+_log_handler = _logging.FileHandler("shopos_agent.log", encoding="utf-8")
+_log_handler.setFormatter(_logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+_logging.basicConfig(level=_logging.INFO, handlers=[_log_handler], force=True)
+_logging.lastResort = _logging.NullHandler()
 import hashlib
 import json
 import secrets
