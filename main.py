@@ -4260,6 +4260,37 @@ async def get_virality_report(run_id: int, session: Session = Depends(get_sessio
         data = _parse_json(run.result)
         data.setdefault("product_name", run.product_name)
         data.setdefault("url", run.url)
+
+        # Inject tribe video URLs if missing (old runs saved before this was wired)
+        if not data.get("tribe_sim_video_url") and data.get("brain_map_source") == "tribe_v2":
+            # Check demo cache first for a matching run_id
+            _demo_path = _os.path.join("demo", "virality_scores.json")
+            if _os.path.exists(_demo_path):
+                try:
+                    import json as _json2
+                    with open(_demo_path) as _df:
+                        _demo = _json2.load(_df)
+                    for _de in _demo:
+                        if _de.get("run_id") == run_id and _de.get("tribe_sim_video_url"):
+                            data["tribe_sim_video_url"]  = _de["tribe_sim_video_url"]
+                            data["tribe_reel_video_url"] = _de.get("tribe_reel_video_url", "")
+                            break
+                except Exception:
+                    pass
+            # Fallback: scan cache/tribe_videos/ for any brain.mp4 that exists
+            if not data.get("tribe_sim_video_url"):
+                _tv_dir = _os.path.join("cache", "tribe_videos")
+                if _os.path.isdir(_tv_dir):
+                    import glob as _glob
+                    _brain_files = sorted(_glob.glob(_os.path.join(_tv_dir, "*_brain.mp4")), key=_os.path.getmtime, reverse=True)
+                    if _brain_files:
+                        _bn = _os.path.basename(_brain_files[0])
+                        _h  = _bn.replace("_brain.mp4", "")
+                        data["tribe_sim_video_url"]  = f"/tribe-video/{_h}_brain.mp4"
+                        _reel = _os.path.join(_tv_dir, f"{_h}_reel.mp4")
+                        if _os.path.exists(_reel):
+                            data["tribe_reel_video_url"] = f"/tribe-video/{_h}_reel.mp4"
+
         return HTMLResponse(generate_virality_card(data))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Report generation failed: {exc}")
