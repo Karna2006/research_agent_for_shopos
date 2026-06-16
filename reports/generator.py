@@ -1647,4 +1647,7 @@ def _build_virality_context(virality_data: dict) -> dict:
         "brain_map_svg":       virality_data.get("brain_map_svg") or "",
         "brain_map_source":    virality_data.get("brain_map_source") or "virality_dims",
         "brain_network_scores": virality_data.get("brain_network_scores") or {},
+        "tribe_sim_video_url": virality_data.get("tribe_sim_video_url") or "",
+        "tribe_reel_video_url": virality_data.get("tribe_reel_video_url") or "",
+        "neural_engagement":   virality_data.get("neural_engagement") or {},
     }

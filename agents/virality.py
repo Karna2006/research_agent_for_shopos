@@ -701,6 +701,15 @@ class ViralityPredictor:
             }
             out["neural_engagement"]   = neural_engagement
 
+            # Extract TRIBE video paths → serve via /tribe-video/<filename>
+            import os as _os
+            _reel_path = neural_engagement.get("_reel_video_path")
+            _sim_path  = neural_engagement.get("_sim_video_path")
+            if _reel_path:
+                out["tribe_reel_video_url"] = f"/tribe-video/{_os.path.basename(_reel_path)}"
+            if _sim_path:
+                out["tribe_sim_video_url"]  = f"/tribe-video/{_os.path.basename(_sim_path)}"
+
             # ── STEP 2.8: Brain activation map ────────────────────────────────
             # Uses real TRIBE v2 parcel predictions when available;
             # falls back to virality dimension scores for a psychological mapping.

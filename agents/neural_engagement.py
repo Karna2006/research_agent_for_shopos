@@ -567,9 +567,13 @@ class NeuralEngagementAnalyzer:
 
     def _run_sync(self, video_url: str) -> dict:
         """Blocking: download media → TRIBE v2 inference → score."""
-        score, preds, _, _ = self._run_sync_full(video_url)
+        score, preds, reel_video_path, sim_video_path = self._run_sync_full(video_url)
         if preds is not None:
             score["_raw_preds"] = preds
+        if reel_video_path:
+            score["_reel_video_path"] = reel_video_path
+        if sim_video_path:
+            score["_sim_video_path"] = sim_video_path
         return score
 
     def _run_sync_full(self, video_url: str) -> "tuple[dict, np.ndarray | None, str | None, str | None]":

@@ -10,10 +10,11 @@
   --bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#252525;
   --text:#ededed;--muted:#777;--radius:14px;
   --score-color:{{ grade_color }};
+  --ne-color:#a78bfa;
 }
 html{font-size:15px;background:var(--bg);color:var(--text)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-     max-width:680px;margin:0 auto;padding:2rem 1.25rem 3rem;line-height:1.6}
+     max-width:720px;margin:0 auto;padding:2rem 1.25rem 3rem;line-height:1.6}
 h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
    letter-spacing:.1em;margin-bottom:.75rem}
 .card{background:var(--surface);border:1px solid var(--border);
@@ -26,7 +27,7 @@ h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
 .scrape-mode-banner.scrape-failed{background:#1e0f00;border-color:#92400e;color:#fbbf24}
 .scrape-mode-banner.text-only{background:#0f172a;border-color:#334155;color:#94a3b8}
 /* ── Header ───────────────────────────────────────────────────────────────── */
-.vc-header{text-align:center;margin-bottom:1.75rem}
+.vc-header{text-align:center;margin-bottom:1.5rem}
 .brand-tag{display:inline-block;background:rgba(255,255,255,.06);
   border:1px solid var(--border);border-radius:6px;
   font-size:.72rem;font-weight:700;letter-spacing:.08em;
@@ -34,20 +35,82 @@ h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
 .product-name{font-size:1.6rem;font-weight:800;letter-spacing:-.5px;
   margin-bottom:.25rem}
 .product-url{font-size:.8rem;color:var(--muted)}
+/* ── TRIBE hero section ───────────────────────────────────────────────────── */
+.tribe-hero{background:linear-gradient(160deg,#0d0a1a,#0a0a14);
+  border:1px solid #2d1f5e;border-radius:var(--radius);
+  padding:1.5rem;margin-bottom:1.25rem;position:relative;overflow:hidden}
+.tribe-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed)}
+.tribe-label{display:flex;align-items:center;gap:.6rem;margin-bottom:1.1rem}
+.tribe-label-text{font-size:.72rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:#a78bfa}
+.tribe-badge{font-size:.65rem;padding:.15rem .5rem;border-radius:4px;
+  background:#1e1040;border:1px solid #4c1d95;color:#c4b5fd}
+/* ── Brain sim video ──────────────────────────────────────────────────────── */
+.brain-video-wrap{position:relative;border-radius:10px;overflow:hidden;
+  background:#000;border:1px solid #2d1f5e;margin-bottom:1rem}
+.brain-video-wrap video{width:100%;display:block;border-radius:10px}
+.video-caption{display:flex;align-items:center;justify-content:space-between;
+  padding:.45rem .75rem;background:#0a0815;
+  font-size:.7rem;color:var(--muted)}
+.video-caption-left{display:flex;align-items:center;gap:.5rem}
+.video-dot{width:7px;height:7px;border-radius:50%;background:#7c3aed;
+  animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.video-tabs{display:flex;gap:.4rem;margin-bottom:.5rem}
+.video-tab{font-size:.72rem;padding:.25rem .65rem;border-radius:6px;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);
+  background:var(--surface2);transition:all .2s}
+.video-tab.active{border-color:#7c3aed;color:#c4b5fd;background:#1e1040}
+/* ── NE metrics grid ──────────────────────────────────────────────────────── */
+.ne-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem}
+.ne-cell{background:#0d0a1a;border:1px solid #2d1f5e;border-radius:10px;
+  padding:.85rem;text-align:center}
+.ne-val{font-size:1.8rem;font-weight:900;color:var(--ne-color);line-height:1}
+.ne-val.big{font-size:2.4rem}
+.ne-sub{font-size:.65rem;color:var(--muted);margin-top:.2rem;line-height:1.3}
+.ne-tier{font-size:.78rem;font-weight:700;padding:.3rem .9rem;
+  border-radius:999px;display:inline-block;margin-top:.4rem}
+.ne-tier.low{background:#1e0f30;color:#c084fc;border:1px solid #6d28d9}
+.ne-tier.medium{background:#0f2010;color:#4ade80;border:1px solid #166534}
+.ne-tier.high{background:#1a1000;color:#fbbf24;border:1px solid #92400e}
+/* ── Interpretation bar ───────────────────────────────────────────────────── */
+.ne-interpretation{background:#0d0a1a;border:1px solid #2d1f5e;border-radius:8px;
+  padding:.75rem 1rem;font-size:.84rem;color:#d1d5db;line-height:1.55;margin-bottom:1rem}
+.ne-interpretation-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:#7c3aed;margin-bottom:.35rem}
+/* ── Neural breakdown bars ────────────────────────────────────────────────── */
+.ne-breakdown{margin-top:.25rem}
+.ne-br-row{display:flex;align-items:center;gap:.65rem;margin-bottom:.45rem}
+.ne-br-label{font-size:.75rem;color:var(--muted);width:120px;flex-shrink:0}
+.ne-br-bar-bg{flex:1;height:5px;background:#1e1040;border-radius:3px;overflow:hidden}
+.ne-br-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#c4b5fd)}
+.ne-br-val{font-size:.73rem;color:#c4b5fd;width:32px;text-align:right;flex-shrink:0}
+/* ── Pacing pill ──────────────────────────────────────────────────────────── */
+.pacing-pill{display:inline-flex;align-items:center;gap:.4rem;
+  padding:.25rem .65rem;border-radius:6px;font-size:.72rem;
+  background:#140e2a;border:1px solid #4c1d95;color:#c4b5fd;margin-top:.5rem}
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+.section-divider{display:flex;align-items:center;gap:1rem;
+  margin:1.75rem 0 1.25rem}
+.section-divider::before,.section-divider::after{content:'';flex:1;
+  height:1px;background:var(--border)}
+.section-divider-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap}
 /* ── Score ring ───────────────────────────────────────────────────────────── */
 .score-section{display:flex;flex-direction:column;align-items:center;
-  padding:2rem 1rem 1.5rem;position:relative}
-.ring-wrap{position:relative;width:160px;height:160px;margin-bottom:1rem}
+  padding:1.5rem 1rem 1.25rem;position:relative}
+.ring-wrap{position:relative;width:140px;height:140px;margin-bottom:.85rem}
 .ring-wrap svg{transform:rotate(-90deg)}
 .ring-number{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center}
-.ring-number .num{font-size:3.2rem;font-weight:900;color:var(--score-color);
+.ring-number .num{font-size:2.8rem;font-weight:900;color:var(--score-color);
   line-height:1}
-.ring-number .denom{font-size:.9rem;color:var(--muted)}
-.grade-badge{display:inline-block;padding:.45rem 1.4rem;border-radius:999px;
-  font-size:.85rem;font-weight:700;letter-spacing:.04em;
-  background:var(--score-color);color:#000;margin-bottom:.5rem}
-.grade-subtitle{font-size:.82rem;color:var(--muted)}
+.ring-number .denom{font-size:.85rem;color:var(--muted)}
+.grade-badge{display:inline-block;padding:.4rem 1.2rem;border-radius:999px;
+  font-size:.82rem;font-weight:700;letter-spacing:.04em;
+  background:var(--score-color);color:#000;margin-bottom:.4rem}
+.grade-subtitle{font-size:.79rem;color:var(--muted)}
 /* ── Dimension bars ───────────────────────────────────────────────────────── */
 .dim-row{margin-bottom:1rem}
 .dim-header{display:flex;justify-content:space-between;
@@ -132,6 +195,8 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
   .hook-box::before{color:rgba(180,130,0,.15)}
   .scrape-mode-banner{background:#f0f0f0!important;border-color:#ccc!important;
     color:#333!important}
+  .tribe-hero{background:#f8f5ff!important;border-color:#7c3aed!important}
+  .tribe-hero::before{display:none}
 }
 </style>
 </head>
@@ -139,7 +204,7 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
 
 <!-- ── Header ─────────────────────────────────────────────────────────────── -->
 <div class="vc-header">
-  <div class="brand-tag">Research Agent · Virality Predictor</div>
+  <div class="brand-tag">SHOPOS Research Agent · Virality Predictor</div>
   <h1 class="product-name">{{ product_name }}</h1>
   {% if url %}<div class="product-url">{{ url }}</div>{% endif %}
 </div>
@@ -163,16 +228,179 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
 </div>
 {% endif %}
 
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PRIMARY SECTION: META TRIBE v2 Neural Engagement Analysis
+     ═══════════════════════════════════════════════════════════════════════════ -->
+
+{% set ne = neural_engagement %}
+{% set has_tribe = tribe_sim_video_url or tribe_reel_video_url or (ne and ne.get("neural_engagement_score") is not none and not ne.get("error")) %}
+
+{% if has_tribe %}
+<div class="tribe-hero">
+  <div class="tribe-label">
+    <span class="tribe-label-text">Meta TRIBE v2 · Neural Engagement Analysis</span>
+    <span class="tribe-badge">fMRI Encoding Model</span>
+  </div>
+
+  {% if tribe_sim_video_url or tribe_reel_video_url %}
+  <!-- ── Brain simulation video ─────────────────────────────────────────────── -->
+  {% if tribe_sim_video_url and tribe_reel_video_url %}
+  <div class="video-tabs" id="vid-tabs">
+    <span class="video-tab active" onclick="switchVideo('sim')">Brain Simulation</span>
+    <span class="video-tab" onclick="switchVideo('reel')">Original Reel</span>
+  </div>
+  {% endif %}
+
+  <div class="brain-video-wrap">
+    <video id="vid-sim" controls autoplay muted loop playsinline
+           {% if not tribe_sim_video_url %}style="display:none"{% endif %}>
+      {% if tribe_sim_video_url %}<source src="{{ tribe_sim_video_url }}" type="video/mp4">{% endif %}
+    </video>
+    <video id="vid-reel" controls muted loop playsinline style="display:none">
+      {% if tribe_reel_video_url %}<source src="{{ tribe_reel_video_url }}" type="video/mp4">{% endif %}
+    </video>
+    <div class="video-caption">
+      <div class="video-caption-left">
+        <span class="video-dot"></span>
+        <span id="vid-caption-text">
+          {% if tribe_sim_video_url %}
+            Brain surface activation · left = reel frame · right = cortical response · 1 TR per second
+          {% else %}
+            Original product reel
+          {% endif %}
+        </span>
+      </div>
+      <span style="color:#4c1d95">TRIBE v2</span>
+    </div>
+  </div>
+
+  <script>
+  function switchVideo(which) {
+    const sim = document.getElementById('vid-sim');
+    const reel = document.getElementById('vid-reel');
+    const tabs = document.querySelectorAll('.video-tab');
+    const caption = document.getElementById('vid-caption-text');
+    if (which === 'sim') {
+      sim.style.display = '';  reel.style.display = 'none';
+      tabs[0].classList.add('active');  tabs[1].classList.remove('active');
+      caption.textContent = 'Brain surface activation · left = reel frame · right = cortical response · 1 TR per second';
+      sim.play();
+    } else {
+      reel.style.display = '';  sim.style.display = 'none';
+      tabs[1].classList.add('active');  tabs[0].classList.remove('active');
+      caption.textContent = 'Original product reel used for TRIBE v2 neural encoding';
+      reel.play();
+    }
+  }
+  </script>
+  {% endif %}
+
+  {% if ne and not ne.get("error") %}
+  {% set ne_score = ne.get("neural_engagement_score", 0) %}
+  {% set ne_tier  = (ne.get("tier") or "Low") | lower %}
+
+  <!-- ── NE metrics ──────────────────────────────────────────────────────────── -->
+  <div class="ne-grid">
+    <div class="ne-cell">
+      <div class="ne-val big">{{ ne_score }}</div>
+      <div class="ne-sub">Neural Engagement<br>Score /100</div>
+      <div class="ne-tier {{ ne_tier }}">{{ ne.get("tier") or "—" }}</div>
+    </div>
+    <div class="ne-cell">
+      <div class="ne-val">{{ ne.get("n_trs_analyzed", 0) }}s</div>
+      <div class="ne-sub">Video TRs<br>Analysed</div>
+    </div>
+    <div class="ne-cell">
+      <div class="ne-val">{{ ne.get("consistency_score", 0) }}</div>
+      <div class="ne-sub">Engagement<br>Consistency /100</div>
+    </div>
+  </div>
+
+  <!-- ── Interpretation ─────────────────────────────────────────────────────── -->
+  {% if ne.get("interpretation") %}
+  <div class="ne-interpretation">
+    <div class="ne-interpretation-label">Neural Interpretation</div>
+    {{ ne.interpretation }}
+  </div>
+  {% endif %}
+
+  <!-- ── Hook & pacing ──────────────────────────────────────────────────────── -->
+  <div class="ne-breakdown">
+    <div class="ne-br-row">
+      <span class="ne-br-label">Early Hook Ratio</span>
+      <div class="ne-br-bar-bg">
+        <div class="ne-br-bar-fill" style="width:{{ ((ne.get("early_hook_ratio") or 0) * 100) | round | int }}%"></div>
+      </div>
+      <span class="ne-br-val">{{ ((ne.get("early_hook_ratio") or 0) * 100) | round | int }}%</span>
+    </div>
+    <div class="ne-br-row">
+      <span class="ne-br-label">Mean Activation</span>
+      <div class="ne-br-bar-bg">
+        <div class="ne-br-bar-fill" style="width:{{ [((ne.get("mean_absolute_activation") or 0) * 1000) | round | int, 100] | min }}%"></div>
+      </div>
+      <span class="ne-br-val">{{ "%.3f" | format(ne.get("mean_absolute_activation") or 0) }}</span>
+    </div>
+  </div>
+
+  {% set pacing = ne.get("pacing") or {} %}
+  {% if pacing.get("pacing_label") %}
+  <div>
+    <span class="pacing-pill">
+      🎬 {{ pacing.pacing_label }}
+      &nbsp;·&nbsp; {{ pacing.get("cut_count", 0) }} cuts / {{ (pacing.get("duration_s") or 0) | round | int }}s
+    </span>
+  </div>
+  {% endif %}
+
+  <!-- ── Brain network scores ────────────────────────────────────────────────── -->
+  {% if brain_network_scores %}
+  <div style="margin-top:1.1rem;padding-top:1rem;border-top:1px solid #2d1f5e">
+    <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+         color:#7c3aed;margin-bottom:.65rem">Cortical Network Activation</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
+      {% for net_name, net_val in brain_network_scores.items() %}
+      <div class="ne-br-row" style="margin-bottom:.3rem">
+        <span class="ne-br-label" style="width:110px;font-size:.72rem">{{ net_name }}</span>
+        <div class="ne-br-bar-bg">
+          {% set net_pct = [net_val | round | int, 100] | min %}
+        <div class="ne-br-bar-fill" style="width:{{ net_pct }}%"></div>
+        </div>
+        <span class="ne-br-val">{{ net_val | round | int }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% endif %}{# end ne #}
+
+  <!-- ── License note ───────────────────────────────────────────────────────── -->
+  <div style="margin-top:.9rem;font-size:.62rem;color:#4c1d95">
+    Meta TRIBE v2 · CC-BY-NC-4.0 (non-commercial research use only)
+  </div>
+</div>
+{% endif %}{# end has_tribe #}
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SECONDARY SECTION: Product Virality Score
+     ═══════════════════════════════════════════════════════════════════════════ -->
+
+<div class="section-divider">
+  <span class="section-divider-label">Product Virality Analysis</span>
+</div>
+
 <!-- ── Score ring ──────────────────────────────────────────────────────────── -->
 <div class="card score-section">
-  {% set r = 70 %}
+  {% set r = 62 %}
   {% set circ = 2 * 3.14159 * r %}
   {% set dash = (score / 100) * circ %}
   <div class="ring-wrap">
-    <svg width="160" height="160" viewBox="0 0 160 160">
-      <circle cx="80" cy="80" r="{{ r }}" fill="none" stroke="#222" stroke-width="12"/>
-      <circle cx="80" cy="80" r="{{ r }}" fill="none"
-        stroke="{{ grade_color }}" stroke-width="12"
+    <svg width="140" height="140" viewBox="0 0 140 140">
+      <circle cx="70" cy="70" r="{{ r }}" fill="none" stroke="#222" stroke-width="11"/>
+      <circle cx="70" cy="70" r="{{ r }}" fill="none"
+        stroke="{{ grade_color }}" stroke-width="11"
         stroke-dasharray="{{ dash | round(2) }} {{ circ | round(2) }}"
         stroke-linecap="round"/>
     </svg>
@@ -184,22 +412,6 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
   <div class="grade-badge">{{ grade }}</div>
   <div class="grade-subtitle">Virality Potential Score</div>
 </div>
-
-<!-- ── Brain Activation Map ─────────────────────────────────────────────── -->
-{% if brain_map_svg %}
-<div class="card">
-  <h2>Brain Activation Map
-    <span style="font-size:.68rem;color:var(--muted);font-weight:400"> · How this content triggers the mind</span>
-  </h2>
-  <div style="margin:.5rem 0 .75rem">{{ brain_map_svg | safe }}</div>
-  {% set src_color = "#22c55e" if brain_map_source == "tribe_v2" else "#f59e0b" %}
-  {% set src_label = "Meta TRIBE v2 · fMRI predictions" if brain_map_source == "tribe_v2" else "Estimated · based on virality dimensions" %}
-  <div style="font-size:.61rem;color:#374151;margin-top:.25rem">
-    Source: <span style="color:{{ src_color }}">{{ src_label }}</span>
-    &nbsp;·&nbsp; CC-BY-NC-4.0 (non-commercial research use only)
-  </div>
-</div>
-{% endif %}
 
 <!-- ── Dimension bars ─────────────────────────────────────────────────────── -->
 <div class="card">
@@ -399,6 +611,6 @@ footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
 </div>
 {% endif %}
 
-<footer>Generated by <strong>Research Agent</strong> &nbsp;•&nbsp; {{ generated_at }}</footer>
+<footer>Generated by <strong>SHOPOS Research Agent</strong> &nbsp;•&nbsp; {{ generated_at }}</footer>
 </body>
 </html>

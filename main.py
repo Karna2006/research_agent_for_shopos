@@ -3737,6 +3737,27 @@ async def tribe_video(
     )
 
 
+@app.get("/tribe-video/{filename}")
+async def serve_tribe_video(filename: str):
+    """Serve pre-computed brain simulation MP4s from cache/tribe_videos/ for the virality predictor."""
+    from fastapi.responses import FileResponse
+
+    # Security: only allow safe filenames (hex hash + _brain/_reel + .mp4)
+    import re as _re_tv
+    if not _re_tv.fullmatch(r"[0-9a-f]{10,16}_(brain|reel)\.mp4", filename):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    video_path = _os.path.join("cache", "tribe_videos", filename)
+    if not _os.path.exists(video_path):
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    return FileResponse(
+        video_path,
+        media_type="video/mp4",
+        headers={"Content-Disposition": f"inline; filename=\"{filename}\""},
+    )
+
+
 @app.get("/report/section/{audit_id}/{agent_name}", response_class=HTMLResponse)
 async def get_section_html(audit_id: int, agent_name: str, session: Session = Depends(get_session)):
     """Return the HTML fragment for a single audit section — used by progressive reveal."""
