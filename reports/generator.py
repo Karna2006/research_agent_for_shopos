@@ -785,16 +785,22 @@ def _render_agentic_brain_section(audit_data: dict) -> str:
 </div>"""
 
 
-def _failed_section_placeholder(agent_key: str) -> str:
+def _failed_section_placeholder(agent_key: str, agent_result: dict | None = None) -> str:
     label = _SECTION_LABELS.get(agent_key, agent_key)
+    if agent_result and agent_result.get("data_gap_reason"):
+        explanation = agent_result["data_gap_reason"]
+    elif agent_result and agent_result.get("error"):
+        explanation = f"Error: {agent_result['error'][:200]}"
+    else:
+        explanation = "This agent did not receive input or timed out — no data available for this section."
     return (
         '<details class="section-accordion" open>'
         '<summary class="section-header" style="cursor:default">'
         f'<span class="section-title">{label}</span>'
         '<span class="section-score-badge" style="color:#6b7280">—</span>'
         '</summary>'
-        '<div class="section-body" style="padding:1.25rem 1.5rem;color:#6b7280;font-size:.87rem">'
-        '&#9888; This agent did not receive input or timed out — no data available for this section.'
+        f'<div class="section-body" style="padding:1.25rem 1.5rem;color:#6b7280;font-size:.87rem">'
+        f'&#9888; {explanation}'
         '</div></details>'
     )
 
@@ -810,7 +816,7 @@ def generate_audit_report(audit_data: dict) -> str:
     results = audit_data.get("results") or audit_data
     for key, result in results.items():
         if isinstance(result, dict) and result.get("status") in ("timeout", "failed"):
-            placeholder = _failed_section_placeholder(key)
+            placeholder = _failed_section_placeholder(key, result)
             section_pattern = rf'<!--\s*SECTION:{_re.escape(key)}\s*-->.*?<!--\s*/SECTION:{_re.escape(key)}\s*-->'
             replacement = f'<!-- SECTION:{key} -->{placeholder}<!-- /SECTION:{key} -->'
             html = _re.sub(section_pattern, replacement, html, flags=_re.DOTALL)
@@ -850,7 +856,7 @@ def generate_audit_report(audit_data: dict) -> str:
 def generate_virality_card(virality_data: dict) -> str:
     """Render the virality score card as an HTML string."""
     ctx = _build_virality_context(virality_data)
-    template = _env.get_template("virality_card.html")
+    template = _env.get_template("virality_landing.html")
     return template.render(**ctx)
 
 
@@ -1388,6 +1394,17 @@ def _build_audit_context(audit_data: dict) -> dict:  # noqa: C901
             if (bb_a.get("brand_name") or audit_data.get("brand_name")) else ""
         ),
         "res_tracxn_url":        (research.get("tracxn") or {}).get("tracxn_url") or "",
+        # ── New enrichment data ────────────────────────────────────────────────
+        "app_data":              research.get("app_data")     or {},
+        "trustpilot":            research.get("trustpilot")   or {},
+        "tech_stack":            research.get("tech_stack")   or {},
+        "domain_intel":          research.get("domain_intel") or {},
+        "reddit_data":           research.get("reddit_data")  or {},
+        # Content catalog enrichments
+        "cc_trust_signals":      content_catalog.get("trust_signals")  or {},
+        "cc_has_cross_sell":     content_catalog.get("has_cross_sell", False),
+        "cc_policy_pages":       content_catalog.get("policy_pages")   or {},
+        "cc_pdp_details":        content_catalog.get("pdp_details")    or [],
     }
 
 
@@ -1544,7 +1561,7 @@ def generate_section(agent_key: str, audit_data: dict) -> str:
     results = audit_data.get("results") or audit_data
     agent_result = results.get(agent_key) or {}
     if isinstance(agent_result, dict) and agent_result.get("status") in ("timeout", "failed"):
-        return _failed_section_placeholder(agent_key)
+        return _failed_section_placeholder(agent_key, agent_result)
 
     audit_data = validate_scores(audit_data)
     ctx = _build_audit_context(audit_data)

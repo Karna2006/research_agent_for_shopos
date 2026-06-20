@@ -136,68 +136,69 @@ def _radar_svg(sa: dict, sb: dict, la: str, lb: str) -> str:
         )
 
     grid = ""
-    for frac, opacity in [(0.25, "0.2"), (0.5, "0.25"), (0.75, "0.3"), (1.0, "0.45")]:
+    for frac, opacity in [(0.25, "0.15"), (0.5, "0.2"), (0.75, "0.25"), (1.0, "0.4")]:
         ring = " ".join(
             f"{cx + R * frac * math.cos(math.pi * 2 * i / n - math.pi / 2):.1f},"
             f"{cy + R * frac * math.sin(math.pi * 2 * i / n - math.pi / 2):.1f}"
             for i in range(n)
         )
-        grid += f'<polygon points="{ring}" fill="none" stroke="#3a3a3a" stroke-width="1" opacity="{opacity}"/>'
+        grid += f'<polygon points="{ring}" fill="none" stroke="#2a2a2a" stroke-width="1" opacity="{opacity}"/>'
 
     grid_labels = ""
     for frac, lbl in [(0.25, "2.5"), (0.5, "5"), (0.75, "7.5"), (1.0, "10")]:
-        gx, gy = cx + 3, cy - R * frac
+        gx, gy = cx + 4, cy - R * frac
         grid_labels += (
-            f'<text x="{gx:.0f}" y="{gy:.0f}" font-size="9" fill="#404040" '
-            f'font-family="system-ui,sans-serif" dominant-baseline="middle">{lbl}</text>'
+            f'<text x="{gx:.0f}" y="{gy:.0f}" font-size="8.5" fill="#333" '
+            f'font-family="\'Inter\',system-ui,sans-serif" dominant-baseline="middle">{lbl}</text>'
         )
 
     axes = ""
     for i in range(n):
         angle = math.pi * 2 * i / n - math.pi / 2
         ax, ay = cx + R * math.cos(angle), cy + R * math.sin(angle)
-        axes += f'<line x1="{cx:.0f}" y1="{cy:.0f}" x2="{ax:.1f}" y2="{ay:.1f}" stroke="#2e2e2e" stroke-width="1"/>'
+        axes += f'<line x1="{cx:.0f}" y1="{cy:.0f}" x2="{ax:.1f}" y2="{ay:.1f}" stroke="#232323" stroke-width="1"/>'
 
-    # B below A so A renders on top; 30% opacity fills
-    poly_b = f'<polygon points="{poly(sb)}" fill="rgba(245,158,11,.30)" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>'
-    poly_a = f'<polygon points="{poly(sa)}" fill="rgba(59,130,246,.30)" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round"/>'
+    # B below A so A renders on top; 30% opacity fills, updated to new palette
+    poly_b = f'<polygon points="{poly(sb)}" fill="rgba(252,211,77,.18)" stroke="#fcd34d" stroke-width="2" stroke-linejoin="round" stroke-dasharray="none"/>'
+    poly_a = f'<polygon points="{poly(sa)}" fill="rgba(96,165,250,.18)" stroke="#60a5fa" stroke-width="2" stroke-linejoin="round"/>'
 
     dots = ""
     for i, k in enumerate(_AXES_KEYS):
         ax, ay = pt(sa.get(k, 0), i)
         bx, by = pt(sb.get(k, 0), i)
         dots += (
-            f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="4.5" fill="#f59e0b" opacity=".9"/>'
-            f'<circle cx="{ax:.1f}" cy="{ay:.1f}" r="4.5" fill="#3b82f6" opacity=".9"/>'
+            f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="4" fill="#fcd34d" opacity=".95"/>'
+            f'<circle cx="{ax:.1f}" cy="{ay:.1f}" r="4" fill="#60a5fa" opacity=".95"/>'
         )
 
     label_els = ""
     for i, (key, lbl) in enumerate(zip(_AXES_KEYS, _AXES_LABELS)):
         angle = math.pi * 2 * i / n - math.pi / 2
-        lx = cx + (R + 32) * math.cos(angle)
-        ly = cy + (R + 32) * math.sin(angle)
+        lx = cx + (R + 33) * math.cos(angle)
+        ly = cy + (R + 33) * math.sin(angle)
         cos_a = math.cos(angle)
         anchor = "middle" if abs(cos_a) < 0.25 else ("start" if cos_a > 0 else "end")
         va = sa.get(key, 0)
         vb = sb.get(key, 0)
         label_els += (
-            f'<text x="{lx:.1f}" y="{ly - 5:.1f}" text-anchor="{anchor}" '
-            f'font-size="12" font-weight="600" fill="#d1d5db" font-family="system-ui,sans-serif">{lbl}</text>'
-            f'<text x="{lx:.1f}" y="{ly + 9:.1f}" text-anchor="{anchor}" font-size="10" '
-            f'font-family="system-ui,sans-serif">'
+            f'<text x="{lx:.1f}" y="{ly - 6:.1f}" text-anchor="{anchor}" '
+            f'font-size="11.5" font-weight="600" fill="#ededeb" '
+            f'font-family="\'Inter\',system-ui,sans-serif">{lbl}</text>'
+            f'<text x="{lx:.1f}" y="{ly + 8:.1f}" text-anchor="{anchor}" font-size="10" '
+            f'font-family="\'Inter\',system-ui,sans-serif">'
             f'<tspan fill="#60a5fa" font-weight="700">{va:.1f}</tspan>'
-            f'<tspan fill="#444"> vs </tspan>'
-            f'<tspan fill="#fbbf24" font-weight="700">{vb:.1f}</tspan>'
+            f'<tspan fill="#333" dx="2"> vs </tspan>'
+            f'<tspan fill="#fcd34d" font-weight="700">{vb:.1f}</tspan>'
             f'</text>'
         )
 
     la_short = la[:22]
     lb_short = lb[:22]
     legend = (
-        f'<rect x="8" y="8" width="15" height="15" rx="3" fill="rgba(59,130,246,.35)" stroke="#3b82f6" stroke-width="1.5"/>'
-        f'<text x="27" y="19" font-size="12" fill="#93c5fd" font-weight="600" font-family="system-ui,sans-serif">{la_short}</text>'
-        f'<rect x="8" y="28" width="15" height="15" rx="3" fill="rgba(245,158,11,.35)" stroke="#f59e0b" stroke-width="1.5"/>'
-        f'<text x="27" y="39" font-size="12" fill="#fcd34d" font-weight="600" font-family="system-ui,sans-serif">{lb_short}</text>'
+        f'<rect x="8" y="8" width="13" height="13" rx="3" fill="rgba(96,165,250,.2)" stroke="#60a5fa" stroke-width="1.5"/>'
+        f'<text x="26" y="18.5" font-size="11.5" fill="#93c5fd" font-weight="600" font-family="\'Inter\',system-ui,sans-serif">{la_short}</text>'
+        f'<rect x="8" y="27" width="13" height="13" rx="3" fill="rgba(252,211,77,.2)" stroke="#fcd34d" stroke-width="1.5"/>'
+        f'<text x="26" y="37.5" font-size="11.5" fill="#fcd34d" font-weight="600" font-family="\'Inter\',system-ui,sans-serif">{lb_short}</text>'
     )
 
     w, h = 440, 470
@@ -283,25 +284,27 @@ def _detail_row_html(key: str, results_a: dict, results_b: dict, la: str, lb: st
 
     def _kv(pairs: list) -> str:
         return "".join(
-            f'<div style="margin:.22rem 0;font-size:.79rem">'
-            f'<span style="color:#444;font-size:.72rem">{_esc(k)}: </span>'
-            f'<span style="color:#9ca3af">{_esc(v)}</span>'
+            f'<div style="margin:.28rem 0;font-size:.78rem;display:flex;gap:.4rem;align-items:baseline">'
+            f'<span style="color:#3a3a3a;font-size:.68rem;min-width:5rem;flex-shrink:0">{_esc(k)}</span>'
+            f'<span style="color:#a8a29e;line-height:1.45">{_esc(v)}</span>'
             f'</div>'
             for k, v in pairs
         )
 
     return (
         f'<tr id="detail-{key}" style="display:none;background:#0c0c0c">'
-        f'<td colspan="4" style="padding:.55rem 1rem 1rem 1.5rem">'
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding-top:.3rem">'
-        f'<div>'
-        f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.08em;color:#60a5fa;margin-bottom:.3rem">{_esc(la)}</div>'
+        f'<td colspan="4" style="padding:.6rem 1.25rem 1.1rem 1.25rem">'
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding-top:.4rem">'
+        f'<div style="background:#111;border:1px solid #1a1a1a;border-radius:8px;padding:.8rem 1rem">'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.1em;color:#60a5fa;margin-bottom:.5rem;padding-bottom:.35rem;'
+        f'border-bottom:1px solid #1a1a1a">{_esc(la)}</div>'
         f'{_kv(da)}'
         f'</div>'
-        f'<div>'
-        f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.08em;color:#fcd34d;margin-bottom:.3rem">{_esc(lb)}</div>'
+        f'<div style="background:#111;border:1px solid #1a1a1a;border-radius:8px;padding:.8rem 1rem">'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.1em;color:#fcd34d;margin-bottom:.5rem;padding-bottom:.35rem;'
+        f'border-bottom:1px solid #1a1a1a">{_esc(lb)}</div>'
         f'{_kv(db_)}'
         f'</div>'
         f'</div>'
@@ -314,12 +317,24 @@ def _detail_row_html(key: str, results_a: dict, results_b: dict, la: str, lb: st
 
 def _winner_cell(va: float, vb: float, la: str, lb: str) -> str:
     if abs(va - vb) < 0.15:
-        return '<span style="color:#444;font-size:.78rem">—</span>'
+        return (
+            '<span style="display:inline-flex;align-items:center;padding:.15rem .5rem;'
+            'border-radius:999px;font-size:.68rem;font-weight:600;'
+            'background:#1a1a1a;color:#57534e;border:1px solid #252525">tie</span>'
+        )
     if va > vb:
-        return (f'<span style="color:#60a5fa;font-weight:700;font-size:.79rem">'
-                f'{la[:14]} ✓</span>')
-    return (f'<span style="color:#fcd34d;font-weight:700;font-size:.79rem">'
-            f'{lb[:14]} ✓</span>')
+        return (
+            f'<span style="display:inline-flex;align-items:center;padding:.15rem .55rem;'
+            f'border-radius:999px;font-size:.7rem;font-weight:700;'
+            f'background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.25)">'
+            f'{la[:12]} ✓</span>'
+        )
+    return (
+        f'<span style="display:inline-flex;align-items:center;padding:.15rem .55rem;'
+        f'border-radius:999px;font-size:.7rem;font-weight:700;'
+        f'background:rgba(252,211,77,.1);color:#fcd34d;border:1px solid rgba(252,211,77,.25)">'
+        f'{lb[:12]} ✓</span>'
+    )
 
 
 def _score_table_html(
@@ -329,18 +344,23 @@ def _score_table_html(
 ) -> str:
     results_a = results_a or {}
     results_b = results_b or {}
-    cell_pad = "padding:.65rem .9rem"
+    cell_pad = "padding:.7rem 1rem"
     th = (
-        f'<tr style="background:#141414">'
-        f'<th style="{cell_pad};text-align:left;color:#6b7280;font-size:.71rem;font-weight:700;'
-        f'text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #1e1e1e">'
-        f'Dimension <span style="color:#333;font-size:.65rem;font-weight:400">(click to expand)</span></th>'
-        f'<th style="{cell_pad};text-align:center;color:#60a5fa;font-size:.8rem;font-weight:700;'
-        f'border-bottom:1px solid #1e1e1e">{la[:18]}</th>'
-        f'<th style="{cell_pad};text-align:center;color:#fcd34d;font-size:.8rem;font-weight:700;'
-        f'border-bottom:1px solid #1e1e1e">{lb[:18]}</th>'
-        f'<th style="{cell_pad};text-align:center;color:#6b7280;font-size:.71rem;font-weight:700;'
-        f'text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid #1e1e1e">Winner</th>'
+        f'<tr style="background:#0d0d0d">'
+        f'<th style="{cell_pad};text-align:left;color:#57534e;font-size:.65rem;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #1e1e1e">'
+        f'Dimension <span style="color:#2a2a2a;font-size:.62rem;font-weight:400">'
+        f'· click to expand</span></th>'
+        f'<th style="{cell_pad};text-align:center;border-bottom:1px solid #1e1e1e">'
+        f'<span style="display:inline-flex;align-items:center;padding:.18rem .6rem;border-radius:999px;'
+        f'font-size:.72rem;font-weight:700;background:rgba(96,165,250,.08);color:#60a5fa;'
+        f'border:1px solid rgba(96,165,250,.2)">{la[:18]}</span></th>'
+        f'<th style="{cell_pad};text-align:center;border-bottom:1px solid #1e1e1e">'
+        f'<span style="display:inline-flex;align-items:center;padding:.18rem .6rem;border-radius:999px;'
+        f'font-size:.72rem;font-weight:700;background:rgba(252,211,77,.08);color:#fcd34d;'
+        f'border:1px solid rgba(252,211,77,.2)">{lb[:18]}</span></th>'
+        f'<th style="{cell_pad};text-align:center;color:#57534e;font-size:.65rem;font-weight:700;'
+        f'text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #1e1e1e">Edge</th>'
         f'</tr>'
     )
 
@@ -348,17 +368,21 @@ def _score_table_html(
         va, vb = sa.get(key, 0), sb.get(key, 0)
         detail = _detail_row_html(key, results_a, results_b, la, lb)
         return (
-            f'<tr style="border-bottom:1px solid #181818;cursor:pointer" '
+            f'<tr style="border-bottom:1px solid #161616;cursor:pointer;'
+            f'transition:background .12s" onmouseover="this.style.background=\'#131313\'" '
+            f'onmouseout="this.style.background=\'\'" '
             f'onclick="_toggleRow(\'{key}\')">'
-            f'<td style="{cell_pad};color:#9ca3af;font-weight:600">'
+            f'<td style="{cell_pad};color:#a8a29e;font-weight:500;font-size:.85rem">'
             f'{dim_label}'
-            f'<span id="arr-{key}" style="color:#333;font-size:.72rem;margin-left:.4rem;'
-            f'transition:color .15s">▸</span>'
+            f'<span id="arr-{key}" style="color:#2a2a2a;font-size:.7rem;margin-left:.45rem;'
+            f'transition:color .15s;font-weight:400">▸</span>'
             f'</td>'
-            f'<td style="{cell_pad};color:{_score_color(va)};font-weight:700;text-align:center">'
-            f'{va:.1f}<span style="font-size:.73rem;color:#444;font-weight:400">/10</span></td>'
-            f'<td style="{cell_pad};color:{_score_color(vb)};font-weight:700;text-align:center">'
-            f'{vb:.1f}<span style="font-size:.73rem;color:#444;font-weight:400">/10</span></td>'
+            f'<td style="{cell_pad};color:{_score_color(va)};font-weight:700;text-align:center;'
+            f'font-size:.95rem;font-variant-numeric:tabular-nums">'
+            f'{va:.1f}<span style="font-size:.68rem;color:#3a3a3a;font-weight:400">/10</span></td>'
+            f'<td style="{cell_pad};color:{_score_color(vb)};font-weight:700;text-align:center;'
+            f'font-size:.95rem;font-variant-numeric:tabular-nums">'
+            f'{vb:.1f}<span style="font-size:.68rem;color:#3a3a3a;font-weight:400">/10</span></td>'
             f'<td style="{cell_pad};text-align:center">{_winner_cell(va, vb, la, lb)}</td>'
             f'</tr>'
             f'{detail}'
@@ -366,12 +390,15 @@ def _score_table_html(
 
     rows = "".join(dim_row(k, lbl) for k, lbl in _DIMS)
     overall_row = (
-        f'<tr style="border-top:2px solid #2a2a2a">'
-        f'<td style="{cell_pad};color:#e8e8e8;font-weight:800;font-size:.95rem">OVERALL</td>'
-        f'<td style="{cell_pad};color:{_score_color(oa)};font-weight:800;font-size:1.1rem;text-align:center">'
-        f'{oa:.1f}<span style="font-size:.73rem;color:#444;font-weight:400">/10</span></td>'
-        f'<td style="{cell_pad};color:{_score_color(ob)};font-weight:800;font-size:1.1rem;text-align:center">'
-        f'{ob:.1f}<span style="font-size:.73rem;color:#444;font-weight:400">/10</span></td>'
+        f'<tr style="border-top:2px solid #1e1e1e;background:#0d0d0d">'
+        f'<td style="{cell_pad};color:#ededeb;font-weight:800;font-size:.88rem;'
+        f'text-transform:uppercase;letter-spacing:.06em">Overall</td>'
+        f'<td style="{cell_pad};color:{_score_color(oa)};font-weight:800;font-size:1.15rem;'
+        f'text-align:center;font-variant-numeric:tabular-nums">'
+        f'{oa:.1f}<span style="font-size:.7rem;color:#3a3a3a;font-weight:400">/10</span></td>'
+        f'<td style="{cell_pad};color:{_score_color(ob)};font-weight:800;font-size:1.15rem;'
+        f'text-align:center;font-variant-numeric:tabular-nums">'
+        f'{ob:.1f}<span style="font-size:.7rem;color:#3a3a3a;font-weight:400">/10</span></td>'
         f'<td style="{cell_pad};text-align:center">{_winner_cell(oa, ob, la, lb)}</td>'
         f'</tr>'
     )
@@ -404,23 +431,25 @@ def _dim_verdicts_html(verdicts: list, la: str, lb: str) -> str:
         gap_html = '<span style="color:#555;font-size:.75rem">+' + gap_str + "</span>" if gap_str else ""
         fix_html = '<div style="font-size:.78rem;color:#f59e0b;border-left:2px solid #f59e0b44;padding-left:.55rem;margin-top:.3rem">Fix: ' + fix + "</div>" if fix else ""
         rows += (
-            f'<div style="background:#111;border:1px solid #1e1e1e;border-radius:8px;'
-            f'padding:.85rem 1rem;margin-bottom:.55rem">'
-            f'<div style="display:flex;align-items:baseline;justify-content:space-between;'
-            f'gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem">'
-            f'<span style="font-weight:700;color:#e8e8e8;font-size:.88rem">{dim}</span>'
-            f'<div style="display:flex;gap:.5rem;align-items:center">'
-            f'<span style="color:{winner_color};font-weight:700;font-size:.8rem">✓ {winner[:22]}</span>'
+            f'<div style="background:#111111;border:1px solid #1e1e1e;border-radius:8px;'
+            f'padding:.9rem 1.1rem;margin-bottom:.5rem;box-shadow:0 1px 3px rgba(0,0,0,.4)">'
+            f'<div style="display:flex;align-items:center;justify-content:space-between;'
+            f'gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem">'
+            f'<span style="font-weight:700;color:#ededeb;font-size:.87rem;letter-spacing:-.2px">{dim}</span>'
+            f'<div style="display:flex;gap:.45rem;align-items:center">'
+            f'<span style="display:inline-flex;align-items:center;padding:.12rem .5rem;border-radius:999px;'
+            f'font-size:.7rem;font-weight:700;background:{winner_color}18;color:{winner_color};'
+            f'border:1px solid {winner_color}33">✓ {winner[:20]}</span>'
             f'{gap_html}'
             f'</div>'
             f'</div>'
-            f'<div style="font-size:.82rem;color:#9ca3af;line-height:1.55;margin-bottom:.3rem">{why}</div>'
+            f'<div style="font-size:.81rem;color:#a8a29e;line-height:1.6;margin-bottom:.3rem">{why}</div>'
             f'{fix_html}'
             f'</div>'
         )
     return (
-        f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.09em;color:#6b7280;margin-bottom:.65rem">Dimension Verdicts</div>'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.12em;color:#57534e;margin-bottom:.7rem">Dimension Verdicts</div>'
         + rows
     )
 
@@ -435,19 +464,20 @@ def _steal_this_html(steal_this: list) -> str:
         why = _esc(item.get("why", ""))
         how = _esc(item.get("how", ""))
         cards += (
-            f'<div style="background:#0d1117;border:1px solid #1e3a5f;border-radius:8px;'
-            f'padding:.9rem 1rem">'
-            f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:.08em;color:#60a5fa;margin-bottom:.3rem">From {from_brand[:22]}</div>'
-            f'<div style="font-weight:700;color:#e8e8e8;font-size:.88rem;margin-bottom:.3rem">{what}</div>'
-            f'<div style="font-size:.8rem;color:#9ca3af;margin-bottom:.35rem">{why}</div>'
-            f'<div style="font-size:.78rem;color:#4ade80;border-left:2px solid #22c55e44;'
-            f'padding-left:.55rem">→ {how}</div>'
+            f'<div style="background:#111111;border:1px solid rgba(96,165,250,.18);border-radius:8px;'
+            f'padding:1rem 1.1rem;box-shadow:0 1px 3px rgba(0,0,0,.5)">'
+            f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.1em;color:#60a5fa;margin-bottom:.4rem">From {from_brand[:22]}</div>'
+            f'<div style="font-weight:700;color:#ededeb;font-size:.87rem;margin-bottom:.35rem;'
+            f'letter-spacing:-.2px">{what}</div>'
+            f'<div style="font-size:.79rem;color:#a8a29e;margin-bottom:.4rem;line-height:1.5">{why}</div>'
+            f'<div style="font-size:.77rem;color:#4ade80;border-left:2px solid rgba(74,222,128,.3);'
+            f'padding-left:.5rem;line-height:1.45">→ {how}</div>'
             f'</div>'
         )
     return (
-        f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.09em;color:#6b7280;margin:.9rem 0 .65rem">Steal This</div>'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.12em;color:#57534e;margin:.9rem 0 .65rem">Steal This</div>'
         f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:.9rem">'
         f'{cards}'
         f'</div>'
@@ -472,28 +502,32 @@ def _journey_html(journey: dict, la: str, lb: str) -> str:
         is_a = la[:20] in winner or winner.startswith("Brand A")
         w_color = "#60a5fa" if is_a else ("#fcd34d" if winner != "—" else "#555")
         rows += (
-            f'<tr style="border-bottom:1px solid #181818">'
-            f'<td style="padding:.6rem .85rem;color:#9ca3af;font-weight:600;'
-            f'font-size:.83rem;white-space:nowrap">{label}</td>'
-            f'<td style="padding:.6rem .85rem;color:{w_color};font-weight:700;font-size:.82rem">{winner}</td>'
-            f'<td style="padding:.6rem .85rem;color:#6b7280;font-size:.8rem">{evidence}</td>'
-            f'<td style="padding:.6rem .85rem;color:#d1d5db;font-size:.8rem">{verdict}</td>'
+            f'<tr style="border-bottom:1px solid #161616">'
+            f'<td style="padding:.65rem .9rem;color:#a8a29e;font-weight:600;'
+            f'font-size:.82rem;white-space:nowrap">{label}</td>'
+            f'<td style="padding:.65rem .9rem;font-weight:700;font-size:.8rem">'
+            f'<span style="display:inline-flex;align-items:center;padding:.12rem .5rem;border-radius:999px;'
+            f'font-size:.7rem;font-weight:700;background:{w_color}18;color:{w_color};border:1px solid {w_color}30">'
+            f'{winner}</span></td>'
+            f'<td style="padding:.65rem .9rem;color:#57534e;font-size:.78rem;line-height:1.45">{evidence}</td>'
+            f'<td style="padding:.65rem .9rem;color:#ededeb;font-size:.79rem;line-height:1.45">{verdict}</td>'
             f'</tr>'
         )
     return (
-        f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.09em;color:#6b7280;margin:.9rem 0 .65rem">Customer Journey Battleground</div>'
-        f'<div style="overflow-x:auto;border-radius:8px;border:1px solid #1e1e1e;margin-bottom:.9rem">'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.12em;color:#57534e;margin:.9rem 0 .65rem">Customer Journey Battleground</div>'
+        f'<div style="overflow-x:auto;border-radius:8px;border:1px solid #1e1e1e;'
+        f'margin-bottom:.9rem;box-shadow:0 1px 3px rgba(0,0,0,.4)">'
         f'<table style="width:100%;border-collapse:collapse;font-size:.85rem">'
-        f'<thead><tr style="background:#141414">'
-        f'<th style="padding:.5rem .85rem;text-align:left;color:#6b7280;font-size:.7rem;'
-        f'font-weight:700;text-transform:uppercase;border-bottom:1px solid #1e1e1e">Stage</th>'
-        f'<th style="padding:.5rem .85rem;text-align:left;color:#6b7280;font-size:.7rem;'
-        f'font-weight:700;text-transform:uppercase;border-bottom:1px solid #1e1e1e">Winner</th>'
-        f'<th style="padding:.5rem .85rem;text-align:left;color:#6b7280;font-size:.7rem;'
-        f'font-weight:700;text-transform:uppercase;border-bottom:1px solid #1e1e1e">Evidence</th>'
-        f'<th style="padding:.5rem .85rem;text-align:left;color:#6b7280;font-size:.7rem;'
-        f'font-weight:700;text-transform:uppercase;border-bottom:1px solid #1e1e1e">Verdict</th>'
+        f'<thead><tr style="background:#0d0d0d">'
+        f'<th style="padding:.55rem .9rem;text-align:left;color:#57534e;font-size:.63rem;'
+        f'font-weight:700;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #1e1e1e">Stage</th>'
+        f'<th style="padding:.55rem .9rem;text-align:left;color:#57534e;font-size:.63rem;'
+        f'font-weight:700;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #1e1e1e">Winner</th>'
+        f'<th style="padding:.55rem .9rem;text-align:left;color:#57534e;font-size:.63rem;'
+        f'font-weight:700;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #1e1e1e">Evidence</th>'
+        f'<th style="padding:.55rem .9rem;text-align:left;color:#57534e;font-size:.63rem;'
+        f'font-weight:700;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid #1e1e1e">Verdict</th>'
         f'</tr></thead>'
         f'<tbody>{rows}</tbody>'
         f'</table>'
@@ -518,29 +552,29 @@ def _findings_html(findings: dict, la: str, lb: str) -> str:
 
         if verdict:
             out += (
-                f'<div style="background:#141414;border:1px solid #1e1e1e;border-radius:10px;'
-                f'padding:1rem 1.25rem;margin-bottom:.75rem">'
-                f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-                f'letter-spacing:.09em;color:#9ca3af;margin-bottom:.4rem">⚔ Head-to-Head Verdict</div>'
-                f'<div style="font-size:.88rem;color:#d1d5db;line-height:1.7">{_esc(verdict)}</div>'
+                f'<div style="background:#111111;border:1px solid #252525;border-radius:10px;'
+                f'padding:1rem 1.25rem;margin-bottom:.75rem;box-shadow:0 1px 3px rgba(0,0,0,.4)">'
+                f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+                f'letter-spacing:.12em;color:#57534e;margin-bottom:.45rem">Head-to-Head Verdict</div>'
+                f'<div style="font-size:.87rem;color:#ededeb;line-height:1.7">{_esc(verdict)}</div>'
                 f'</div>'
             )
         if underdog:
             out += (
-                f'<div style="background:#160b00;border:1px solid #3d2600;border-radius:10px;'
-                f'padding:1rem 1.25rem;margin-bottom:.75rem">'
-                f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-                f'letter-spacing:.09em;color:#fb923c;margin-bottom:.4rem">🎯 Underdog Opportunity</div>'
-                f'<div style="font-size:.88rem;color:#fdba74;line-height:1.7">{_esc(underdog)}</div>'
+                f'<div style="background:rgba(251,146,60,.04);border:1px solid rgba(251,146,60,.18);'
+                f'border-radius:10px;padding:1rem 1.25rem;margin-bottom:.75rem">'
+                f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+                f'letter-spacing:.12em;color:#fb923c;margin-bottom:.45rem">Underdog Opportunity</div>'
+                f'<div style="font-size:.87rem;color:#fdba74;line-height:1.7">{_esc(underdog)}</div>'
                 f'</div>'
             )
         if blindspot:
             out += (
-                f'<div style="background:#0d0b16;border:1px solid #2d1b5e;border-radius:10px;'
-                f'padding:1rem 1.25rem">'
-                f'<div style="font-size:.66rem;font-weight:700;text-transform:uppercase;'
-                f'letter-spacing:.09em;color:#a78bfa;margin-bottom:.4rem">⚠ Shared Blindspot</div>'
-                f'<div style="font-size:.88rem;color:#c4b5fd;line-height:1.7">{_esc(blindspot)}</div>'
+                f'<div style="background:rgba(167,139,250,.04);border:1px solid rgba(167,139,250,.18);'
+                f'border-radius:10px;padding:1rem 1.25rem">'
+                f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+                f'letter-spacing:.12em;color:#a78bfa;margin-bottom:.45rem">Shared Blindspot</div>'
+                f'<div style="font-size:.87rem;color:#c4b5fd;line-height:1.7">{_esc(blindspot)}</div>'
                 f'</div>'
             )
         return f'<div class="card">{out}</div>'
@@ -548,10 +582,10 @@ def _findings_html(findings: dict, la: str, lb: str) -> str:
     # Fallback: old schema
     def bullets(items: list) -> str:
         if not items:
-            return '<li style="color:#555;padding:.28rem 0">No data available</li>'
+            return '<li style="color:#3a3a3a;padding:.28rem 0;font-size:.82rem">No data available</li>'
         return "".join(
-            f'<li style="padding:.35rem 0;border-bottom:1px solid #1c1c1c;'
-            f'color:#d1d5db;font-size:.87rem">{_esc(item)}</li>'
+            f'<li style="padding:.38rem 0;border-bottom:1px solid #1a1a1a;'
+            f'color:#ededeb;font-size:.85rem;line-height:1.5">{_esc(item)}</li>'
             for item in items[:3]
         )
 
@@ -561,39 +595,39 @@ def _findings_html(findings: dict, la: str, lb: str) -> str:
     opp    = findings.get("a_opportunity_vs_b", "")
 
     cols = (
-        f'<div style="background:#0d1520;border:1px solid #1e3a5f;border-radius:10px;'
-        f'padding:1.1rem 1.25rem">'
-        f'<div style="font-size:.67rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.09em;color:#60a5fa;margin-bottom:.65rem">Where {la[:20]} leads</div>'
+        f'<div style="background:rgba(96,165,250,.05);border:1px solid rgba(96,165,250,.18);'
+        f'border-radius:10px;padding:1.1rem 1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.3)">'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.12em;color:#60a5fa;margin-bottom:.7rem">Where {la[:20]} leads</div>'
         f'<ul style="list-style:none;padding:0">{bullets(a_wins)}</ul>'
         f'</div>'
-        + f'<div style="background:#160f00;border:1px solid #3d2600;border-radius:10px;'
-        f'padding:1.1rem 1.25rem">'
-        f'<div style="font-size:.67rem;font-weight:700;text-transform:uppercase;'
-        f'letter-spacing:.09em;color:#fcd34d;margin-bottom:.65rem">Where {lb[:20]} leads</div>'
+        + f'<div style="background:rgba(252,211,77,.05);border:1px solid rgba(252,211,77,.18);'
+        f'border-radius:10px;padding:1.1rem 1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.3)">'
+        f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+        f'letter-spacing:.12em;color:#fcd34d;margin-bottom:.7rem">Where {lb[:20]} leads</div>'
         f'<ul style="list-style:none;padding:0">{bullets(b_wins)}</ul>'
         f'</div>'
     )
     threat_block = ""
     if threat:
         threat_block = (
-            f'<div style="background:#160808;border:1px solid #3a1111;border-radius:10px;'
-            f'padding:1rem 1.25rem;margin-bottom:.75rem">'
-            f'<div style="font-size:.67rem;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:.09em;color:#f87171;margin-bottom:.45rem">'
-            f'⚠ Biggest threat to {la[:20]}</div>'
-            f'<div style="font-size:.88rem;color:#fca5a5;line-height:1.6">{_esc(threat)}</div>'
+            f'<div style="background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.2);'
+            f'border-radius:10px;padding:1rem 1.25rem;margin-bottom:.75rem">'
+            f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.12em;color:#f87171;margin-bottom:.45rem">'
+            f'Biggest Threat to {la[:20]}</div>'
+            f'<div style="font-size:.87rem;color:#fca5a5;line-height:1.6">{_esc(threat)}</div>'
             f'</div>'
         )
     opp_block = ""
     if opp:
         opp_block = (
-            f'<div style="background:#081608;border:1px solid #1a3a1a;border-radius:10px;'
-            f'padding:1rem 1.25rem">'
-            f'<div style="font-size:.67rem;font-weight:700;text-transform:uppercase;'
-            f'letter-spacing:.09em;color:#4ade80;margin-bottom:.45rem">'
-            f'✦ Biggest opportunity for {la[:20]}</div>'
-            f'<div style="font-size:.88rem;color:#86efac;line-height:1.6">{_esc(opp)}</div>'
+            f'<div style="background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.18);'
+            f'border-radius:10px;padding:1rem 1.25rem">'
+            f'<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;'
+            f'letter-spacing:.12em;color:#4ade80;margin-bottom:.45rem">'
+            f'Biggest Opportunity for {la[:20]}</div>'
+            f'<div style="font-size:.87rem;color:#86efac;line-height:1.6">{_esc(opp)}</div>'
             f'</div>'
         )
     return (
@@ -610,26 +644,98 @@ def _findings_html(findings: dict, la: str, lb: str) -> str:
 _CSS = """\
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0a0a0a;--card:#141414;--border:#1e1e1e;
-  --text:#e8e8e8;--muted:#6b7280;--blue:#3b82f6;--amber:#f59e0b;
-  --green:#22c55e;--red:#ef4444;--r:10px;
+  --bg:#0a0a0a;--surface:#111111;--surface2:#161616;
+  --border:#1e1e1e;--border2:#252525;
+  --text:#ededeb;--text2:#a8a29e;--muted:#57534e;
+  --a:#60a5fa;--a-bg:rgba(96,165,250,.08);--a-border:rgba(96,165,250,.2);
+  --b:#fcd34d;--b-bg:rgba(252,211,77,.08);--b-border:rgba(252,211,77,.2);
+  --green:#4ade80;--red:#f87171;--r:10px;
+  /* legacy aliases kept for inline styles */
+  --card:var(--surface);--border:var(--border);--blue:var(--a);--amber:var(--b);
 }
 html{font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-body{font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
-     max-width:960px;margin:0 auto;padding:0 1.5rem 5rem;line-height:1.6}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+  max-width:960px;margin:0 auto;padding:0 1.5rem 5rem;line-height:1.6;font-size:14px;
+}
 a{color:inherit;text-decoration:none}
-.sec-hdr{display:flex;align-items:baseline;gap:.75rem;padding-left:1rem;
-  border-left:4px solid var(--blue);margin:2.5rem 0 1.35rem}
-.sec-num{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--blue)}
-.sec-title{font-size:1.25rem;font-weight:700;letter-spacing:-.2px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem}
+
+/* ── Section headers ── */
+.sec-hdr{
+  display:flex;align-items:baseline;gap:.75rem;
+  padding:.15rem 0 .15rem 1rem;
+  border-left:3px solid var(--a);
+  margin:2.75rem 0 1.25rem;
+}
+.sec-eyebrow{
+  font-size:.62rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.12em;color:var(--muted);
+}
+.sec-num{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--a)}
+.sec-title{font-size:1.1rem;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+
+/* ── Cards ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.5rem;
+  box-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+
+/* ── KPI cards row ── */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.kpi-card{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:1.1rem 1.25rem;text-align:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.kpi-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.45rem}
+.kpi-score{font-size:2rem;font-weight:800;line-height:1;letter-spacing:-.04em}
+.kpi-sub{font-size:.7rem;color:var(--text2);margin-top:.3rem}
+
+/* ── Brand pills ── */
+.pill-a{
+  display:inline-flex;align-items:center;padding:.2rem .65rem;
+  border-radius:999px;font-size:.72rem;font-weight:700;
+  background:var(--a-bg);color:var(--a);border:1px solid var(--a-border);
+}
+.pill-b{
+  display:inline-flex;align-items:center;padding:.2rem .65rem;
+  border-radius:999px;font-size:.72rem;font-weight:700;
+  background:var(--b-bg);color:var(--b);border:1px solid var(--b-border);
+}
+
+/* ── SWOT grid ── */
 .swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1rem}
-.swot-card{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:1.25rem}
-footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem;
-  border-top:1px solid var(--border);margin-top:3rem;line-height:1.8}
-@media(max-width:600px){.swot-grid{grid-template-columns:1fr}}
+.swot-card{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:1.25rem;
+  box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+
+/* ── Toolbar ── */
+#cmp-toolbar{
+  background:rgba(10,10,10,.95);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+
+/* ── Footer ── */
+footer{
+  text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.75rem;
+  border-top:1px solid var(--border);margin-top:3rem;line-height:1.9;
+  letter-spacing:.01em;
+}
+
+/* ── Score bar helper ── */
+.score-bar-wrap{height:4px;background:var(--border2);border-radius:2px;margin-top:.4rem}
+.score-bar{height:4px;border-radius:2px;transition:width .3s}
+
+@media(max-width:640px){
+  .swot-grid{grid-template-columns:1fr}
+  .kpi-row{grid-template-columns:1fr}
+}
 @media print{
-  :root{--bg:#fff;--card:#f9f9f9;--border:#ddd;--text:#111;--muted:#555}
+  :root{--bg:#fff;--surface:#f9f9f9;--surface2:#f3f3f3;--border:#ddd;--text:#111;--muted:#555}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #cmp-toolbar,button,.no-print{display:none!important}
 }
@@ -645,48 +751,53 @@ def _compare_toolbar_html(
     share_token: Optional[str],
 ) -> str:
     btn = (
-        "display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .78rem;"
-        "border-radius:6px;border:1px solid #2a2a2a;background:#181818;"
-        "color:#e8e8e8;font-size:.76rem;font-weight:600;cursor:pointer;"
-        "text-decoration:none;white-space:nowrap"
+        "display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .75rem;"
+        "border-radius:6px;border:1px solid #252525;background:#161616;"
+        "color:#ededeb;font-size:.75rem;font-weight:600;cursor:pointer;"
+        "text-decoration:none;white-space:nowrap;font-family:inherit;"
+        "letter-spacing:-.01em;transition:opacity .15s"
     )
 
     if audit_id_a:
         link_a = (
             f'<a href="/report/{audit_id_a}" target="_blank" '
-            f'style="{btn};color:#60a5fa;border-color:rgba(59,130,246,.3)">'
-            f'↗ {la[:16]} Report</a>'
+            f'style="{btn};color:#60a5fa;border-color:rgba(96,165,250,.25);'
+            f'background:rgba(96,165,250,.07)">'
+            f'<span style="font-size:.8rem;opacity:.8">↗</span> {la[:16]}</a>'
         )
     else:
         link_a = (
             f'<button disabled title="Individual report not available for this brand" '
-            f'style="{btn};opacity:.35;cursor:not-allowed;color:#60a5fa">'
-            f'↗ {la[:16]} Report</button>'
+            f'style="{btn};opacity:.3;cursor:not-allowed;color:#60a5fa;'
+            f'border-color:rgba(96,165,250,.15);background:rgba(96,165,250,.04)">'
+            f'<span style="font-size:.8rem">↗</span> {la[:16]}</button>'
         )
 
     if audit_id_b:
         link_b = (
             f'<a href="/report/{audit_id_b}" target="_blank" '
-            f'style="{btn};color:#fcd34d;border-color:rgba(245,158,11,.3)">'
-            f'↗ {lb[:16]} Report</a>'
+            f'style="{btn};color:#fcd34d;border-color:rgba(252,211,77,.25);'
+            f'background:rgba(252,211,77,.07)">'
+            f'<span style="font-size:.8rem;opacity:.8">↗</span> {lb[:16]}</a>'
         )
     else:
         link_b = (
             f'<button disabled title="Individual report not available for this brand" '
-            f'style="{btn};opacity:.35;cursor:not-allowed;color:#fcd34d">'
-            f'↗ {lb[:16]} Report</button>'
+            f'style="{btn};opacity:.3;cursor:not-allowed;color:#fcd34d;'
+            f'border-color:rgba(252,211,77,.15);background:rgba(252,211,77,.04)">'
+            f'<span style="font-size:.8rem">↗</span> {lb[:16]}</button>'
         )
 
     share_path = json.dumps(f"/share/compare/{share_token}" if share_token else "")
 
     return (
         f'<div id="cmp-toolbar" style="position:sticky;top:0;z-index:200;'
-        f'background:rgba(10,10,10,.95);backdrop-filter:blur(8px);'
-        f'-webkit-backdrop-filter:blur(8px);border-bottom:1px solid #1e1e1e;'
-        f'padding:.45rem 1.5rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">'
+        f'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);'
+        f'padding:.5rem 1.5rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">'
         f'{link_a}'
         f'{link_b}'
-        f'<button id="cmp-share-btn" onclick="_shareCmp()" style="{btn}">📋 Share Comparison</button>'
+        f'<div style="flex:1"></div>'
+        f'<button id="cmp-share-btn" onclick="_shareCmp()" style="{btn}">Share</button>'
         f'</div>'
         f'<script>'
         f'function _shareCmp(){{'
@@ -972,60 +1083,68 @@ def generate_compare_report(
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>{la} vs {lb} — Competitive Comparison</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>{_CSS}</style>
 </head>
 <body>
 {toolbar}
 
 <!-- ── REPORT HEADER ── -->
-<header style="padding:2.5rem 0 1.75rem;border-bottom:1px solid var(--border);margin-bottom:2rem">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;
-    gap:2rem;flex-wrap:wrap">
-    <div>
-      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;
-        letter-spacing:.1em;color:var(--muted);margin-bottom:.4rem">Competitive Comparison</div>
-      <h1 style="font-size:1.85rem;font-weight:800;letter-spacing:-.4px;line-height:1.25">
-        <span style="color:#60a5fa">{la}</span>
-        <span style="color:var(--muted);font-weight:400;font-size:1.1rem;padding:0 .5rem">vs</span>
-        <span style="color:#fcd34d">{lb}</span>
-      </h1>
-      <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem;line-height:1.75">
-        {generated_at}<br>
-        <a href="{url_a}" target="_blank" style="color:#60a5fa;opacity:.8">{url_a}</a>
-        <span style="color:#333;padding:0 .4rem">·</span>
-        <a href="{url_b}" target="_blank" style="color:#fcd34d;opacity:.8">{url_b}</a>
-      </div>
-      {(f'<div style="margin-top:.65rem">{cache_badges}</div>') if cache_badges else ''}
-      {''.join([
-        f'<div style="margin-top:.55rem;display:inline-flex;align-items:center;gap:.4rem;'
-        f'padding:.3rem .7rem;background:#160808;border:1px solid #3a1111;border-radius:7px;'
-        f'font-size:.75rem;color:#fca5a5">⚠ {la} data unavailable — audit failed '
-        f'(site may be blocking access). Scores shown are estimated defaults.</div>'
-        if brand_a_failed else '',
-        f'<div style="margin-top:.55rem;display:inline-flex;align-items:center;gap:.4rem;'
-        f'padding:.3rem .7rem;background:#160808;border:1px solid #3a1111;border-radius:7px;'
-        f'font-size:.75rem;color:#fca5a5">⚠ {lb} data unavailable — audit failed '
-        f'(site may be blocking access). Scores shown are estimated defaults.</div>'
-        if brand_b_failed else '',
-      ])}
+<header style="padding:2.75rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2.25rem">
+  <div style="margin-bottom:1.35rem">
+    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;
+      letter-spacing:.14em;color:var(--muted);margin-bottom:.55rem">Competitive Analysis Report</div>
+    <h1 style="font-size:2rem;font-weight:800;letter-spacing:-.5px;line-height:1.2;margin-bottom:.55rem">
+      <span style="color:var(--a)">{la}</span>
+      <span style="color:var(--muted);font-weight:300;font-size:1.25rem;padding:0 .6rem">vs</span>
+      <span style="color:var(--b)">{lb}</span>
+    </h1>
+    <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;font-size:.78rem;color:var(--text2)">
+      <span>{generated_at}</span>
+      <span style="color:var(--border2)">·</span>
+      <a href="{url_a}" target="_blank"
+        style="color:var(--a);opacity:.75;text-decoration:none;font-size:.74rem">{url_a[:48]}{'…' if len(url_a) > 48 else ''}</a>
+      <span style="color:var(--border2)">·</span>
+      <a href="{url_b}" target="_blank"
+        style="color:var(--b);opacity:.75;text-decoration:none;font-size:.74rem">{url_b[:48]}{'…' if len(url_b) > 48 else ''}</a>
     </div>
+    {(f'<div style="margin-top:.65rem">{cache_badges}</div>') if cache_badges else ''}
+    {''.join([
+      f'<div style="margin-top:.6rem;display:inline-flex;align-items:center;gap:.4rem;'
+      f'padding:.3rem .8rem;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);'
+      f'border-radius:7px;font-size:.73rem;color:#f87171">⚠ {la} data unavailable — '
+      f'audit failed (site may be blocking access). Scores shown are estimated defaults.</div>'
+      if brand_a_failed else '',
+      f'<div style="margin-top:.6rem;display:inline-flex;align-items:center;gap:.4rem;'
+      f'padding:.3rem .8rem;background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);'
+      f'border-radius:7px;font-size:.73rem;color:#f87171">⚠ {lb} data unavailable — '
+      f'audit failed (site may be blocking access). Scores shown are estimated defaults.</div>'
+      if brand_b_failed else '',
+    ])}
+  </div>
 
-    <!-- Verdict card -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;
-      padding:1.1rem 1.5rem;text-align:center;flex-shrink:0;min-width:170px">
-      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;
-        letter-spacing:.1em;color:var(--muted);margin-bottom:.35rem">Overall Verdict</div>
-      <div style="font-size:.88rem;line-height:1.5;margin-bottom:.8rem">{verdict_html}</div>
-      <div style="display:flex;gap:1rem;justify-content:center;align-items:flex-end">
-        <div style="text-align:center">
-          <div style="font-size:1.6rem;font-weight:800;color:{verdict_color_a};line-height:1">{oa:.1f}</div>
-          <div style="font-size:.65rem;color:var(--muted);margin-top:.1rem">{la[:10]}</div>
-        </div>
-        <div style="color:#333;padding-bottom:.4rem">vs</div>
-        <div style="text-align:center">
-          <div style="font-size:1.6rem;font-weight:800;color:{verdict_color_b};line-height:1">{ob:.1f}</div>
-          <div style="font-size:.65rem;color:var(--muted);margin-top:.1rem">{lb[:10]}</div>
-        </div>
+  <!-- ── 3-col KPI cards ── -->
+  <div class="kpi-row">
+    <div class="kpi-card" style="border-color:var(--a-border)">
+      <div class="kpi-label" style="color:var(--a)">{la[:20]}</div>
+      <div class="kpi-score" style="color:{verdict_color_a}">{oa:.1f}</div>
+      <div class="kpi-sub">out of 10.0</div>
+      <div class="score-bar-wrap" style="margin-top:.65rem">
+        <div class="score-bar" style="width:{oa*10:.0f}%;background:var(--a)"></div>
+      </div>
+    </div>
+    <div class="kpi-card" style="text-align:center;border-color:var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="kpi-label">Verdict</div>
+      <div style="font-size:.88rem;line-height:1.55;font-weight:600;color:var(--text)">{verdict_html}</div>
+    </div>
+    <div class="kpi-card" style="border-color:var(--b-border)">
+      <div class="kpi-label" style="color:var(--b)">{lb[:20]}</div>
+      <div class="kpi-score" style="color:{verdict_color_b}">{ob:.1f}</div>
+      <div class="kpi-sub">out of 10.0</div>
+      <div class="score-bar-wrap" style="margin-top:.65rem">
+        <div class="score-bar" style="width:{ob*10:.0f}%;background:var(--b)"></div>
       </div>
     </div>
   </div>
@@ -1033,17 +1152,27 @@ def generate_compare_report(
 
 <!-- ── SECTION 1: RADAR CHART ── -->
 <div class="sec-hdr">
-  <span class="sec-num">01</span>
-  <span class="sec-title">Competitive Radar</span>
+  <div>
+    <div class="sec-eyebrow">Visual Overview</div>
+    <div style="display:flex;align-items:baseline;gap:.6rem">
+      <span class="sec-num">01</span>
+      <span class="sec-title">Competitive Radar</span>
+    </div>
+  </div>
 </div>
-<div class="card" style="display:flex;justify-content:center;padding:1.75rem 1.25rem">
+<div class="card" style="display:flex;justify-content:center;padding:2rem 1.5rem">
   {radar}
 </div>
 
 <!-- ── SECTION 2: SCORE TABLE ── -->
 <div class="sec-hdr">
-  <span class="sec-num">02</span>
-  <span class="sec-title">Score Breakdown</span>
+  <div>
+    <div class="sec-eyebrow">Dimension-by-Dimension</div>
+    <div style="display:flex;align-items:baseline;gap:.6rem">
+      <span class="sec-num">02</span>
+      <span class="sec-title">Score Breakdown</span>
+    </div>
+  </div>
 </div>
 <div class="card" style="padding:0;overflow:hidden">
   {table}
@@ -1051,32 +1180,47 @@ def generate_compare_report(
 
 <!-- ── SECTION 3: KEY FINDINGS ── -->
 <div class="sec-hdr">
-  <span class="sec-num">03</span>
-  <span class="sec-title">Key Findings</span>
+  <div>
+    <div class="sec-eyebrow">AI Analysis</div>
+    <div style="display:flex;align-items:baseline;gap:.6rem">
+      <span class="sec-num">03</span>
+      <span class="sec-title">Key Findings</span>
+    </div>
+  </div>
 </div>
 {findings_section}
 
 <!-- ── SECTION 4: SWOT ANALYSIS (loaded via JS) ── -->
 <div class="sec-hdr" id="swot-hdr" style="display:none">
-  <span class="sec-num">04</span>
-  <span class="sec-title">SWOT Analysis</span>
+  <div>
+    <div class="sec-eyebrow">Strengths · Weaknesses · Opportunities · Threats</div>
+    <div style="display:flex;align-items:baseline;gap:.6rem">
+      <span class="sec-num">04</span>
+      <span class="sec-title">SWOT Analysis</span>
+    </div>
+  </div>
 </div>
 <div id="swot-section"></div>
 
 <!-- ── SECTION 5: STRATEGY ── -->
 <div class="sec-hdr" id="strategy-hdr" style="display:none">
-  <span class="sec-num">05</span>
-  <span class="sec-title">90-Day Strategy Battle Plan</span>
+  <div>
+    <div class="sec-eyebrow">Actionable Roadmap</div>
+    <div style="display:flex;align-items:baseline;gap:.6rem">
+      <span class="sec-num">05</span>
+      <span class="sec-title">90-Day Strategy Battle Plan</span>
+    </div>
+  </div>
 </div>
-<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem">
-  <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem">
-    <div style="font-size:.84rem;color:var(--muted)">Get 90-day strategy for:</div>
+<div class="card">
+  <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem">
+    <div style="font-size:.82rem;color:var(--text2);font-weight:500">Generate 90-day strategy for:</div>
     <button id="btn-str-a" onclick="_loadStrategy('a')"
-      style="{btn_style};color:#60a5fa;border-color:rgba(59,130,246,.4);background:rgba(59,130,246,.06)">
+      style="{btn_style};color:var(--a);border-color:var(--a-border);background:var(--a-bg)">
       {la[:20]} →
     </button>
     <button id="btn-str-b" onclick="_loadStrategy('b')"
-      style="{btn_style};color:#fcd34d;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06)">
+      style="{btn_style};color:var(--b);border-color:var(--b-border);background:var(--b-bg)">
       {lb[:20]} →
     </button>
   </div>
@@ -1084,8 +1228,10 @@ def generate_compare_report(
 </div>
 
 <footer>
-  Generated by Research Agent &nbsp;·&nbsp; {generated_at}<br>
-  Scores derived from live brand audit data &nbsp;·&nbsp; Not financial advice
+  <span style="color:#3a3a3a">Generated by</span> SHOPOS Research Agent
+  &nbsp;<span style="color:#252525">·</span>&nbsp;
+  {generated_at}<br>
+  <span style="color:#2d2d2d">Scores derived from live brand audit data &nbsp;·&nbsp; Not financial advice</span>
 </footer>
 
 {dyn_js}

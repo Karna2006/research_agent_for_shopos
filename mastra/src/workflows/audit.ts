@@ -1,14 +1,14 @@
 /**
- * Audit Workflow
+ * Audit Workflow — Mastra dashboard observability layer.
  *
- * Two-step design:
- *   step 1 (run-agents): calls all 6 Python agent endpoints sequentially,
- *                        reports progress back after each one.
- *   step 2 (compile):    aggregates results, updates brand memory,
- *                        signals Python that the audit is complete.
+ * Python LangGraph is the real execution engine. This workflow:
+ *   step 1 (observe): mirrors what Python is running — calls all 8 agent
+ *                     endpoints in parallel (matching LangGraph's parallel phase)
+ *                     and reports each result back for dashboard visibility.
+ *   step 2 (compile): aggregates results, updates brand memory, signals done.
  *
- * Each step receives the ORIGINAL workflow input via getInitData() so
- * audit_id / url / brand_name are always available.
+ * NOTE: This workflow is triggered fire-and-forget by Python when an audit starts.
+ * Python never waits on this — it runs independently for the Mastra dashboard UI.
  */
 import { createWorkflow, createStep } from "@mastra/core/workflows";
 import { z } from "zod";
@@ -31,12 +31,14 @@ const TriggerSchema = z.object({
 });
 
 const AgentResultsSchema = z.object({
-  brand_basics:    z.unknown(),
-  content_catalog: z.unknown(),
-  performance_ads: z.unknown(),
-  geo_visibility:  z.unknown(),
-  store_cro:       z.unknown(),
-  research:        z.unknown(),
+  brand_basics:      z.unknown(),
+  content_catalog:   z.unknown(),
+  performance_ads:   z.unknown(),
+  geo_visibility:    z.unknown(),
+  store_cro:         z.unknown(),
+  research:          z.unknown(),
+  social_profile:    z.unknown(),
+  social_media_audit: z.unknown(),
 });
 
 const CompileOutputSchema = z.object({
@@ -80,11 +82,11 @@ async function reportProgress(
   }).catch(() => {});
 }
 
-// ── Step 1: Run all 6 agents ──────────────────────────────────────────────────
+// ── Step 1: Observe all 8 agents in parallel ──────────────────────────────────
 
 const stepRunAgents = createStep({
   id:           "run-agents",
-  inputSchema:  TriggerSchema,   // first step — receives trigger directly
+  inputSchema:  TriggerSchema,
   outputSchema: AgentResultsSchema,
   execute: async ({
     inputData,
@@ -93,41 +95,80 @@ const stepRunAgents = createStep({
   }): Promise<AgentResults> => {
     const { audit_id, url, brand_name } = inputData;
 
-    const pipeline: Array<{
-      key: keyof AgentResults;
-      endpoint: string;
-    }> = [
-      { key: "brand_basics",    endpoint: "/internal/agent/brand_basics" },
-      { key: "content_catalog", endpoint: "/internal/agent/content"      },
-      { key: "performance_ads", endpoint: "/internal/agent/ads"          },
-      { key: "geo_visibility",  endpoint: "/internal/agent/geo"          },
-      { key: "store_cro",       endpoint: "/internal/agent/store"        },
-      { key: "research",        endpoint: "/internal/agent/research"     },
-    ];
-
-    const results: Partial<AgentResults> = {};
-
-    for (const { key, endpoint } of pipeline) {
-      await reportProgress(audit_id, key, "running");
-      try {
-        results[key] = await callAgent(endpoint, url, brand_name);
-        await reportProgress(audit_id, key, "done", results[key]);
-      } catch (e: unknown) {
-        const err = e instanceof Error ? e.message : String(e);
-        results[key] = { agent: key, error: err };
-        await reportProgress(audit_id, key, "error", undefined, err);
-      }
+    // Phase 1: brand_basics alone (Python does this first for abort routing)
+    await reportProgress(audit_id, "brand_basics", "running");
+    let brandBasicsResult: unknown;
+    try {
+      brandBasicsResult = await callAgent("/internal/agent/brand_basics", url, brand_name);
+      await reportProgress(audit_id, "brand_basics", "done", brandBasicsResult);
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
+      brandBasicsResult = { agent: "brand_basics", error: err };
+      await reportProgress(audit_id, "brand_basics", "error", undefined, err);
     }
 
-    return results as AgentResults;
+    // Phase 2: core 5 agents in parallel (mirrors LangGraph node_core_parallel)
+    const coreAgents: Array<{ key: keyof AgentResults; endpoint: string }> = [
+      { key: "content_catalog", endpoint: "/internal/agent/content"   },
+      { key: "performance_ads", endpoint: "/internal/agent/ads"       },
+      { key: "geo_visibility",  endpoint: "/internal/agent/geo"       },
+      { key: "store_cro",       endpoint: "/internal/agent/store"     },
+      { key: "research",        endpoint: "/internal/agent/research"  },
+    ];
+
+    // Report all as running before firing
+    await Promise.all(coreAgents.map(({ key }) => reportProgress(audit_id, key, "running")));
+
+    const coreResults = await Promise.all(
+      coreAgents.map(async ({ key, endpoint }) => {
+        try {
+          const result = await callAgent(endpoint, url, brand_name);
+          await reportProgress(audit_id, key, "done", result);
+          return { key, result };
+        } catch (e: unknown) {
+          const err = e instanceof Error ? e.message : String(e);
+          await reportProgress(audit_id, key, "error", undefined, err);
+          return { key, result: { agent: key, error: err } };
+        }
+      }),
+    );
+
+    // Phase 3: social agents in parallel (mirrors LangGraph node_social_depth)
+    const socialAgents: Array<{ key: keyof AgentResults; endpoint: string }> = [
+      { key: "social_profile",    endpoint: "/internal/agent/social_profile"    },
+      { key: "social_media_audit", endpoint: "/internal/agent/social_media_audit" },
+    ];
+
+    await Promise.all(socialAgents.map(({ key }) => reportProgress(audit_id, key, "running")));
+
+    const socialResults = await Promise.all(
+      socialAgents.map(async ({ key, endpoint }) => {
+        try {
+          const result = await callAgent(endpoint, url, brand_name);
+          await reportProgress(audit_id, key, "done", result);
+          return { key, result };
+        } catch (e: unknown) {
+          const err = e instanceof Error ? e.message : String(e);
+          await reportProgress(audit_id, key, "error", undefined, err);
+          return { key, result: { agent: key, error: err } };
+        }
+      }),
+    );
+
+    // Assemble final results
+    const assembled: Partial<AgentResults> = { brand_basics: brandBasicsResult };
+    for (const { key, result } of [...coreResults, ...socialResults]) {
+      assembled[key] = result;
+    }
+    return assembled as AgentResults;
   },
 });
 
-// ── Step 2: Compile + memory + notify Python ──────────────────────────────────
+// ── Step 2: Compile + memory ──────────────────────────────────────────────────
 
 const stepCompile = createStep({
   id:           "compile-report",
-  inputSchema:  AgentResultsSchema,   // receives step 1 output
+  inputSchema:  AgentResultsSchema,
   outputSchema: CompileOutputSchema,
   execute: async ({
     inputData,
@@ -139,7 +180,7 @@ const stepCompile = createStep({
     const { audit_id, url, brand_name } = getInitData();
     const results = inputData as Record<string, unknown>;
 
-    // ── Brand memory note (via Python endpoint — Python writes to its own DB) ───
+    // Brand memory note — Python has full audit history, ask it for the trend
     let memoryNote: string | undefined;
     try {
       const resource  = brandResource(url);
@@ -147,7 +188,6 @@ const stepCompile = createStep({
       const currentGeoScore =
         (geoResult?.analysis as Record<string, unknown> | undefined)?.geo_score as number | undefined;
 
-      // Ask Python to compute and return the trend note (Python has full audit history)
       const memRes = await fetch(`${PYTHON_API}/internal/audit/${audit_id}/memory-note`, {
         method:  "POST",
         headers: iHeaders,
@@ -161,13 +201,6 @@ const stepCompile = createStep({
     } catch {
       // Memory is best-effort
     }
-
-    // ── Signal Python that the workflow is done ───────────────────────────────
-    await fetch(`${PYTHON_API}/internal/audit/${audit_id}/complete`, {
-      method:  "PUT",
-      headers: iHeaders,
-      body:    JSON.stringify({ results }),
-    }).catch(() => {});
 
     return { audit_id, url, brand_name, results, memory_note: memoryNote };
   },

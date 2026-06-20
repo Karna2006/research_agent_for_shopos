@@ -493,10 +493,9 @@ async def get_ads(
 
     # ── Attempt 0: Graph API (clean JSON, no browser needed) ────────────────
     api_result = await _fetch_via_graph_api(brand_name)
-    if api_result is not None:
-        # Token error → skip silently, try scraping
-        if api_result.value is not None or (api_result.error and "Token" in (api_result.error or "")):
-            return api_result
+    if api_result is not None and api_result.value is not None:
+        return api_result
+    # Token expired/invalid or no value → fall through to browser scraping
 
     # ── Attempt 1: Scrapling StealthyFetcher ────────────────────────────────
     if _SCRAPLING_AVAILABLE:
@@ -513,8 +512,16 @@ async def get_ads(
                 result = await _parse_meta_ads_soup(
                     page.soup, brand_name, source_url, manual_url, llm_client
                 )
+                # Only accept if we got actionable data (definitive not_found, or actual headlines/count)
                 if result is not None:
-                    return result
+                    v = result.value or {}
+                    has_data = (
+                        v.get("status") in ("not_found", "found_no_active")
+                        or (v.get("sample_headlines") and len(v["sample_headlines"]) > 0)
+                        or (isinstance(v.get("ads_count"), int))
+                    )
+                    if has_data:
+                        return result
         except Exception:
             pass
 

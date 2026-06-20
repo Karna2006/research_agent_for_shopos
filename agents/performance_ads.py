@@ -119,6 +119,15 @@ SEARCH — creative / UGC signals:
                 "display_message": ads_data.get("display_message"),
                 "manual_check_url": ads_result.manual_check_url,
             }
+
+            # Build human-readable data gap reason
+            if ads_data.get("status") == "not_found":
+                out["data_gap_reason"] = f"No active Meta ads found for '{brand_name}'. Brand may be organic-only, or the brand name didn't match in the Ad Library. Verify manually at the meta_ads_library_url."
+            elif ads_data.get("status") == "found_no_active":
+                out["data_gap_reason"] = "Brand is in Meta Ad Library but has 0 active ads — either paused or running only organic content."
+            elif ads_data.get("ads_count") == 0 or not ads_data:
+                out["data_gap_reason"] = "Meta Ads Library scrape reached the page but could not extract ad data — Facebook's ad card selectors may have changed. Manual review recommended."
+
             out["analysis"] = analysis
             out["sources_used"] = [dr.to_dict() for dr in sources]
             out["status"] = "partial" if ads_result.fallback_used else "complete"
@@ -131,6 +140,7 @@ SEARCH — creative / UGC signals:
 
         except Exception as exc:
             out["error"] = str(exc)
+            out["data_gap_reason"] = f"Performance ads agent failed: {type(exc).__name__}: {str(exc)[:150]}"
             out["status"] = "failed"
             out["sources_used"] = [dr.to_dict() for dr in sources]
             out["data_coverage"] = "unavailable"

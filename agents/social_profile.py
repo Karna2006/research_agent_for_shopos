@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from scrapers.result import DataResult
 from scrapers.instagram_scraper import scrape_instagram_profile
 from scrapers.instagram_handle_finder import discover_handle
+from scrapers.ig_handle_cache import get_cached_handle, store_handle
 
 if TYPE_CHECKING:
     from llm.client import GroqClient
@@ -189,12 +190,18 @@ class SocialProfileAgent:
         sources: list[DataResult] = []
 
         try:
-            # ── Step 1: Find Instagram username (multi-strategy) ──────────────
-            username, ig_confidence = await discover_handle(
-                brand_name=brand_name,
-                website_url=url,
-                search_agent=self.search,
-            )
+            # ── Step 1: Find Instagram username (cache → multi-strategy) ─────
+            _cached = get_cached_handle(url)
+            if _cached:
+                username, ig_confidence = _cached
+                print(f"  [social_profile] IG handle cache hit: @{username} ({ig_confidence})", flush=True)
+            else:
+                username, ig_confidence = await discover_handle(
+                    brand_name=brand_name,
+                    website_url=url,
+                    search_agent=self.search,
+                )
+                store_handle(url, username, ig_confidence)
 
             # ── Step 2: Fetch Instagram profile via mobile API + Playwright ────
             # Uses scrapers/instagram_scraper.py — no instaloader, no auth required.

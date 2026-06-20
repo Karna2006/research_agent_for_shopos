@@ -79,6 +79,12 @@ def _migrate_columns() -> None:
         except Exception:
             pass  # comparerun may not exist on first run
 
+        # IgHandleCache table — added later, may not exist
+        try:
+            inspect(engine).get_columns("ighandlecache")
+        except Exception:
+            pass  # create_all handles it
+
         # Backfill NULL share_tokens so every audit has a shareable link
         try:
             if _DB_BACKEND == "sqlite":

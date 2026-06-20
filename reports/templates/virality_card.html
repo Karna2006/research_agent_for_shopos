@@ -3,659 +3,985 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Virality Score — {{ product_name }}</title>
+<title>Viral Potential — {{ product_name }}</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--border:#252525;
-  --text:#ededed;--muted:#777;--radius:14px;
-  --score-color:{{ grade_color }};
-  --ne-color:#a78bfa;
+  --bg:#0d0d0d;--s1:#111111;--s2:#171717;--s3:#1e1e1e;
+  --border:#252525;--border2:#2e2e2e;
+  --accent:#CAFF4B;--accent-dim:rgba(202,255,75,.12);--accent-glow:rgba(202,255,75,.25);
+  --text:#ffffff;--text2:#a0a0a0;--text3:#555555;
+  --red:#FF4B4B;--blue:#4B9EFF;--orange:#FF8C4B;--green:#4BFF8C;--purple:#A78BFA;--gold:#FFD04B;
+  --r:14px;--r-lg:20px;
+  --grade-color:{{ grade_color }};
 }
-html{font-size:15px;background:var(--bg);color:var(--text)}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-     max-width:720px;margin:0 auto;padding:2rem 1.25rem 3rem;line-height:1.6}
-h2{font-size:1rem;font-weight:600;color:var(--muted);text-transform:uppercase;
-   letter-spacing:.1em;margin-bottom:.75rem}
-.card{background:var(--surface);border:1px solid var(--border);
-      border-radius:var(--radius);padding:1.4rem;margin-bottom:1.25rem}
-/* ── Scrape mode banner ───────────────────────────────────────────────────── */
-.scrape-mode-banner{display:flex;align-items:center;gap:.6rem;
-  border-radius:8px;padding:.55rem .9rem;margin-bottom:1.25rem;
-  font-size:.8rem;font-weight:600;border:1px solid transparent}
-.scrape-mode-banner.url-based{background:#0d2010;border-color:#166534;color:#86efac}
-.scrape-mode-banner.scrape-failed{background:#1e0f00;border-color:#92400e;color:#fbbf24}
-.scrape-mode-banner.text-only{background:#0f172a;border-color:#334155;color:#94a3b8}
-/* ── Header ───────────────────────────────────────────────────────────────── */
-.vc-header{text-align:center;margin-bottom:1.5rem}
-.brand-tag{display:inline-block;background:rgba(255,255,255,.06);
-  border:1px solid var(--border);border-radius:6px;
-  font-size:.72rem;font-weight:700;letter-spacing:.08em;
-  padding:.2rem .6rem;color:var(--muted);margin-bottom:.75rem}
-.product-name{font-size:1.6rem;font-weight:800;letter-spacing:-.5px;
-  margin-bottom:.25rem}
-.product-url{font-size:.8rem;color:var(--muted)}
-/* ── TRIBE hero section ───────────────────────────────────────────────────── */
-.tribe-hero{background:linear-gradient(160deg,#0d0a1a,#0a0a14);
-  border:1px solid #2d1f5e;border-radius:var(--radius);
-  padding:1.5rem;margin-bottom:1.25rem;position:relative;overflow:hidden}
-.tribe-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#7c3aed,#a78bfa,#7c3aed)}
-.tribe-label{display:flex;align-items:center;gap:.6rem;margin-bottom:1.1rem}
-.tribe-label-text{font-size:.72rem;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;color:#a78bfa}
-.tribe-badge{font-size:.65rem;padding:.15rem .5rem;border-radius:4px;
-  background:#1e1040;border:1px solid #4c1d95;color:#c4b5fd}
-/* ── Brain sim video ──────────────────────────────────────────────────────── */
-.brain-video-wrap{position:relative;border-radius:10px;overflow:hidden;
-  background:#000;border:1px solid #2d1f5e;margin-bottom:1rem}
-.brain-video-wrap video{width:100%;display:block;border-radius:10px}
-.video-caption{display:flex;align-items:center;justify-content:space-between;
-  padding:.45rem .75rem;background:#0a0815;
-  font-size:.7rem;color:var(--muted)}
-.video-caption-left{display:flex;align-items:center;gap:.5rem}
-.video-dot{width:7px;height:7px;border-radius:50%;background:#7c3aed;
-  animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.video-tabs{display:flex;gap:.4rem;margin-bottom:.5rem}
-.video-tab{font-size:.72rem;padding:.25rem .65rem;border-radius:6px;
-  cursor:pointer;border:1px solid var(--border);color:var(--muted);
-  background:var(--surface2);transition:all .2s}
-.video-tab.active{border-color:#7c3aed;color:#c4b5fd;background:#1e1040}
-/* ── NE metrics grid ──────────────────────────────────────────────────────── */
-.ne-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-bottom:1rem}
-.ne-cell{background:#0d0a1a;border:1px solid #2d1f5e;border-radius:10px;
-  padding:.85rem;text-align:center}
-.ne-val{font-size:1.8rem;font-weight:900;color:var(--ne-color);line-height:1}
-.ne-val.big{font-size:2.4rem}
-.ne-sub{font-size:.65rem;color:var(--muted);margin-top:.2rem;line-height:1.3}
-.ne-tier{font-size:.78rem;font-weight:700;padding:.3rem .9rem;
-  border-radius:999px;display:inline-block;margin-top:.4rem}
+html{font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 2rem;
+  background:rgba(13,13,13,.85);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{display:flex;align-items:center;gap:.65rem;font-size:.82rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.nav-logo-dot{width:28px;height:28px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#000;letter-spacing:0}
+.nav-badge{font-size:.68rem;font-weight:600;padding:.2rem .65rem;border-radius:999px;background:rgba(202,255,75,.1);border:1px solid rgba(202,255,75,.3);color:var(--accent);letter-spacing:.04em}
+.nav-right{display:flex;align-items:center;gap:1rem}
+.nav-score{font-size:1.1rem;font-weight:900;color:var(--accent)}
+.nav-label{font-size:.72rem;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:calc(56px + 4rem) 2rem 4rem;position:relative;overflow:hidden}
+.hero-grid{max-width:1200px;margin:0 auto;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+.hero-bg-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:700px;height:400px;border-radius:50%;background:radial-gradient(ellipse,rgba(202,255,75,.06) 0%,transparent 70%);pointer-events:none}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:.5rem;font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:1.25rem}
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hero-title{font-size:clamp(2.4rem,5vw,4.5rem);font-weight:900;line-height:1.0;letter-spacing:-.02em;margin-bottom:1.25rem;text-transform:uppercase}
+.hero-title-accent{color:var(--accent)}
+.hero-sub{font-size:1.05rem;color:var(--text2);line-height:1.7;max-width:520px;margin-bottom:2rem}
+.hero-product-pill{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem .9rem;border-radius:999px;background:var(--s2);border:1px solid var(--border2);font-size:.82rem;font-weight:600;color:var(--text2);margin-bottom:2rem}
+.hero-product-pill strong{color:var(--text)}
+.hero-cta{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.75rem;border-radius:999px;background:var(--accent);color:#000;font-size:.9rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;cursor:pointer;border:none;transition:transform .15s,box-shadow .15s}
+.hero-cta:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(202,255,75,.35)}
+.hero-cta-ghost{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.75rem;border-radius:999px;background:transparent;color:var(--text);font-size:.9rem;font-weight:600;border:1px solid var(--border2);cursor:pointer;transition:border-color .15s;text-decoration:none}
+.hero-cta-ghost:hover{border-color:var(--text2)}
+.hero-actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+
+/* Hero Score Panel */
+.hero-score-panel{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);padding:2rem;position:relative;overflow:hidden}
+.hero-score-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.hero-score-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.hero-score-tag{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.hero-grade-pill{padding:.25rem .75rem;border-radius:6px;font-size:.8rem;font-weight:800;letter-spacing:.06em;background:var(--grade-color);color:#000}
+.hero-score-ring-wrap{display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;position:relative}
+.hero-score-ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hero-score-big{font-size:3.2rem;font-weight:900;color:var(--accent);line-height:1}
+.hero-score-denom{font-size:.9rem;color:var(--text3);font-weight:500}
+.hero-score-label{text-align:center;font-size:.82rem;color:var(--text2);font-weight:500;margin-bottom:1.5rem}
+.hero-dim-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+.hero-dim-label{font-size:.72rem;color:var(--text2);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-dim-bar{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.hero-dim-fill{height:100%;border-radius:2px;background:var(--accent);opacity:.85}
+.hero-dim-val{font-size:.7rem;color:var(--text3);width:24px;text-align:right;flex-shrink:0}
+
+/* HOW IT WORKS */
+.hiw{padding:5rem 2rem;border-top:1px solid var(--border)}
+.hiw-inner{max-width:1200px;margin:0 auto}
+.section-title{font-size:clamp(1.6rem,3vw,2.8rem);font-weight:900;text-transform:uppercase;letter-spacing:.02em;text-align:center;margin-bottom:.75rem}
+.section-sub{font-size:.95rem;color:var(--text2);text-align:center;max-width:560px;margin:0 auto 3rem;line-height:1.7}
+.hiw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+.hiw-card{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);padding:2rem 1.5rem;position:relative;overflow:hidden}
+.hiw-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity .2s}
+.hiw-card:hover::after{opacity:1}
+.hiw-num{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:1.25rem}
+.hiw-icon{width:56px;height:56px;border-radius:14px;background:var(--s2);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;font-size:1.5rem}
+.hiw-card-title{font-size:1.05rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem}
+.hiw-card-desc{font-size:.85rem;color:var(--text2);line-height:1.7}
+.hiw-brain-preview{width:100%;aspect-ratio:1;border-radius:10px;background:radial-gradient(ellipse at center,rgba(202,255,75,.08) 0%,transparent 70%);display:flex;align-items:center;justify-content:center;margin-top:1.25rem}
+
+/* SCRAPE BANNER */
+.scrape-banner{display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.75rem;padding:.45rem 1rem;border-radius:8px;font-size:.78rem;font-weight:600}
+.scrape-banner.url-based{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);color:#86efac}
+.scrape-banner.scrape-failed{background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);color:#fbbf24}
+.scrape-banner.text-only{background:rgba(148,163,184,.07);border:1px solid rgba(148,163,184,.2);color:#94a3b8}
+
+/* RESULTS */
+.results{padding:5rem 2rem;border-top:1px solid var(--border);background:linear-gradient(180deg,var(--bg) 0%,rgba(202,255,75,.015) 50%,var(--bg) 100%)}
+.results-inner{max-width:1200px;margin:0 auto}
+.results-split{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
+.results-score-panel{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);padding:2rem}
+.rsp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.rsp-tag{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.rsp-badge{font-size:.8rem;font-weight:700;padding:.28rem .75rem;border-radius:6px;background:var(--grade-color);color:#000}
+.rsp-ring-wrap{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:.6rem}
+.rsp-ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rsp-num{font-size:4rem;font-weight:900;color:var(--accent);line-height:1}
+.rsp-denom{font-size:.95rem;color:var(--text3);font-weight:500}
+.rsp-grade-label{text-align:center;font-size:.88rem;color:var(--text2);margin-bottom:2rem;font-weight:500}
+.net-section-label{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:1rem;padding-top:1.25rem;border-top:1px solid var(--border)}
+.net-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.65rem}
+.net-name{font-size:.78rem;color:var(--text2);width:130px;flex-shrink:0}
+.net-bar-bg{flex:1;height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.net-bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.net-val{font-size:.75rem;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+
+/* Brain panel */
+.results-brain-panel{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);padding:2rem;display:flex;flex-direction:column}
+.rbp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.rbp-tag{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.rbp-live{display:flex;align-items:center;gap:.4rem;font-size:.68rem;font-weight:600;color:var(--accent)}
+.rbp-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+.brain-viz{flex:1;min-height:260px;background:radial-gradient(ellipse at 50% 45%,rgba(202,255,75,.07) 0%,transparent 65%);border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.brain-viz-svg{width:100%;max-width:280px;height:auto}
+.brain-score-overlay{position:absolute;bottom:1rem;right:1rem;background:rgba(13,13,13,.85);backdrop-filter:blur(8px);border:1px solid var(--border2);border-radius:10px;padding:.65rem 1rem;text-align:center;min-width:90px}
+.bso-val{font-size:1.8rem;font-weight:900;color:var(--accent);line-height:1}
+.bso-label{font-size:.65rem;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-top:.2rem}
+.tribe-badge-panel{display:flex;align-items:center;gap:.5rem;margin-top:1rem;padding:.6rem .9rem;border-radius:8px;background:rgba(202,255,75,.05);border:1px solid rgba(202,255,75,.15)}
+.tribe-badge-text{font-size:.72rem;color:var(--accent);font-weight:600}
+.tribe-badge-sub{font-size:.68rem;color:var(--text3)}
+.ne-net-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+
+/* TRIBE VIDEO */
+.tribe-section{padding:5rem 2rem;border-top:1px solid var(--border)}
+.tribe-inner{max-width:1200px;margin:0 auto}
+.tribe-split{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
+.tribe-video-wrap{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden}
+.tribe-video-header{padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tvh-title{font-size:.82rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em}
+.tvh-badge{font-size:.65rem;font-weight:700;padding:.2rem .55rem;border-radius:4px;background:rgba(202,255,75,.1);border:1px solid rgba(202,255,75,.25);color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.tribe-video-tabs{display:flex;gap:.4rem;padding:.75rem 1.5rem .25rem}
+.tvt{font-size:.72rem;padding:.3rem .7rem;border-radius:6px;cursor:pointer;border:1px solid var(--border2);color:var(--text3);background:var(--s2);transition:all .15s}
+.tvt.active{border-color:rgba(202,255,75,.4);color:var(--accent);background:rgba(202,255,75,.08)}
+video{width:100%;display:block;max-height:420px;object-fit:contain;background:#000}
+.tribe-video-caption{padding:.6rem 1.25rem;background:var(--s2);display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:var(--text3);border-top:1px solid var(--border)}
+.tribe-video-dot{width:6px;height:6px;border-radius:50%;background:#7c3aed;animation:blink 2s infinite;flex-shrink:0}
+
+/* NE panel */
+.ne-panel{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);padding:2rem}
+.ne-score-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.ne-cell{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:1.1rem;text-align:center}
+.ne-big{font-size:2.4rem;font-weight:900;color:var(--accent);line-height:1}
+.ne-small{font-size:1.6rem;font-weight:900;color:var(--accent);line-height:1}
+.ne-sub{font-size:.65rem;color:var(--text3);margin-top:.25rem;line-height:1.35}
+.ne-tier{display:inline-block;margin-top:.4rem;font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px}
 .ne-tier.low{background:#1e0f30;color:#c084fc;border:1px solid #6d28d9}
 .ne-tier.medium{background:#0f2010;color:#4ade80;border:1px solid #166534}
-.ne-tier.high{background:#1a1000;color:#fbbf24;border:1px solid #92400e}
-/* ── Interpretation bar ───────────────────────────────────────────────────── */
-.ne-interpretation{background:#0d0a1a;border:1px solid #2d1f5e;border-radius:8px;
-  padding:.75rem 1rem;font-size:.84rem;color:#d1d5db;line-height:1.55;margin-bottom:1rem}
-.ne-interpretation-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;
-  text-transform:uppercase;color:#7c3aed;margin-bottom:.35rem}
-/* ── Neural breakdown bars ────────────────────────────────────────────────── */
-.ne-breakdown{margin-top:.25rem}
-.ne-br-row{display:flex;align-items:center;gap:.65rem;margin-bottom:.45rem}
-.ne-br-label{font-size:.75rem;color:var(--muted);width:120px;flex-shrink:0}
-.ne-br-bar-bg{flex:1;height:5px;background:#1e1040;border-radius:3px;overflow:hidden}
-.ne-br-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#c4b5fd)}
-.ne-br-val{font-size:.73rem;color:#c4b5fd;width:32px;text-align:right;flex-shrink:0}
-/* ── Pacing pill ──────────────────────────────────────────────────────────── */
-.pacing-pill{display:inline-flex;align-items:center;gap:.4rem;
-  padding:.25rem .65rem;border-radius:6px;font-size:.72rem;
-  background:#140e2a;border:1px solid #4c1d95;color:#c4b5fd;margin-top:.5rem}
-/* ── Divider ──────────────────────────────────────────────────────────────── */
-.section-divider{display:flex;align-items:center;gap:1rem;
-  margin:1.75rem 0 1.25rem}
-.section-divider::before,.section-divider::after{content:'';flex:1;
-  height:1px;background:var(--border)}
-.section-divider-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted);white-space:nowrap}
-/* ── Score ring ───────────────────────────────────────────────────────────── */
-.score-section{display:flex;flex-direction:column;align-items:center;
-  padding:1.5rem 1rem 1.25rem;position:relative}
-.ring-wrap{position:relative;width:140px;height:140px;margin-bottom:.85rem}
-.ring-wrap svg{transform:rotate(-90deg)}
-.ring-number{position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center}
-.ring-number .num{font-size:2.8rem;font-weight:900;color:var(--score-color);
-  line-height:1}
-.ring-number .denom{font-size:.85rem;color:var(--muted)}
-.grade-badge{display:inline-block;padding:.4rem 1.2rem;border-radius:999px;
-  font-size:.82rem;font-weight:700;letter-spacing:.04em;
-  background:var(--score-color);color:#000;margin-bottom:.4rem}
-.grade-subtitle{font-size:.79rem;color:var(--muted)}
-/* ── Dimension bars ───────────────────────────────────────────────────────── */
-.dim-row{margin-bottom:1rem}
-.dim-header{display:flex;justify-content:space-between;
-  align-items:baseline;margin-bottom:.3rem}
-.dim-label{font-size:.88rem;font-weight:500}
-.dim-score{font-size:.88rem;font-weight:700;color:var(--score-color)}
-.dim-bar-bg{height:7px;background:var(--border);border-radius:4px;overflow:hidden}
-.dim-bar-fill{height:100%;border-radius:4px;
-  background:linear-gradient(90deg,var(--score-color)80%,transparent);
-  transition:width .5s ease}
-.dim-reasoning{font-size:.78rem;color:var(--muted);margin-top:.3rem;
-  padding-left:.1rem}
-.dim-evidence{font-size:.74rem;color:#4b9cd3;margin-top:.28rem;
-  padding-left:.1rem;font-style:italic;line-height:1.45}
-.dim-evidence::before{content:"↳ Evidence: "}
-.dim-signals{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem}
-.dim-signal{font-size:.72rem;background:rgba(255,255,255,.05);
-  border:1px solid var(--border);border-radius:4px;padding:.15rem .45rem;
-  color:var(--muted)}
-/* ── Visual signals grid ──────────────────────────────────────────────────── */
-.vs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.65rem}
-.vs-item{background:var(--surface2);border:1px solid var(--border);
-  border-radius:8px;padding:.6rem .75rem;text-align:center}
-.vs-val{font-size:1.1rem;font-weight:700;color:var(--score-color);line-height:1.2}
-.vs-lbl{font-size:.68rem;color:var(--muted);margin-top:.18rem;line-height:1.3}
-.vs-yes{color:#22c55e}.vs-no{color:#6b7280}.vs-partial{color:#f59e0b}
-/* ── Killer hook ──────────────────────────────────────────────────────────── */
-.hook-box{background:linear-gradient(135deg,#1a1000,#0d0d00);
-  border:1px solid #3d2e00;border-radius:var(--radius);padding:1.25rem 1.5rem;
-  position:relative;overflow:hidden}
-.hook-box::before{content:'"';position:absolute;top:-.3rem;left:.5rem;
-  font-size:6rem;color:rgba(245,158,11,.12);font-family:Georgia,serif;
-  line-height:1}
-.hook-label{font-size:.72rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:#f59e0b;margin-bottom:.5rem}
-.hook-text{font-size:1.15rem;font-weight:600;color:#fde68a;
-  line-height:1.45;position:relative}
-/* ── Viral angles ─────────────────────────────────────────────────────────── */
-.angle-card{background:var(--surface2);border:1px solid var(--border);
-  border-radius:10px;padding:1rem;display:flex;gap:.75rem;align-items:flex-start}
-.angle-num{width:28px;height:28px;border-radius:50%;
-  background:var(--score-color);color:#000;font-weight:700;font-size:.8rem;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
+.ne-tier.high{background:rgba(202,255,75,.1);color:var(--accent);border:1px solid rgba(202,255,75,.3)}
+.ne-interpret{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.25rem}
+.ne-interpret-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.3rem}
+.ne-interpret-text{font-size:.84rem;color:var(--text2);line-height:1.6}
+.ne-br-row{display:flex;align-items:center;gap:.65rem;margin-bottom:.5rem}
+.ne-br-label{font-size:.74rem;color:var(--text2);width:120px;flex-shrink:0}
+.ne-br-bg{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.ne-br-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#7c3aed,#c4b5fd)}
+.ne-br-val{font-size:.72rem;color:var(--text3);width:34px;text-align:right;flex-shrink:0}
+
+/* ENGAGEMENT EXPLAINER */
+.engage-section{padding:5rem 2rem;border-top:1px solid var(--border)}
+.engage-inner{max-width:1200px;margin:0 auto}
+.engage-split{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+.engage-copy h2{font-size:clamp(2rem,4vw,3.5rem);font-weight:900;text-transform:uppercase;letter-spacing:.02em;margin-bottom:1rem;line-height:1.05}
+.engage-copy p{font-size:1rem;color:var(--text2);line-height:1.8;max-width:440px}
+.engage-visual{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);padding:2rem;display:flex;flex-direction:column;gap:1rem}
+.engage-big-ring{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:.5rem}
+.engage-ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.eng-num{font-size:3.4rem;font-weight:900;color:var(--accent);line-height:1}
+.eng-sub{font-size:.8rem;color:var(--text3)}
+.engage-bars{display:flex;flex-direction:column;gap:.65rem}
+.engage-bar-row{display:flex;align-items:center;gap:.75rem}
+.engage-bar-label{font-size:.78rem;color:var(--text2);width:130px;flex-shrink:0}
+.engage-bar-bg{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
+.engage-bar-fill{height:100%;border-radius:3px}
+.engage-bar-val{font-size:.78rem;font-weight:700;width:38px;text-align:right;flex-shrink:0}
+
+/* BREAKDOWN */
+.breakdown{padding:5rem 2rem;border-top:1px solid var(--border)}
+.breakdown-inner{max-width:1200px;margin:0 auto}
+.breakdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:3rem}
+.dim-card{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);padding:1.4rem;transition:border-color .2s}
+.dim-card:hover{border-color:rgba(202,255,75,.25)}
+.dim-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem}
+.dim-card-label{font-size:.82rem;font-weight:700;color:var(--text)}
+.dim-card-score{font-size:1.1rem;font-weight:900}
+.dim-card-bar-bg{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:.75rem}
+.dim-card-bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.dim-card-reason{font-size:.78rem;color:var(--text2);line-height:1.55}
+.dim-card-evidence{font-size:.74rem;color:var(--blue);margin-top:.4rem;line-height:1.45}
+.dim-card-evidence::before{content:"↳ "}
+.dim-card-signals{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem}
+.dim-sig{font-size:.68rem;background:var(--s2);border:1px solid var(--border2);border-radius:4px;padding:.12rem .4rem;color:var(--text3)}
+
+/* HOOK */
+.hook-section{padding:4rem 2rem;border-top:1px solid var(--border)}
+.hook-inner{max-width:1200px;margin:0 auto}
+.hook-box{background:linear-gradient(135deg,rgba(202,255,75,.06),rgba(202,255,75,.02));border:1px solid rgba(202,255,75,.2);border-radius:var(--r-lg);padding:2.5rem 3rem;position:relative;overflow:hidden}
+.hook-box::before{content:'"';position:absolute;top:-1rem;left:1.5rem;font-size:9rem;color:rgba(202,255,75,.06);font-family:Georgia,serif;line-height:1}
+.hook-label{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.9rem}
+.hook-text{font-size:clamp(1.2rem,2.5vw,1.9rem);font-weight:700;color:var(--text);line-height:1.4;position:relative;font-style:italic}
+
+/* VIRAL ANGLES */
+.angles-section{padding:4rem 2rem;border-top:1px solid var(--border)}
+.angles-inner{max-width:1200px;margin:0 auto}
+.angles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin-top:2.5rem}
+.angle-card{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);padding:1.4rem;display:flex;gap:1rem;transition:border-color .2s,transform .2s}
+.angle-card:hover{border-color:rgba(202,255,75,.2);transform:translateY(-2px)}
+.angle-num{width:32px;height:32px;border-radius:8px;background:var(--accent);color:#000;font-weight:800;font-size:.82rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
 .angle-body{flex:1;min-width:0}
-.angle-text{font-size:.88rem;line-height:1.5;color:var(--text)}
-.angle-meta{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem}
-.angle-chip{font-size:.7rem;border-radius:4px;padding:.12rem .4rem;
-  border:1px solid var(--border);color:var(--muted)}
-.angle-chip.platform{border-color:#3b82f660;color:#93c5fd}
-.angle-chip.hook{border-color:#a78bfa60;color:#c4b5fd;font-style:italic}
-.angle-chip.reach{border-color:#22c55e60;color:#86efac}
-/* ── Platform badges ──────────────────────────────────────────────────────── */
-.platform-badges{display:flex;flex-wrap:wrap;gap:.5rem}
-.platform-badge{display:flex;align-items:center;gap:.4rem;
-  padding:.35rem .8rem;border-radius:8px;font-size:.82rem;font-weight:600;
-  border:1px solid var(--border);background:var(--surface2)}
-/* ── Creator profile ──────────────────────────────────────────────────────── */
-.creator-box{background:var(--surface);border-left:3px solid var(--score-color);
-  padding:.75rem 1rem;border-radius:0 8px 8px 0;font-size:.88rem;
-  color:var(--muted);font-style:italic}
-/* ── Risk factors ─────────────────────────────────────────────────────────── */
-ul.risks{list-style:none;padding:0}
-ul.risks li{padding:.3rem 0;padding-left:1.2rem;position:relative;
-  font-size:.87rem;color:var(--muted)}
-ul.risks li::before{content:"⚠";position:absolute;left:0;font-size:.75rem}
-/* ── Comparable products ──────────────────────────────────────────────────── */
-ul.comparables{list-style:none;padding:0}
-ul.comparables li{padding:.3rem 0;padding-left:1.2rem;position:relative;
-  font-size:.87rem}
-ul.comparables li::before{content:"→";position:absolute;left:0;
-  color:var(--score-color)}
-/* ── Footer ───────────────────────────────────────────────────────────────── */
-footer{text-align:center;margin-top:2rem;color:var(--muted);font-size:.78rem;
-  padding-top:1rem;border-top:1px solid var(--border)}
-/* ── Download FAB ─────────────────────────────────────────────────────────── */
-.dl-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;
-  display:flex;gap:.5rem;flex-direction:column;align-items:flex-end}
-.dl-btn{display:flex;align-items:center;gap:.5rem;
-  padding:.55rem 1.1rem;border-radius:999px;font-size:.82rem;font-weight:700;
-  cursor:pointer;border:none;transition:opacity .2s}
-.dl-btn.pdf{background:#7c3aed;color:#fff}
-.dl-btn.tab{background:#1e1e1e;color:var(--muted);border:1px solid var(--border)}
-.dl-btn:hover{opacity:.85}
-@media print{.dl-fab{display:none}}
-/* ── Print ────────────────────────────────────────────────────────────────── */
-@media print{
-  :root{--bg:#fff;--surface:#f5f5f5;--surface2:#efefef;--border:#ddd;
-    --text:#111;--muted:#555}
-  body{background:#fff;color:#111}
-  .hook-box{background:#fffde7;border-color:#e6c500}
-  .hook-text{color:#7a5200}
-  .hook-box::before{color:rgba(180,130,0,.15)}
-  .scrape-mode-banner{background:#f0f0f0!important;border-color:#ccc!important;
-    color:#333!important}
-  .tribe-hero{background:#f8f5ff!important;border-color:#7c3aed!important}
-  .tribe-hero::before{display:none}
+.angle-text{font-size:.88rem;line-height:1.55;color:var(--text)}
+.angle-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem}
+.angle-chip{font-size:.68rem;border-radius:4px;padding:.15rem .45rem;border:1px solid var(--border2);color:var(--text3)}
+.angle-chip.platform{border-color:rgba(75,158,255,.3);color:var(--blue)}
+.angle-chip.hook{border-color:rgba(167,139,250,.3);color:var(--purple);font-style:italic}
+.angle-chip.reach{border-color:rgba(75,255,140,.3);color:var(--green)}
+
+/* PLATFORMS */
+.platforms-section{padding:3rem 2rem;border-top:1px solid var(--border)}
+.platforms-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.platform-badges{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.25rem}
+.platform-badge{display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:10px;background:var(--s1);border:1px solid var(--border2);font-size:.85rem;font-weight:600;color:var(--text)}
+.creator-box{background:var(--s1);border:1px solid var(--border2);border-left:3px solid var(--accent);border-radius:0 var(--r) var(--r) 0;padding:1.25rem 1.5rem;font-size:.9rem;color:var(--text2);line-height:1.7;font-style:italic;margin-top:1.25rem}
+
+/* RISK */
+.risk-section{padding:3rem 2rem;border-top:1px solid var(--border)}
+.risk-inner{max-width:1200px;margin:0 auto}
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-top:1.5rem}
+.risk-item{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);padding:.9rem 1.1rem;display:flex;align-items:flex-start;gap:.65rem;font-size:.84rem;color:var(--text2);line-height:1.5}
+.risk-icon{font-size:.9rem;flex-shrink:0;margin-top:.05rem}
+
+/* COMPARABLE */
+.comparable-section{padding:3rem 2rem;border-top:1px solid var(--border)}
+.comparable-inner{max-width:1200px;margin:0 auto}
+.comparable-list{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.25rem}
+.comparable-chip{padding:.45rem 1rem;border-radius:999px;background:var(--s1);border:1px solid var(--border2);font-size:.82rem;color:var(--text2)}
+.comparable-chip::before{content:"→ ";color:var(--accent);font-weight:700}
+
+/* Visual Signals */
+.vs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:1.25rem}
+.vs-cell{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:.9rem;text-align:center}
+.vs-val{font-size:1.1rem;font-weight:700;color:var(--accent);line-height:1.2}
+.vs-lbl{font-size:.68rem;color:var(--text3);margin-top:.18rem;line-height:1.3}
+.vs-yes{color:#22c55e}.vs-no{color:#555}.vs-partial{color:#f59e0b}
+
+/* SECTION UTILITY */
+.section-label{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
+
+/* FOOTER */
+footer{padding:2.5rem 2rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;max-width:100%}
+.footer-brand{font-size:.78rem;color:var(--text3);font-weight:500}
+.footer-brand strong{color:var(--text2)}
+.footer-right{display:flex;align-items:center;gap:1.5rem}
+.footer-link{font-size:.75rem;color:var(--text3);text-decoration:none}
+
+/* FAB */
+.fab{position:fixed;bottom:1.75rem;right:1.75rem;z-index:50;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end}
+.fab-btn{display:flex;align-items:center;gap:.5rem;padding:.55rem 1.1rem;border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer;border:none;transition:opacity .15s,transform .15s}
+.fab-btn:hover{opacity:.85;transform:translateY(-1px)}
+.fab-pdf{background:var(--accent);color:#000}
+.fab-share{background:var(--s2);border:1px solid var(--border2);color:var(--text2)}
+
+@media print{.fab{display:none}nav{display:none}.hero{min-height:unset;padding-top:2rem}}
+@media(max-width:860px){
+  .hero-grid,.results-split,.tribe-split,.engage-split,.platforms-inner{grid-template-columns:1fr}
+  .hiw-grid{grid-template-columns:1fr}
+  .breakdown-grid{grid-template-columns:1fr}
+  .hero-score-panel{margin-top:2rem}
+  nav{padding:.7rem 1.25rem}
+  .hero{padding:calc(56px + 2.5rem) 1.25rem 3rem}
+  .hiw,.results,.tribe-section,.engage-section,.breakdown,.hook-section,.angles-section,.platforms-section,.risk-section,.comparable-section{padding:3.5rem 1.25rem}
 }
 </style>
 </head>
 <body>
 
-<!-- ── Header ─────────────────────────────────────────────────────────────── -->
-<div class="vc-header">
-  <div class="brand-tag">SHOPOS Research Agent · Virality Predictor</div>
-  <h1 class="product-name">{{ product_name }}</h1>
-  {% if url %}<div class="product-url">{{ url }}</div>{% endif %}
-</div>
-
-<!-- ── Scrape mode banner ──────────────────────────────────────────────────── -->
-{% if scrape_mode == "url_based" %}
-<div class="scrape-mode-banner url-based">
-  🔍 URL-based analysis — scores backed by scraped images and page content
-</div>
-{% elif scrape_mode == "scrape_failed" %}
-<div class="scrape-mode-banner scrape-failed">
-  ⚠ URL not accessible — scored from description only. Add a working product URL for image-based analysis.
-</div>
-{% elif fallback_warning %}
-<div class="scrape-mode-banner text-only">
-  ℹ {{ fallback_warning }}
-</div>
-{% else %}
-<div class="scrape-mode-banner text-only">
-  ℹ No URL provided — scored from description only. Add a product URL for visual signal analysis.
-</div>
-{% endif %}
-
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     PRIMARY SECTION: META TRIBE v2 Neural Engagement Analysis
-     ═══════════════════════════════════════════════════════════════════════════ -->
-
 {% set ne = neural_engagement %}
 {% set has_tribe = tribe_sim_video_url or tribe_reel_video_url or (ne and ne.get("neural_engagement_score") is not none and not ne.get("error")) %}
+{% set ne_score = (ne.get("neural_engagement_score", 0) if ne and not ne.get("error") else 0) %}
+{% set net_labels = {"control": "Exec. Control", "default": "Default Mode", "attention": "Attention", "limbic": "Limbic", "motor": "Motor", "visual": "Visual", "reward": "Reward"} %}
+{% set net_colors = {"control": "#A78BFA", "default": "#FF8C4B", "attention": "#FFD04B", "limbic": "#FF4B4B", "motor": "#4BFF8C", "visual": "#4B9EFF", "reward": "#CAFF4B"} %}
+{% set dim_colors = ["#CAFF4B", "#4B9EFF", "#FF4B4B", "#FF8C4B", "#4BFF8C", "#A78BFA", "#FFD04B"] %}
 
+{% set r_hero = 90 %}
+{% set circ_hero = 565.49 %}
+{% set dash_hero = ((score / 100) * circ_hero) | round(2) %}
+
+{% set r_results = 110 %}
+{% set circ_results = 691.15 %}
+{% set dash_results = ((score / 100) * circ_results) | round(2) %}
+
+{% set r_engage = 90 %}
+{% set circ_engage = 565.49 %}
+{% set engage_val = (ne_score if has_tribe and ne_score else score) %}
+{% set dash_engage = ((engage_val / 100) * circ_engage) | round(2) %}
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-dot">S</div>
+    SHOPOS
+    <span class="nav-badge">Virality AI</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-label">Score</span>
+    <span class="nav-score">{{ score }}/100</span>
+    <a href="#results" class="hero-cta" style="padding:.45rem 1.1rem;font-size:.78rem">View Results</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-glow"></div>
+  <div class="hero-grid">
+
+    <div>
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        Powered by Meta TRIBE v2 · fMRI Encoding Model
+      </div>
+      <h1 class="hero-title">
+        Viral<br>Potential<br><span class="hero-title-accent">Predictor</span>
+      </h1>
+      <p class="hero-sub">
+        A modeled read on whether your product content earns the scroll or loses it.
+        Not a vibe check — real neural engagement data from fMRI brain models.
+      </p>
+      <div class="hero-product-pill">
+        Analyzing &nbsp;<strong>{{ product_name }}</strong>{% if url %}&nbsp;·&nbsp;{{ url }}{% endif %}
+      </div>
+      <div class="hero-actions">
+        <a href="#results" class="hero-cta">↓ See Your Results</a>
+        <a href="#how-it-works" class="hero-cta-ghost">How It Works</a>
+      </div>
+    </div>
+
+    <!-- Score panel -->
+    <div class="hero-score-panel">
+      <div class="hero-score-header">
+        <span class="hero-score-tag">Virality Score</span>
+        <span class="hero-grade-pill">{{ grade[0] if grade else "—" }}</span>
+      </div>
+      <div class="hero-score-ring-wrap">
+        <svg width="200" height="200" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="{{ r_hero }}" fill="none" stroke="#1e1e1e" stroke-width="12"/>
+          <circle cx="100" cy="100" r="{{ r_hero }}" fill="none"
+            stroke="{{ grade_color }}" stroke-width="12"
+            stroke-dasharray="{{ dash_hero }} {{ circ_hero }}"
+            stroke-linecap="round" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div class="hero-score-ring-num">
+          <span class="hero-score-big">{{ score }}</span>
+          <span class="hero-score-denom">/100</span>
+        </div>
+      </div>
+      <div class="hero-score-label">{{ grade if grade else "Virality Potential Score" }}</div>
+      {% for dim in dimensions %}
+      {% set dc = dim_colors[loop.index0 % 7] %}
+      <div class="hero-dim-row">
+        <span class="hero-dim-label">{{ dim.label }}</span>
+        <div class="hero-dim-bar">
+          <div class="hero-dim-fill" style="width:{{ dim.pct }}%;background:{{ dc }}"></div>
+        </div>
+        <span class="hero-dim-val">{{ dim.score }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="hiw" id="how-it-works">
+  <div class="hiw-inner">
+    <p class="section-label" style="text-align:center">The Science</p>
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-sub">
+      We run your product content through the same fMRI encoding models neuroscience labs use
+      to measure real brain response — then translate it into a score marketers can act on.
+    </p>
+    <div class="hiw-grid">
+      <div class="hiw-card">
+        <div class="hiw-num">Step 01</div>
+        <div class="hiw-icon">🔗</div>
+        <div class="hiw-card-title">Drop Your Clip or URL</div>
+        <div class="hiw-card-desc">
+          A hook you're testing, an ad before launch, a reel sitting in drafts,
+          or your product page. Any format — we handle the scraping and ingestion.
+        </div>
+      </div>
+      <div class="hiw-card">
+        <div class="hiw-num">Step 02</div>
+        <div class="hiw-icon">🧠</div>
+        <div class="hiw-card-title">We Analyze the Brain</div>
+        <div class="hiw-card-desc">
+          Meta's TRIBE v2 fMRI encoding model simulates how a viewer's brain processes
+          your content — mapping visual cortex, auditory cortex, memory, attention,
+          and language networks second by second.
+        </div>
+        <div class="hiw-brain-preview">
+          <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" width="120">
+            <ellipse cx="60" cy="52" rx="50" ry="38" fill="none" stroke="rgba(202,255,75,.15)" stroke-width="1.5"/>
+            <ellipse cx="60" cy="52" rx="35" ry="26" fill="none" stroke="rgba(202,255,75,.1)" stroke-width="1"/>
+            <circle cx="60" cy="52" r="6" fill="rgba(202,255,75,.2)" stroke="var(--accent)" stroke-width="1.5">
+              <animate attributeName="r" values="6;10;6" dur="2.5s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="38" cy="40" r="3" fill="rgba(75,158,255,.3)"><animate attributeName="r" values="3;5;3" dur="3s" repeatCount="indefinite"/></circle>
+            <circle cx="84" cy="40" r="3" fill="rgba(255,75,75,.3)"><animate attributeName="r" values="3;5;3" dur="2.2s" repeatCount="indefinite"/></circle>
+            <circle cx="42" cy="65" r="2.5" fill="rgba(75,255,140,.3)"><animate attributeName="r" values="2.5;4.5;2.5" dur="3.5s" repeatCount="indefinite"/></circle>
+          </svg>
+        </div>
+      </div>
+      <div class="hiw-card">
+        <div class="hiw-num">Step 03</div>
+        <div class="hiw-icon">📊</div>
+        <div class="hiw-card-title">See Your Score</div>
+        <div class="hiw-card-desc">
+          A virality score, 7 dimension breakdown, a peak hook timestamp, hold rate,
+          and a heatmap showing exactly which regions of the brain your content fires.
+          The closest thing to a test screening before you publish.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="results" id="results">
+  <div class="results-inner">
+    <p class="section-label">Your Report</p>
+    <h2 class="section-title" style="text-align:left;margin-bottom:{% if scrape_mode or fallback_warning %}1.25rem{% else %}2.5rem{% endif %}">
+      {{ product_name }}<br>
+      <span style="color:var(--text3);font-size:clamp(1rem,2vw,1.6rem)">Virality Analysis</span>
+    </h2>
+
+    {% if scrape_mode == "url_based" %}
+    <div class="scrape-banner url-based">🔍 URL-based analysis — scores backed by scraped content and images</div>
+    {% elif scrape_mode == "scrape_failed" %}
+    <div class="scrape-banner scrape-failed">⚠ URL not accessible — scored from description only</div>
+    {% elif fallback_warning %}
+    <div class="scrape-banner text-only">ℹ {{ fallback_warning }}</div>
+    {% else %}
+    <div class="scrape-banner text-only">ℹ No URL — scored from description only</div>
+    {% endif %}
+
+    <div class="results-split">
+
+      <!-- Score panel -->
+      <div class="results-score-panel">
+        <div class="rsp-header">
+          <span class="rsp-tag">Virality Score</span>
+          <span class="rsp-badge">{{ grade[0] if grade else "—" }}</span>
+        </div>
+        <div class="rsp-ring-wrap">
+          <svg width="240" height="240" viewBox="0 0 240 240">
+            <circle cx="120" cy="120" r="{{ r_results }}" fill="none" stroke="#1e1e1e" stroke-width="14"/>
+            <circle cx="120" cy="120" r="{{ r_results }}" fill="none"
+              stroke="{{ grade_color }}" stroke-width="14"
+              stroke-dasharray="{{ dash_results }} {{ circ_results }}"
+              stroke-linecap="round" transform="rotate(-90 120 120)"/>
+          </svg>
+          <div class="rsp-ring-num">
+            <span class="rsp-num">{{ score }}</span>
+            <span class="rsp-denom">/100</span>
+          </div>
+        </div>
+        <div class="rsp-grade-label">{{ grade if grade else "Virality Potential Score" }}</div>
+
+        <div class="net-section-label">Score Breakdown</div>
+        {% for dim in dimensions %}
+        {% set dc = dim_colors[loop.index0 % 7] %}
+        <div class="net-row">
+          <span class="net-name">{{ dim.label }}</span>
+          <div class="net-bar-bg">
+            <div class="net-bar-fill" style="width:{{ dim.pct }}%;background:{{ dc }}"></div>
+          </div>
+          <span class="net-val" style="color:{{ dc }}">{{ dim.score }}/10</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Brain panel -->
+      <div class="results-brain-panel">
+        <div class="rbp-header">
+          <span class="rbp-tag">Neural Activation Map</span>
+          {% if has_tribe %}
+          <span class="rbp-live"><span class="rbp-live-dot"></span>Live fMRI Data</span>
+          {% endif %}
+        </div>
+
+        <div class="brain-viz">
+          <svg class="brain-viz-svg" viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(202,255,75,0.08)"/>
+                <stop offset="100%" stop-color="transparent"/>
+              </radialGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <ellipse cx="140" cy="120" rx="130" ry="98" fill="url(#bgGrad)"/>
+            <path d="M75,110 Q65,70 90,55 Q115,40 140,42 Q165,40 190,55 Q215,70 205,110 Q215,140 200,160 Q185,180 165,185 Q155,190 140,190 Q125,190 115,185 Q95,180 80,160 Q65,140 75,110Z"
+              fill="none" stroke="rgba(202,255,75,0.18)" stroke-width="1.5"/>
+            <path d="M95,80 Q110,65 130,75 Q145,80 155,70 Q170,60 185,75" fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <path d="M85,105 Q100,95 115,100 Q130,108 145,98 Q162,90 178,100" fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <path d="M88,130 Q105,120 120,128 Q136,138 152,126 Q168,116 185,128" fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <path d="M95,155 Q112,146 128,152 Q142,158 158,150 Q172,143 184,152" fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <circle cx="110" cy="85" r="14" fill="rgba(75,158,255,0.15)" filter="url(#glow)"/>
+            <circle cx="170" cy="85" r="14" fill="rgba(75,158,255,0.15)" filter="url(#glow)"/>
+            <circle cx="140" cy="115" r="18" fill="rgba(202,255,75,0.12)" filter="url(#glow)">
+              <animate attributeName="r" values="16;22;16" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="105" cy="145" r="12" fill="rgba(75,255,140,0.12)" filter="url(#glow)"/>
+            <circle cx="175" cy="145" r="12" fill="rgba(255,140,75,0.12)" filter="url(#glow)"/>
+            <circle cx="140" cy="168" r="10" fill="rgba(167,139,250,0.12)" filter="url(#glow)"/>
+            <rect x="92" y="102" width="96" height="50" rx="8" fill="rgba(13,13,13,0.7)" stroke="rgba(202,255,75,0.2)" stroke-width="1"/>
+            <text x="140" y="124" text-anchor="middle" fill="#CAFF4B" font-size="20" font-weight="900" font-family="Inter,sans-serif">{{ score }}</text>
+            <text x="140" y="138" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" font-family="Inter,sans-serif">VIRALITY SCORE</text>
+          </svg>
+
+          {% if has_tribe and ne_score %}
+          <div class="brain-score-overlay">
+            <div class="bso-val">{{ ne_score }}</div>
+            <div class="bso-label">Neural Score</div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if has_tribe %}
+        <div class="tribe-badge-panel">
+          <span style="font-size:1rem">🧠</span>
+          <div>
+            <div class="tribe-badge-text">Meta TRIBE v2 fMRI Encoding Model</div>
+            <div class="tribe-badge-sub">Real neural response simulation · CC-BY-NC-4.0</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if brain_network_scores %}
+        {% set net_vals = brain_network_scores.values() | list %}
+        {% set net_max = net_vals | max %}
+        {% if net_max > 0 %}
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+          <div class="net-section-label" style="padding-top:0;border-top:none">Cortical Network Activation</div>
+          <div class="ne-net-grid">
+            {% for net_name, net_val in brain_network_scores.items() %}
+            {% set net_pct = ((net_val / net_max) * 100) | round | int %}
+            {% set nc = net_colors.get(net_name, "#CAFF4B") %}
+            <div class="net-row" style="margin-bottom:.4rem">
+              <span class="net-name" style="width:90px;font-size:.72rem">{{ net_labels.get(net_name, net_name | title) }}</span>
+              <div class="net-bar-bg">
+                <div class="net-bar-fill" style="width:{{ net_pct }}%;background:{{ nc }}"></div>
+              </div>
+              <span class="net-val" style="font-size:.7rem;color:{{ nc }}">{{ "%.2f" | format(net_val) }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TRIBE VIDEO (if available) -->
 {% if has_tribe %}
-<div class="tribe-hero">
-  <div class="tribe-label">
-    <span class="tribe-label-text">Meta TRIBE v2 · Neural Engagement Analysis</span>
-    <span class="tribe-badge">fMRI Encoding Model</span>
-  </div>
+<section class="tribe-section">
+  <div class="tribe-inner">
+    <p class="section-label">TRIBE v2 Neural Engagement</p>
+    <h2 class="section-title" style="text-align:left;margin-bottom:2.5rem">Brain Response Analysis</h2>
 
-  {% if tribe_sim_video_url or tribe_reel_video_url %}
-  <!-- ── Brain simulation video ─────────────────────────────────────────────── -->
-  {% if tribe_sim_video_url and tribe_reel_video_url %}
-  <div class="video-tabs" id="vid-tabs">
-    <span class="video-tab active" onclick="switchVideo('sim')">Brain Simulation</span>
-    <span class="video-tab" onclick="switchVideo('reel')">Original Reel</span>
-  </div>
-  {% endif %}
+    <div class="tribe-split">
 
-  <div class="brain-video-wrap">
-    <video id="vid-sim" controls autoplay muted loop playsinline
-           {% if not tribe_sim_video_url %}style="display:none"{% endif %}>
-      {% if tribe_sim_video_url %}<source src="{{ tribe_sim_video_url }}" type="video/mp4">{% endif %}
-    </video>
-    <video id="vid-reel" controls loop playsinline style="display:none">
-      {% if tribe_reel_video_url %}<source src="{{ tribe_reel_video_url }}" type="video/mp4">{% endif %}
-    </video>
-    <div class="video-caption">
-      <div class="video-caption-left">
-        <span class="video-dot"></span>
-        <span id="vid-caption-text">
-          {% if tribe_sim_video_url %}
-            Brain surface activation · left = reel frame · right = cortical response · 1 TR per second
-          {% else %}
-            Original product reel
-          {% endif %}
-        </span>
-      </div>
-      <div style="display:flex;align-items:center;gap:.6rem">
-        <button id="unmute-btn" onclick="toggleMute()"
-          style="font-size:.68rem;padding:.2rem .5rem;border-radius:5px;
-                 background:#1e1040;border:1px solid #4c1d95;color:#c4b5fd;cursor:pointer">
-          🔇 Unmute
-        </button>
-        <span style="color:#4c1d95;font-size:.7rem">TRIBE v2</span>
-      </div>
-    </div>
-  </div>
-
-  <script>
-  function switchVideo(which) {
-    const sim = document.getElementById('vid-sim');
-    const reel = document.getElementById('vid-reel');
-    const tabs = document.querySelectorAll('.video-tab');
-    const caption = document.getElementById('vid-caption-text');
-    const muted = sim.muted;
-    if (which === 'sim') {
-      sim.style.display = '';  reel.style.display = 'none';
-      tabs[0].classList.add('active');  tabs[1].classList.remove('active');
-      caption.textContent = 'Brain surface activation · left = reel frame · right = cortical response · 1 TR per second';
-      sim.muted = muted;
-      sim.play();
-    } else {
-      reel.style.display = '';  sim.style.display = 'none';
-      tabs[1].classList.add('active');  tabs[0].classList.remove('active');
-      caption.textContent = 'Original product reel used for TRIBE v2 neural encoding';
-      reel.muted = muted;
-      reel.play();
-    }
-  }
-  function toggleMute() {
-    const sim  = document.getElementById('vid-sim');
-    const reel = document.getElementById('vid-reel');
-    const btn  = document.getElementById('unmute-btn');
-    const nowMuted = sim.muted;
-    sim.muted  = !nowMuted;
-    reel.muted = !nowMuted;
-    btn.textContent = nowMuted ? '🔊 Mute' : '🔇 Unmute';
-  }
-  </script>
-  {% endif %}
-
-  {% if ne and not ne.get("error") %}
-  {% set ne_score = ne.get("neural_engagement_score", 0) %}
-  {% set ne_tier  = (ne.get("tier") or "Low") | lower %}
-
-  <!-- ── NE metrics ──────────────────────────────────────────────────────────── -->
-  <div class="ne-grid">
-    <div class="ne-cell">
-      <div class="ne-val big">{{ ne_score }}</div>
-      <div class="ne-sub">Neural Engagement<br>Score /100</div>
-      <div class="ne-tier {{ ne_tier }}">{{ ne.get("tier") or "—" }}</div>
-    </div>
-    <div class="ne-cell">
-      <div class="ne-val">{{ ne.get("n_trs_analyzed", 0) }}</div>
-      <div class="ne-sub">TRs<br>Analysed</div>
-    </div>
-    <div class="ne-cell">
-      <div class="ne-val">{{ ne.get("consistency_score", 0) }}</div>
-      <div class="ne-sub">Engagement<br>Consistency /100</div>
-    </div>
-  </div>
-
-  <!-- ── Interpretation ─────────────────────────────────────────────────────── -->
-  {% if ne.get("interpretation") %}
-  <div class="ne-interpretation">
-    <div class="ne-interpretation-label">Neural Interpretation</div>
-    {{ ne.interpretation }}
-  </div>
-  {% endif %}
-
-  <!-- ── Hook & pacing ──────────────────────────────────────────────────────── -->
-  <div class="ne-breakdown">
-    <div class="ne-br-row">
-      <span class="ne-br-label">Early Hook Ratio</span>
-      <div class="ne-br-bar-bg">
-        <div class="ne-br-bar-fill" style="width:{{ ((ne.get("early_hook_ratio") or 0) * 100) | round | int }}%"></div>
-      </div>
-      <span class="ne-br-val">{{ ((ne.get("early_hook_ratio") or 0) * 100) | round | int }}%</span>
-    </div>
-    <div class="ne-br-row">
-      <span class="ne-br-label">Mean Activation</span>
-      <div class="ne-br-bar-bg">
-        {% set act_pct = [((ne.get("mean_absolute_activation") or 0) / 0.5 * 100) | round | int, 100] | min %}
-        <div class="ne-br-bar-fill" style="width:{{ act_pct }}%"></div>
-      </div>
-      <span class="ne-br-val">{{ "%.3f" | format(ne.get("mean_absolute_activation") or 0) }}</span>
-    </div>
-  </div>
-
-  {% set pacing = ne.get("pacing") or {} %}
-  {% if pacing.get("pacing_label") %}
-  <div>
-    <span class="pacing-pill">
-      🎬 {{ pacing.pacing_label }}
-      &nbsp;·&nbsp; {{ pacing.get("cut_count", 0) }} cuts / {{ (pacing.get("duration_s") or 0) | round | int }}s
-    </span>
-  </div>
-  {% endif %}
-
-  <!-- ── Brain network scores ────────────────────────────────────────────────── -->
-  {% if brain_network_scores %}
-  {% set net_vals = brain_network_scores.values() | list %}
-  {% set net_max  = net_vals | max %}
-  {% if net_max > 0 %}
-  {% set net_labels = {
-    "control": "Control", "default": "Default Mode", "attention": "Attention",
-    "limbic": "Limbic", "motor": "Motor", "visual": "Visual", "reward": "Reward"
-  } %}
-  <div style="margin-top:1.1rem;padding-top:1rem;border-top:1px solid #2d1f5e">
-    <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-         color:#7c3aed;margin-bottom:.65rem">Cortical Network Activation</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem">
-      {% for net_name, net_val in brain_network_scores.items() %}
-      {% set net_pct = ((net_val / net_max) * 100) | round | int %}
-      <div class="ne-br-row" style="margin-bottom:.3rem">
-        <span class="ne-br-label" style="width:110px;font-size:.72rem">{{ net_labels.get(net_name, net_name | title) }}</span>
-        <div class="ne-br-bar-bg">
-          <div class="ne-br-bar-fill" style="width:{{ net_pct }}%"></div>
+      {% if tribe_sim_video_url or tribe_reel_video_url %}
+      <div class="tribe-video-wrap">
+        <div class="tribe-video-header">
+          <span class="tvh-title">Neural Brain Simulation</span>
+          <span class="tvh-badge">TRIBE v2</span>
         </div>
-        <span class="ne-br-val" style="font-size:.68rem">{{ "%.3f" | format(net_val) }}</span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-  {% endif %}
-
-  {% endif %}{# end ne #}
-
-  <!-- ── License note ───────────────────────────────────────────────────────── -->
-  <div style="margin-top:.9rem;font-size:.62rem;color:#4c1d95">
-    Meta TRIBE v2 · CC-BY-NC-4.0 (non-commercial research use only)
-  </div>
-</div>
-{% endif %}{# end has_tribe #}
-
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     SECONDARY SECTION: Product Virality Score
-     ═══════════════════════════════════════════════════════════════════════════ -->
-
-<div class="section-divider">
-  <span class="section-divider-label">Product Virality Analysis</span>
-</div>
-
-<!-- ── Score ring ──────────────────────────────────────────────────────────── -->
-<div class="card score-section">
-  {% set r = 62 %}
-  {% set circ = 2 * 3.14159 * r %}
-  {% set dash = (score / 100) * circ %}
-  <div class="ring-wrap">
-    <svg width="140" height="140" viewBox="0 0 140 140">
-      <circle cx="70" cy="70" r="{{ r }}" fill="none" stroke="#222" stroke-width="11"/>
-      <circle cx="70" cy="70" r="{{ r }}" fill="none"
-        stroke="{{ grade_color }}" stroke-width="11"
-        stroke-dasharray="{{ dash | round(2) }} {{ circ | round(2) }}"
-        stroke-linecap="round"/>
-    </svg>
-    <div class="ring-number">
-      <span class="num">{{ score }}</span>
-      <span class="denom">/100</span>
-    </div>
-  </div>
-  <div class="grade-badge">{{ grade[0] if grade else "—" }}</div>
-  <div class="grade-subtitle">{{ grade if grade else "Virality Potential Score" }}</div>
-</div>
-
-<!-- ── Dimension bars ─────────────────────────────────────────────────────── -->
-<div class="card">
-  <h2>Score Breakdown</h2>
-  {% for dim in dimensions %}
-  <div class="dim-row">
-    <div class="dim-header">
-      <span class="dim-label">{{ dim.label }}</span>
-      <span class="dim-score">{{ dim.score }}/10</span>
-    </div>
-    <div class="dim-bar-bg">
-      <div class="dim-bar-fill" style="width:{{ dim.pct }}%"></div>
-    </div>
-    {% if dim.reasoning %}
-    <div class="dim-reasoning">{{ dim.reasoning }}</div>
-    {% endif %}
-    {% if dim.evidence %}
-    <div class="dim-evidence">{{ dim.evidence }}</div>
-    {% endif %}
-    {% if dim.signals %}
-    <div class="dim-signals">
-      {% for s in dim.signals %}
-      <span class="dim-signal">{{ s }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
-  </div>
-  {% endfor %}
-</div>
-
-<!-- ── Visual Signals (only when URL-based) ────────────────────────────────── -->
-{% if scrape_mode == "url_based" and visual_signals %}
-<div class="card">
-  <h2>Visual Signals Detected</h2>
-  <div class="vs-grid">
-    <div class="vs-item">
-      <div class="vs-val">{{ visual_signals.get("image_count", 0) }}</div>
-      <div class="vs-lbl">Product Images</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">{{ visual_signals.get("images_analyzed", 0) }}</div>
-      <div class="vs-lbl">Images Analysed</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val" style="text-transform:capitalize">
-        {{ visual_signals.get("primary_color_name", "—") }}
-      </div>
-      <div class="vs-lbl">Dominant Color</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">
-        {% if visual_signals.get("has_lifestyle_shot") %}
-        <span class="vs-yes">Yes</span>
-        {% else %}
-        <span class="vs-no">No</span>
+        {% if tribe_sim_video_url and tribe_reel_video_url %}
+        <div class="tribe-video-tabs">
+          <span class="tvt active" onclick="switchVideo('sim')">Brain Simulation</span>
+          <span class="tvt" onclick="switchVideo('reel')">Original Reel</span>
+          <span class="tvt" id="unmute-btn" onclick="toggleMute()">🔇 Unmute</span>
+        </div>
         {% endif %}
+        <video id="vid-sim" autoplay muted loop playsinline
+               {% if not tribe_sim_video_url %}style="display:none"{% endif %}>
+          {% if tribe_sim_video_url %}<source src="{{ tribe_sim_video_url }}" type="video/mp4">{% endif %}
+        </video>
+        <video id="vid-reel" loop playsinline style="display:none">
+          {% if tribe_reel_video_url %}<source src="{{ tribe_reel_video_url }}" type="video/mp4">{% endif %}
+        </video>
+        <div class="tribe-video-caption">
+          <span class="tribe-video-dot"></span>
+          <span id="vid-caption-text">
+            {% if tribe_sim_video_url %}
+              Brain surface activation · left = reel frame · right = cortical response · 1 TR per second
+            {% else %}
+              Original product reel used for TRIBE v2 neural encoding
+            {% endif %}
+          </span>
+        </div>
       </div>
-      <div class="vs-lbl">Lifestyle Shot</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">
-        {% if visual_signals.get("has_before_after") %}
-        <span class="vs-yes">Yes</span>
-        {% else %}
-        <span class="vs-no">No</span>
-        {% endif %}
+      {% else %}
+      <div style="display:flex;align-items:center;justify-content:center;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);min-height:300px">
+        <div style="text-align:center;color:var(--text3)">
+          <div style="font-size:3rem;margin-bottom:1rem">🧠</div>
+          <div style="font-size:.82rem;font-weight:600">Neural data available</div>
+          <div style="font-size:.72rem;margin-top:.35rem">Brain simulation video not generated</div>
+        </div>
       </div>
-      <div class="vs-lbl">Before / After</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">
-        {% if visual_signals.get("has_video") %}
-        <span class="vs-yes">Yes</span>
-        {% else %}
-        <span class="vs-no">No</span>
-        {% endif %}
-      </div>
-      <div class="vs-lbl">Video Content</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">{{ visual_signals.get("visual_contrast", 0) }}/10</div>
-      <div class="vs-lbl">Visual Contrast</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">{{ visual_signals.get("image_richness", 0) }}/10</div>
-      <div class="vs-lbl">Image Richness</div>
-    </div>
-    <div class="vs-item">
-      <div class="vs-val">
-        {% if visual_signals.get("background_is_white") %}
-        <span class="vs-partial">Studio</span>
-        {% else %}
-        <span class="vs-yes">Lifestyle</span>
-        {% endif %}
-      </div>
-      <div class="vs-lbl">Background Type</div>
-    </div>
-  </div>
-  {% if text_signals %}
-  <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border)">
-    <div style="font-size:.74rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem">
-      <span>📝 <strong>{{ text_signals.get("description_length", 0) }}</strong> description words</span>
-      <span>💬 <strong>{{ text_signals.get("review_count", 0) }}</strong> reviews</span>
-      {% if text_signals.get("avg_rating") %}
-      <span>⭐ <strong>{{ text_signals.get("avg_rating") }}</strong>/5 rating</span>
       {% endif %}
-      <span>✅ <strong>{{ (text_signals.get("benefit_ratio", 0) * 100) | round | int }}%</strong> benefit language</span>
+
+      {% if ne and not ne.get("error") %}
+      {% set ne_tier_val = (ne.get("tier") or "Low") | lower %}
+      <div class="ne-panel">
+        <div class="net-section-label" style="padding-top:0;border-top:none;margin-bottom:1rem">Neural Engagement Metrics</div>
+        <div class="ne-score-row">
+          <div class="ne-cell">
+            <div class="ne-big">{{ ne_score }}</div>
+            <div class="ne-sub">Neural Score /100</div>
+            <span class="ne-tier {{ ne_tier_val }}">{{ ne.get("tier") or "—" }}</span>
+          </div>
+          <div class="ne-cell">
+            <div class="ne-small">{{ ne.get("n_trs_analyzed", 0) }}</div>
+            <div class="ne-sub">TRs Analyzed</div>
+          </div>
+          <div class="ne-cell">
+            <div class="ne-small">{{ ne.get("consistency_score", 0) }}</div>
+            <div class="ne-sub">Consistency /100</div>
+          </div>
+        </div>
+
+        {% if ne.get("interpretation") %}
+        <div class="ne-interpret">
+          <div class="ne-interpret-label">Neural Interpretation</div>
+          <div class="ne-interpret-text">{{ ne.interpretation }}</div>
+        </div>
+        {% endif %}
+
+        <div class="ne-br-row">
+          <span class="ne-br-label">Early Hook Ratio</span>
+          <div class="ne-br-bg">
+            <div class="ne-br-fill" style="width:{{ ((ne.get("early_hook_ratio") or 0) * 100) | round | int }}%"></div>
+          </div>
+          <span class="ne-br-val">{{ ((ne.get("early_hook_ratio") or 0) * 100) | round | int }}%</span>
+        </div>
+        <div class="ne-br-row">
+          <span class="ne-br-label">Mean Activation</span>
+          <div class="ne-br-bg">
+            {% set act_pct = [((ne.get("mean_absolute_activation") or 0) / 0.5 * 100) | round | int, 100] | min %}
+            <div class="ne-br-fill" style="width:{{ act_pct }}%"></div>
+          </div>
+          <span class="ne-br-val">{{ "%.3f" | format(ne.get("mean_absolute_activation") or 0) }}</span>
+        </div>
+
+        {% set pacing = ne.get("pacing") or {} %}
+        {% if pacing.get("pacing_label") %}
+        <div style="margin-top:.75rem;display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .8rem;border-radius:6px;background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);font-size:.76rem;color:#c4b5fd">
+          🎬 {{ pacing.pacing_label }}&nbsp;·&nbsp;{{ pacing.get("cut_count", 0) }} cuts / {{ (pacing.get("duration_s") or 0) | round | int }}s
+        </div>
+        {% endif %}
+
+        {% if brain_network_scores %}
+        {% set net_vals2 = brain_network_scores.values() | list %}
+        {% set net_max2 = net_vals2 | max %}
+        {% if net_max2 > 0 %}
+        <div class="ne-net-grid">
+          {% for net_name, net_val in brain_network_scores.items() %}
+          {% set net_pct2 = ((net_val / net_max2) * 100) | round | int %}
+          {% set nc2 = net_colors.get(net_name, "#CAFF4B") %}
+          <div class="net-row" style="margin-bottom:.35rem">
+            <span class="net-name" style="width:90px;font-size:.72rem">{{ net_labels.get(net_name, net_name | title) }}</span>
+            <div class="net-bar-bg">
+              <div class="net-bar-fill" style="width:{{ net_pct2 }}%;background:{{ nc2 }}"></div>
+            </div>
+            <span class="net-val" style="font-size:.7rem;color:{{ nc2 }}">{{ "%.2f" | format(net_val) }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <div style="margin-top:1rem;font-size:.62rem;color:var(--text3)">
+          Meta TRIBE v2 · CC-BY-NC-4.0 · Non-commercial research use only
+        </div>
+      </div>
+      {% else %}
+      <div style="display:flex;align-items:center;justify-content:center;background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);min-height:200px">
+        <div style="text-align:center;color:var(--text3);font-size:.82rem">
+          <div style="font-size:2rem;margin-bottom:.75rem">📡</div>
+          Neural metrics not available for this reel
+        </div>
+      </div>
+      {% endif %}
+
     </div>
   </div>
-  {% endif %}
-</div>
+</section>
 {% endif %}
 
-<!-- ── Killer Hook ─────────────────────────────────────────────────────────── -->
-{% if killer_hook %}
-<div class="hook-box" style="margin-bottom:1.25rem">
-  <div class="hook-label">✦ Killer Hook</div>
-  <div class="hook-text">"{{ killer_hook }}"</div>
-</div>
-{% endif %}
+<!-- ENGAGEMENT EXPLAINER -->
+<section class="engage-section">
+  <div class="engage-inner">
+    <div class="engage-split">
+      <div class="engage-copy">
+        <p class="section-label">What This Means</p>
+        <h2>Engagement<br>Score</h2>
+        <p>
+          One number for how long people will actually watch. Not a guess, not a vibe check —
+          a modeled read on whether your clip earns the scroll or loses it.
+          The closest thing to a test screening before you hit publish.
+          <br><br>
+          Backed by the same fMRI encoding science used in academic neuroscience,
+          now available to any brand before they spend on distribution.
+        </p>
+      </div>
 
-<!-- ── Viral Content Angles ────────────────────────────────────────────────── -->
-{% if viral_angles %}
-<div class="card">
-  <h2>Viral Content Angles</h2>
-  <div style="display:flex;flex-direction:column;gap:.65rem">
-    {% for angle in viral_angles %}
-    <div class="angle-card">
-      <div class="angle-num">{{ loop.index }}</div>
-      <div class="angle-body">
-        <div class="angle-text">{{ angle.text }}</div>
-        {% if angle.platform or angle.reach or angle.hook %}
-        <div class="angle-meta">
-          {% if angle.platform %}
-          <span class="angle-chip platform">📱 {{ angle.platform }}</span>
-          {% endif %}
-          {% if angle.reach %}
-          <span class="angle-chip reach">📈 {{ angle.reach }}</span>
-          {% endif %}
-          {% if angle.hook %}
-          <span class="angle-chip hook">"{{ angle.hook }}"</span>
-          {% endif %}
+      <div class="engage-visual">
+        <div class="engage-big-ring">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="{{ r_engage }}" fill="none" stroke="#1e1e1e" stroke-width="13"/>
+            <circle cx="100" cy="100" r="{{ r_engage }}" fill="none"
+              stroke="var(--accent)" stroke-width="13"
+              stroke-dasharray="{{ dash_engage }} {{ circ_engage }}"
+              stroke-linecap="round" transform="rotate(-90 100 100)"/>
+          </svg>
+          <div class="engage-ring-num">
+            <span class="eng-num">{{ engage_val }}</span>
+            <span class="eng-sub">/100</span>
+          </div>
+        </div>
+
+        {% if brain_network_scores %}
+        {% set net_vals3 = brain_network_scores.values() | list %}
+        {% set net_max3 = net_vals3 | max %}
+        {% if net_max3 > 0 %}
+        <div class="engage-bars">
+          {% for net_name, net_val in brain_network_scores.items() %}
+          {% set nc3 = net_colors.get(net_name, "#CAFF4B") %}
+          {% set bar_pct = ((net_val / net_max3) * 100) | round | int %}
+          <div class="engage-bar-row">
+            <span class="engage-bar-label">{{ net_labels.get(net_name, net_name | title) }}</span>
+            <div class="engage-bar-bg">
+              <div class="engage-bar-fill" style="width:{{ bar_pct }}%;background:{{ nc3 }}"></div>
+            </div>
+            <span class="engage-bar-val" style="color:{{ nc3 }}">{{ bar_pct }}%</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="engage-bars">
+          {% for dim in dimensions %}
+          {% set dc = dim_colors[loop.index0 % 7] %}
+          <div class="engage-bar-row">
+            <span class="engage-bar-label">{{ dim.label }}</span>
+            <div class="engage-bar-bg">
+              <div class="engage-bar-fill" style="width:{{ dim.pct }}%;background:{{ dc }}"></div>
+            </div>
+            <span class="engage-bar-val" style="color:{{ dc }}">{{ dim.pct }}%</span>
+          </div>
+          {% endfor %}
         </div>
         {% endif %}
       </div>
     </div>
-    {% endfor %}
   </div>
-</div>
-{% endif %}
+</section>
 
-<!-- ── Best Platforms ──────────────────────────────────────────────────────── -->
-{% if best_platforms %}
-<div class="card">
-  <h2>Best Platforms</h2>
-  <div class="platform-badges">
-    {% set platform_icons = {
-      "TikTok": "🎵",
-      "Instagram Reels": "📸",
-      "Pinterest": "📌",
-      "YouTube Shorts": "▶"
-    } %}
-    {% for p in best_platforms %}
-    <div class="platform-badge">
-      {{ platform_icons.get(p, "🌐") }} {{ p }}
+<!-- 7-DIMENSION BREAKDOWN -->
+<section class="breakdown">
+  <div class="breakdown-inner">
+    <p class="section-label">Deep Analysis</p>
+    <h2 class="section-title" style="text-align:left">Score Breakdown</h2>
+    <p style="color:var(--text2);font-size:.9rem;max-width:560px;line-height:1.7">
+      Seven dimensions that determine virality. Each scored 0–10 with evidence
+      pulled from your actual content.
+    </p>
+    <div class="breakdown-grid">
+      {% for dim in dimensions %}
+      {% set dc = dim_colors[loop.index0 % 7] %}
+      <div class="dim-card">
+        <div class="dim-card-header">
+          <span class="dim-card-label">{{ dim.label }}</span>
+          <span class="dim-card-score" style="color:{{ dc }}">{{ dim.score }}/10</span>
+        </div>
+        <div class="dim-card-bar-bg">
+          <div class="dim-card-bar-fill" style="width:{{ dim.pct }}%;background:{{ dc }}"></div>
+        </div>
+        {% if dim.reasoning %}
+        <div class="dim-card-reason">{{ dim.reasoning }}</div>
+        {% endif %}
+        {% if dim.evidence %}
+        <div class="dim-card-evidence">{{ dim.evidence }}</div>
+        {% endif %}
+        {% if dim.signals %}
+        <div class="dim-card-signals">
+          {% for s in dim.signals %}<span class="dim-sig">{{ s }}</span>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
+
+    {% if scrape_mode == "url_based" and visual_signals %}
+    <div style="margin-top:2rem;padding-top:2rem;border-top:1px solid var(--border)">
+      <p class="section-label">Visual Signals Detected</p>
+      <div class="vs-grid">
+        <div class="vs-cell"><div class="vs-val">{{ visual_signals.get("image_count", 0) }}</div><div class="vs-lbl">Product Images</div></div>
+        <div class="vs-cell"><div class="vs-val">{{ visual_signals.get("images_analyzed", 0) }}</div><div class="vs-lbl">Images Analysed</div></div>
+        <div class="vs-cell"><div class="vs-val" style="text-transform:capitalize">{{ visual_signals.get("primary_color_name", "—") }}</div><div class="vs-lbl">Dominant Color</div></div>
+        <div class="vs-cell"><div class="vs-val">{% if visual_signals.get("has_lifestyle_shot") %}<span class="vs-yes">Yes</span>{% else %}<span class="vs-no">No</span>{% endif %}</div><div class="vs-lbl">Lifestyle Shot</div></div>
+        <div class="vs-cell"><div class="vs-val">{% if visual_signals.get("has_before_after") %}<span class="vs-yes">Yes</span>{% else %}<span class="vs-no">No</span>{% endif %}</div><div class="vs-lbl">Before / After</div></div>
+        <div class="vs-cell"><div class="vs-val">{% if visual_signals.get("has_video") %}<span class="vs-yes">Yes</span>{% else %}<span class="vs-no">No</span>{% endif %}</div><div class="vs-lbl">Video Content</div></div>
+        <div class="vs-cell"><div class="vs-val">{{ visual_signals.get("visual_contrast", 0) }}/10</div><div class="vs-lbl">Visual Contrast</div></div>
+        <div class="vs-cell"><div class="vs-val">{{ visual_signals.get("image_richness", 0) }}/10</div><div class="vs-lbl">Image Richness</div></div>
+        <div class="vs-cell"><div class="vs-val">{% if visual_signals.get("background_is_white") %}<span class="vs-partial">Studio</span>{% else %}<span class="vs-yes">Lifestyle</span>{% endif %}</div><div class="vs-lbl">Background Type</div></div>
+      </div>
+      {% if text_signals %}
+      <div style="margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border);font-size:.74rem;color:var(--text2);display:flex;flex-wrap:wrap;gap:.5rem 1.5rem">
+        <span>📝 <strong>{{ text_signals.get("description_length", 0) }}</strong> description words</span>
+        <span>💬 <strong>{{ text_signals.get("review_count", 0) }}</strong> reviews</span>
+        {% if text_signals.get("avg_rating") %}<span>⭐ <strong>{{ text_signals.get("avg_rating") }}</strong>/5 rating</span>{% endif %}
+        <span>✅ <strong>{{ (text_signals.get("benefit_ratio", 0) * 100) | round | int }}%</strong> benefit language</span>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
-</div>
+</section>
+
+<!-- KILLER HOOK -->
+{% if killer_hook %}
+<section class="hook-section">
+  <div class="hook-inner">
+    <p class="section-label">Recommended Hook</p>
+    <div class="hook-box">
+      <div class="hook-label">✦ Killer Hook</div>
+      <div class="hook-text">"{{ killer_hook }}"</div>
+    </div>
+  </div>
+</section>
 {% endif %}
 
-<!-- ── Ideal Creator Profile ───────────────────────────────────────────────── -->
-{% if ideal_creator %}
-<div style="margin-bottom:1.25rem">
-  <h2 style="margin-bottom:.5rem">Ideal Creator Profile</h2>
-  <div class="creator-box">{{ ideal_creator }}</div>
-</div>
+<!-- VIRAL ANGLES -->
+{% if viral_angles %}
+<section class="angles-section">
+  <div class="angles-inner">
+    <p class="section-label">Content Strategy</p>
+    <h2 class="section-title" style="text-align:left">Viral Content Angles</h2>
+    <div class="angles-grid">
+      {% for angle in viral_angles %}
+      <div class="angle-card">
+        <div class="angle-num">{{ loop.index }}</div>
+        <div class="angle-body">
+          <div class="angle-text">{{ angle.text }}</div>
+          {% if angle.platform or angle.reach or angle.hook %}
+          <div class="angle-chips">
+            {% if angle.platform %}<span class="angle-chip platform">📱 {{ angle.platform }}</span>{% endif %}
+            {% if angle.reach %}<span class="angle-chip reach">📈 {{ angle.reach }}</span>{% endif %}
+            {% if angle.hook %}<span class="angle-chip hook">"{{ angle.hook }}"</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
 {% endif %}
 
-<!-- ── Comparable Viral Products ──────────────────────────────────────────── -->
+<!-- PLATFORMS + CREATOR -->
+{% if best_platforms or ideal_creator %}
+<section class="platforms-section">
+  <div class="platforms-inner">
+    {% if best_platforms %}
+    <div>
+      <p class="section-label">Distribution</p>
+      <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Best Platforms</h3>
+      {% set platform_icons = {"TikTok": "🎵", "Instagram Reels": "📸", "Pinterest": "📌", "YouTube Shorts": "▶"} %}
+      <div class="platform-badges">
+        {% for p in best_platforms %}
+        <div class="platform-badge">{{ platform_icons.get(p, "🌐") }} {{ p }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if ideal_creator %}
+    <div>
+      <p class="section-label">Casting</p>
+      <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Ideal Creator Profile</h3>
+      <div class="creator-box">{{ ideal_creator }}</div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<!-- COMPARABLE -->
 {% if comparable %}
-<div class="card">
-  <h2>Comparable Viral Products</h2>
-  <ul class="comparables">
-    {% for c in comparable %}<li>{{ c }}</li>{% endfor %}
-  </ul>
-</div>
+<section class="comparable-section">
+  <div class="comparable-inner">
+    <p class="section-label">Benchmarks</p>
+    <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">Comparable Viral Products</h3>
+    <div class="comparable-list">
+      {% for c in comparable %}<span class="comparable-chip">{{ c }}</span>{% endfor %}
+    </div>
+  </div>
+</section>
 {% endif %}
 
-<!-- ── Risk Factors ────────────────────────────────────────────────────────── -->
+<!-- RISK -->
 {% if risk_factors %}
-<div class="card">
-  <h2>Risk Factors</h2>
-  <ul class="risks">
-    {% for r in risk_factors %}<li>{{ r }}</li>{% endfor %}
-  </ul>
-</div>
+<section class="risk-section">
+  <div class="risk-inner">
+    <p class="section-label">Watch Out</p>
+    <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">Risk Factors</h3>
+    <div class="risk-grid">
+      {% for r in risk_factors %}
+      <div class="risk-item"><span class="risk-icon">⚠</span>{{ r }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
 {% endif %}
 
-<footer>Generated by <strong>SHOPOS Research Agent</strong> &nbsp;•&nbsp; {{ generated_at }}</footer>
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">Generated by <strong>SHOPOS Virality AI</strong> &nbsp;·&nbsp; {{ generated_at }}</div>
+  <div class="footer-right">
+    <span class="footer-link">Powered by Meta TRIBE v2</span>
+    <button class="fab-btn fab-pdf" onclick="window.print()" style="position:static;font-size:.78rem;padding:.4rem .9rem">⬇ PDF</button>
+  </div>
+</footer>
 
-<!-- ── Download FAB ────────────────────────────────────────────────────────── -->
-<div class="dl-fab">
-  <button class="dl-btn tab" onclick="window.open(window.location.href,'_blank')">↗ Open full page</button>
-  <button class="dl-btn pdf" onclick="window.print()">⬇ Download PDF</button>
+<!-- FAB -->
+<div class="fab">
+  <button class="fab-btn fab-share" onclick="window.open(window.location.href,'_blank')">↗ Open</button>
+  <button class="fab-btn fab-pdf" onclick="window.print()">⬇ PDF</button>
 </div>
+
+<script>
+function switchVideo(which) {
+  const sim = document.getElementById('vid-sim');
+  const reel = document.getElementById('vid-reel');
+  if (!sim || !reel) return;
+  const tabs = document.querySelectorAll('.tvt');
+  const caption = document.getElementById('vid-caption-text');
+  if (which === 'sim') {
+    sim.style.display = ''; reel.style.display = 'none';
+    tabs[0].classList.add('active'); tabs[1].classList.remove('active');
+    if (caption) caption.textContent = 'Brain surface activation · left = reel frame · right = cortical response · 1 TR per second';
+    sim.play();
+  } else {
+    reel.style.display = ''; sim.style.display = 'none';
+    tabs[1].classList.add('active'); tabs[0].classList.remove('active');
+    if (caption) caption.textContent = 'Original product reel used for TRIBE v2 neural encoding';
+    reel.play();
+  }
+}
+function toggleMute() {
+  const sim = document.getElementById('vid-sim');
+  const reel = document.getElementById('vid-reel');
+  const btn = document.getElementById('unmute-btn');
+  if (!sim) return;
+  const nowMuted = sim.muted;
+  sim.muted = !nowMuted;
+  if (reel) reel.muted = !nowMuted;
+  if (btn) btn.textContent = nowMuted ? '🔊 Mute' : '🔇 Unmute';
+}
+</script>
 
 </body>
 </html>

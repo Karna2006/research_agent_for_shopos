@@ -8,6 +8,11 @@ from llm.prompts import Prompts
 from scrapers.result import DataResult
 from scrapers.trends import get_brand_trends
 from agents.tracxn_researcher import fetch_tracxn_profile
+from scrapers.app_reviews import get_app_data
+from scrapers.trustpilot import get_trustpilot_data
+from scrapers.tech_stack import get_tech_stack
+from scrapers.domain_intel import get_domain_intel
+from scrapers.reddit_scraper import get_reddit_data
 
 if TYPE_CHECKING:
     from llm.client import GroqClient
@@ -80,7 +85,7 @@ class ResearchAgent:
             except Exception:
                 category = "ecommerce"
 
-            # Four targeted searches + Google Trends + Tracxn (all parallel)
+            # All data sources in parallel — searches + enrichment scrapers
             (
                 competitors_results,
                 market_results,
@@ -88,6 +93,10 @@ class ResearchAgent:
                 reddit_results,
                 google_trends,
                 tracxn_data,
+                app_data,
+                trustpilot_data,
+                tech_stack_data,
+                domain_intel_data,
             ) = await asyncio.gather(
                 asyncio.to_thread(self.search.search,
                     f"{brand_name} competitors alternative brands India", max_results=8),
@@ -95,18 +104,25 @@ class ResearchAgent:
                     f"{brand_name} market position India 2024 2025", max_results=5),
                 asyncio.to_thread(self.search.search,
                     f"{category} market trends India 2025", max_results=5),
-                asyncio.to_thread(self.search.search,
-                    f"{brand_name} reviews reddit honest opinion", max_results=5),
+                get_reddit_data(brand_name, search_agent=self.search),
                 get_brand_trends(brand_name, geo="IN"),
                 fetch_tracxn_profile(url),
+                get_app_data(brand_name),
+                get_trustpilot_data(url, brand_name),
+                get_tech_stack(url, prefetched_html=(homepage.get("page_html") if isinstance(homepage, dict) else None)),
+                get_domain_intel(url),
                 return_exceptions=True,
             )
             if isinstance(competitors_results, Exception): competitors_results = []
             if isinstance(market_results, Exception): market_results = []
             if isinstance(trends_results, Exception): trends_results = []
-            if isinstance(reddit_results, Exception): reddit_results = []
+            if isinstance(reddit_results, Exception): reddit_results = {}
             if isinstance(google_trends, Exception): google_trends = {}
             if isinstance(tracxn_data, Exception): tracxn_data = {}
+            if isinstance(app_data, Exception): app_data = {}
+            if isinstance(trustpilot_data, Exception): trustpilot_data = {}
+            if isinstance(tech_stack_data, Exception): tech_stack_data = {}
+            if isinstance(domain_intel_data, Exception): domain_intel_data = {}
             sources.append(DataResult(
                 value={
                     "competitors": competitors_results,
@@ -137,9 +153,86 @@ class ResearchAgent:
                     f"| founded={tracxn_data.get('founded','?')}"
                 )
 
+            # Format app data signal
+            _app_line = ""
+            if app_data and app_data.get("has_app"):
+                ios = app_data.get("app_store") or {}
+                gpl = app_data.get("play_store") or {}
+                _app_line = (
+                    f"\nAPP PRESENCE: avg_rating={app_data.get('avg_rating')}/5 "
+                    f"| total_ratings={app_data.get('total_ratings'):,} "
+                    f"| iOS={ios.get('rating','?')}/5 ({ios.get('rating_count',0):,} ratings)"
+                    f" | Android={gpl.get('rating','?')}/5 ({gpl.get('installs','?')} installs)"
+                )
+                reviews_combined = (app_data.get("app_store_reviews") or []) + (app_data.get("play_store_reviews") or [])
+                if reviews_combined:
+                    snippets = " | ".join(f"\"{r['body'][:80]}\" ({r['rating']}★)" for r in reviews_combined[:3])
+                    _app_line += f"\n  Recent reviews: {snippets}"
+            elif app_data:
+                _app_line = "\nAPP PRESENCE: No app found on App Store or Play Store"
+
+            # Format Trustpilot signal
+            _tp_line = ""
+            if trustpilot_data and trustpilot_data.get("found"):
+                _tp_line = (
+                    f"\nTRUSTPILOT: rating={trustpilot_data.get('rating')}/5 "
+                    f"| reviews={trustpilot_data.get('review_count'):,} "
+                    f"| label={trustpilot_data.get('trust_label','')}"
+                )
+                tp_reviews = trustpilot_data.get("reviews") or []
+                if tp_reviews:
+                    snippets = " | ".join(f"\"{r['body'][:80]}\" ({r['rating']}★)" for r in tp_reviews[:2])
+                    _tp_line += f"\n  Sample reviews: {snippets}"
+            else:
+                _tp_line = "\nTRUSTPILOT: Not listed"
+
+            # Format tech stack signal
+            _ts_line = ""
+            if tech_stack_data and not tech_stack_data.get("error"):
+                ts = tech_stack_data
+                _ts_line = (
+                    f"\nTECH STACK: platform={ts.get('platform','')} "
+                    f"| payment={ts.get('payment',[])} "
+                    f"| analytics={ts.get('analytics',[])} "
+                    f"| chat={ts.get('chat_support',[])} "
+                    f"| reviews_tool={ts.get('reviews_tools',[])} "
+                    f"| email={ts.get('email_marketing',[])} "
+                    f"| ab_test={ts.get('ab_testing',[])}"
+                )
+
+            # Format domain intel signal
+            _di_line = ""
+            if domain_intel_data and not domain_intel_data.get("error"):
+                di = domain_intel_data
+                subs = di.get("subdomains") or {}
+                _di_line = (
+                    f"\nDOMAIN: age={di.get('age_years','?')}yr (est. {di.get('created_year','?')}) "
+                    f"| maturity={di.get('maturity_signal','?')} "
+                    f"| subdomains={subs.get('total','?')} total "
+                    f"(app={subs.get('app',[])} staging={subs.get('staging',[])})"
+                )
+
+            # Format Reddit signal for LLM
+            _reddit_posts = reddit_results.get("posts") or []
+            _reddit_sentiment = reddit_results.get("sentiment") or {}
+            _reddit_source = reddit_results.get("source", "unknown")
+            _reddit_line = (
+                f"\nREDDIT SENTIMENT ({_reddit_source}): overall={_reddit_sentiment.get('overall','?')} "
+                f"| positive={_reddit_sentiment.get('positive',0)} "
+                f"negative={_reddit_sentiment.get('negative',0)} "
+                f"neutral={_reddit_sentiment.get('neutral',0)} "
+                f"| subreddits={reddit_results.get('subreddits',[])[:5]}"
+            )
+            _reddit_posts_fmt = "\n".join(
+                f"- [{p.get('subreddit','?')}] {p.get('title','')} "
+                f"(score={p.get('score',0)}, {p.get('sentiment_hint','')}) — "
+                f"{p.get('body','')[:120]}"
+                for p in _reddit_posts[:6]
+            ) or "No posts found"
+
             user_content = f"""BRAND: {brand_name}
 URL: {url}
-INFERRED CATEGORY: {category}{_gt_line}{_tx_line}
+INFERRED CATEGORY: {category}{_gt_line}{_tx_line}{_app_line}{_tp_line}{_ts_line}{_di_line}{_reddit_line}
 
 {_fmt_block('COMPETITOR / ALTERNATIVE SEARCH', competitors_results)}
 
@@ -147,7 +240,8 @@ INFERRED CATEGORY: {category}{_gt_line}{_tx_line}
 
 {_fmt_block('CATEGORY TRENDS 2025', trends_results)}
 
-{_fmt_block('REDDIT / COMMUNITY SENTIMENT', reddit_results)}"""
+REDDIT POSTS ({len(_reddit_posts)} found):
+{_reddit_posts_fmt}"""
 
             analysis = await self.llm.analyze_structured(
                 system_prompt=Prompts.COMPETITIVE_RESEARCH,
@@ -195,13 +289,24 @@ INFERRED CATEGORY: {category}{_gt_line}{_tx_line}
             }
 
             out["category_inferred"] = category
-            out["google_trends"] = google_trends if isinstance(google_trends, dict) else {}
-            out["tracxn"] = tracxn_data if isinstance(tracxn_data, dict) else {}
+            out["google_trends"]  = google_trends      if isinstance(google_trends, dict)      else {}
+            out["tracxn"]         = tracxn_data        if isinstance(tracxn_data, dict)        else {}
+            out["app_data"]       = app_data           if isinstance(app_data, dict)           else {}
+            out["trustpilot"]     = trustpilot_data    if isinstance(trustpilot_data, dict)    else {}
+            out["tech_stack"]     = tech_stack_data    if isinstance(tech_stack_data, dict)    else {}
+            out["domain_intel"]   = domain_intel_data  if isinstance(domain_intel_data, dict)  else {}
+            out["reddit_data"] = reddit_results
             out["search_counts"] = {
                 "competitors": len(competitors_results),
                 "market": len(market_results),
                 "trends": len(trends_results),
-                "reddit": len(reddit_results),
+                "reddit": reddit_results.get("total_found", 0) if isinstance(reddit_results, dict) else 0,
+            }
+            out["search_results"] = {
+                "competitors": competitors_results,
+                "market": market_results,
+                "trends": trends_results,
+                "reddit": reddit_results.get("posts", []) if isinstance(reddit_results, dict) else [],
             }
             out["analysis"] = analysis
 
@@ -245,8 +350,16 @@ INFERRED CATEGORY: {category}{_gt_line}{_tx_line}
             out["data_coverage"] = "search_only" if blocked else "full"
             out["fallbacks_used"] = fallbacks
 
+            sc = out.get("search_counts", {})
+            total_results = sum(sc.values())
+            if total_results == 0:
+                out["data_gap_reason"] = "All search queries returned 0 results — DuckDuckGo may be rate limiting. Competitive intelligence is LLM-estimated only."
+            elif total_results < 8:
+                out["data_gap_reason"] = f"Limited search data ({total_results} results) — competitive analysis may be incomplete."
+
         except Exception as exc:
             out["error"] = str(exc)
+            out["data_gap_reason"] = f"Research agent failed: {str(exc)[:150]}"
             out["status"] = "failed"
             out["sources_used"] = [dr.to_dict() for dr in sources]
             out["data_coverage"] = "unavailable"

@@ -87,6 +87,20 @@ class ViralityRun(SQLModel, table=True):
     error: Optional[str] = None
 
 
+class IgHandleCache(SQLModel, table=True):
+    """Persistent cache for discovered Instagram handles.
+
+    Keyed by normalised domain (e.g. 'rarerabbit.in').
+    TTL: 30 days — stale entries are ignored and refreshed on next audit.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    domain: str = Field(index=True, unique=True)   # normalised domain key
+    handle: Optional[str] = None                   # None means confirmed not-found
+    confidence: str = "not_found"                  # confirmed/high/medium/low/guess/not_found
+    discovered_at: datetime = Field(default_factory=datetime.utcnow)
+    source: Optional[str] = None                   # website/ig_search/ddg/linktree/pattern
+
+
 class BrandConnector(SQLModel, table=True):
     """Stores third-party API tokens per brand URL for deep private data access."""
     id: Optional[int] = Field(default=None, primary_key=True)

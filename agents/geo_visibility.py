@@ -1,6 +1,7 @@
 """Agent 4: GEO (Generative Engine Optimization) — schema audit + AI citation likelihood."""
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from typing import TYPE_CHECKING
@@ -110,12 +111,19 @@ class GEOVisibilityAgent:
                 f"{category} brand comparison India",
             ]
             ai_search_blocks: list[str] = []
+            ai_search_results: list[dict] = []
             total_brand_mentions = 0
-            for q in ai_queries:
-                results = self.search.search(q, max_results=5)
-                mentions = _brand_mentioned(results, brand_name)
+            raw_results_per_query = await asyncio.gather(
+                *[asyncio.to_thread(self.search.search, q, max_results=5) for q in ai_queries],
+                return_exceptions=True,
+            )
+            for q, res in zip(ai_queries, raw_results_per_query):
+                if isinstance(res, Exception):
+                    res = []
+                mentions = _brand_mentioned(res, brand_name)
                 total_brand_mentions += mentions
-                ai_search_blocks.append(_fmt_search(f'Query: "{q}"', results, brand_name))
+                ai_search_blocks.append(_fmt_search(f'Query: "{q}"', res, brand_name))
+                ai_search_results.append({"query": q, "results": res, "mentions": mentions})
 
             sources.append(DataResult(
                 value={"queries": ai_queries, "total_mentions": total_brand_mentions},
@@ -158,14 +166,22 @@ Brand appeared in {total_brand_mentions} out of {len(ai_queries) * 5} AI-simulat
             out["on_wikipedia"] = on_wikipedia
             out["wikipedia_url"] = wiki_url
             out["ai_simulation_visibility_pct"] = ai_visibility_pct
+            out["total_brand_mentions"] = total_brand_mentions
+            out["searches"] = ai_search_results
             out["analysis"] = analysis
             out["sources_used"] = [dr.to_dict() for dr in sources]
             out["status"] = "partial" if blocked else "complete"
             out["data_coverage"] = "search_only" if blocked else "full"
             out["fallbacks_used"] = fallbacks
 
+            if blocked:
+                out["data_gap_reason"] = "Homepage was blocked (Cloudflare or login wall) — GEO score based on search signals only, not actual page schema."
+            elif ai_visibility_pct == 0:
+                out["data_gap_reason"] = f"'{brand_name}' did not appear in any of the 5 AI-simulation search queries. Brand is not being cited in AI-generated recommendations for its category."
+
         except Exception as exc:
             out["error"] = str(exc)
+            out["data_gap_reason"] = f"GEO visibility agent failed: {str(exc)[:150]}"
             out["status"] = "failed"
             out["sources_used"] = [dr.to_dict() for dr in sources]
             out["data_coverage"] = "unavailable"

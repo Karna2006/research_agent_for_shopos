@@ -1,5 +1,6 @@
 .env
 *.db
+*.log
 __pycache__/
 *.pyc
 *.pyo
@@ -10,3 +11,15 @@ shopos-agent/
 *.egg-info/
 .pytest_cache/
 htmlcov/
+.venv/
+venv/
+# Jupyter checkpoints
+.ipynb_checkpoints/
+# Large test notebooks (keep demo/ but not experiment notebooks)
+test_*.ipynb
+# Cache dirs (auto-rebuilt)
+cache/
+# Mastra generated build output
+mastra/.mastra/
+mastra/src/mastra/
+

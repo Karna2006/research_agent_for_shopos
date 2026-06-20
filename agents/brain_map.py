@@ -57,6 +57,46 @@ def tribe_preds_to_network_scores(preds: np.ndarray) -> dict[str, float]:
     return scores
 
 
+def tribe_preds_to_network_scores_per_tr(
+    preds: np.ndarray,
+    clip_duration: float = 2.0,
+    max_frames: int = 6,
+) -> list[dict]:
+    """Return per-TR network scores for synchronized brain frame display.
+
+    Subsamples evenly to at most `max_frames` TRs.
+    Returns list of {"t": float, "scores": dict[str, float]}.
+    """
+    if preds is None or preds.ndim != 2 or preds.shape[1] < 100:
+        return []
+    n_trs = preds.shape[0]
+    global_max = float(np.abs(preds).max())
+    if global_max < 1e-8:
+        return []
+
+    # Evenly subsample indices
+    if n_trs <= max_frames:
+        indices = list(range(n_trs))
+    else:
+        step = n_trs / max_frames
+        indices = [int(round(i * step)) for i in range(max_frames)]
+        indices = sorted(set(min(i, n_trs - 1) for i in indices))
+
+    frames = []
+    for idx in indices:
+        row = np.abs(preds[idx])
+        scores: dict[str, float] = {}
+        for net_id, ranges in _PARCEL_RANGES.items():
+            vals: list[float] = []
+            for lo, hi in ranges:
+                chunk = row[lo : min(hi, len(row))]
+                if chunk.size:
+                    vals.extend(chunk.tolist())
+            scores[net_id] = float(np.mean(vals)) / global_max if vals else 0.0
+        frames.append({"t": round(idx * clip_duration, 1), "scores": scores})
+    return frames
+
+
 def virality_dims_to_network_scores(dims: dict) -> dict[str, float]:
     """Map virality dimension scores (0-10 each) → estimated brain activation (0-1).
 

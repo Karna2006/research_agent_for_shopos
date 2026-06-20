@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Viral Potential — {{ product_name }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet"/>
+<script>if(new URLSearchParams(location.search).get('embed')==='1'){document.documentElement.classList.add('embed-mode')}</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0d;
+  --s1:#111111;
+  --s2:#171717;
+  --s3:#1e1e1e;
+  --border:#252525;
+  --border2:#2e2e2e;
+  --accent:#CAFF4B;
+  --accent-dim:rgba(202,255,75,.12);
+  --accent-glow:rgba(202,255,75,.25);
+  --text:#ffffff;
+  --text2:#a0a0a0;
+  --text3:#555555;
+  --red:#FF4B4B;
+  --blue:#4B9EFF;
+  --orange:#FF8C4B;
+  --green:#4BFF8C;
+  --purple:#A78BFA;
+  --r:14px;
+  --r-lg:20px;
+  --grade-color:{{ grade_color }};
+}
+html{font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;line-height:1.6;overflow-x:hidden}
+
+/* ── Embed mode: strip nav/compact-hero ──────────────────────────────────── */
+.embed-mode nav,
+.embed-mode .compact-hero { display:none !important; }
+.embed-mode .results { padding-top:2rem; }
+.embed-mode body { padding-top:0; }
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+
+/* ── NAV ──────────────────────────────────────────────────────────────────── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 2rem;
+  background:rgba(13,13,13,.85);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{
+  display:flex;align-items:center;gap:.65rem;
+  font-size:.82rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+}
+.nav-logo-dot{
+  width:28px;height:28px;border-radius:8px;
+  background:var(--accent);display:flex;align-items:center;justify-content:center;
+  font-size:.7rem;font-weight:900;color:#000;letter-spacing:0;
+}
+.nav-badge{
+  font-size:.68rem;font-weight:600;padding:.2rem .65rem;border-radius:999px;
+  background:rgba(202,255,75,.1);border:1px solid rgba(202,255,75,.3);
+  color:var(--accent);letter-spacing:.04em;
+}
+.nav-right{display:flex;align-items:center;gap:1rem}
+.nav-score{font-size:1.1rem;font-weight:900;color:var(--accent)}
+.nav-label{font-size:.72rem;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
+
+/* ── COMPACT HERO HEADER ──────────────────────────────────────────────────── */
+.compact-hero{
+  padding:calc(56px + 1.25rem) 2rem 1.25rem;
+  border-bottom:1px solid var(--border);
+  background:var(--s1);
+}
+.compact-hero-inner{
+  max-width:1200px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;min-height:60px;
+}
+.compact-hero-left{display:flex;flex-direction:column;gap:.25rem}
+.compact-hero-product{
+  font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text3);
+}
+.compact-hero-name{
+  font-size:1.35rem;font-weight:900;letter-spacing:-.02em;color:var(--text);line-height:1.15;
+}
+.compact-hero-right{display:flex;align-items:center;gap:1rem}
+.compact-score-num{font-size:2.4rem;font-weight:900;color:var(--accent);line-height:1}
+.compact-score-denom{font-size:.8rem;color:var(--text3);font-weight:500}
+.compact-grade-badge{
+  padding:.3rem .85rem;border-radius:8px;
+  font-size:.85rem;font-weight:800;letter-spacing:.06em;
+  background:var(--grade-color);color:#000;
+}
+.compact-hero-actions{display:flex;align-items:center;gap:.5rem}
+.hero-cta{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.5rem 1.1rem;border-radius:999px;
+  background:var(--accent);color:#000;
+  font-size:.8rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  text-decoration:none;cursor:pointer;border:none;
+  transition:transform .15s,box-shadow .15s;
+}
+.hero-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(202,255,75,.3)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── SECTION TITLE utility ────────────────────────────────────────────────── */
+.section-title{
+  font-size:clamp(1.6rem,3vw,2.8rem);font-weight:900;text-transform:uppercase;
+  letter-spacing:.02em;text-align:center;margin-bottom:.75rem;
+}
+.section-sub{
+  font-size:.95rem;color:var(--text2);text-align:center;
+  max-width:560px;margin:0 auto 3rem;line-height:1.7;
+}
+/* placeholder for hiw-num to avoid breaking any stray references */
+.hiw-num{
+  font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:1.25rem;
+}
+.hiw-icon{
+  width:56px;height:56px;border-radius:14px;
+  background:var(--s2);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:1.25rem;font-size:1.5rem;
+}
+.hiw-card-title{
+  font-size:1.05rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.04em;margin-bottom:.6rem;
+}
+.hiw-card-desc{font-size:.85rem;color:var(--text2);line-height:1.7}
+.hiw-brain-preview{
+  width:100%;aspect-ratio:1;border-radius:10px;
+  background:radial-gradient(ellipse at center,rgba(202,255,75,.08) 0%,transparent 70%);
+  display:flex;align-items:center;justify-content:center;
+  margin-top:1.25rem;
+}
+
+/* ── RESULTS ──────────────────────────────────────────────────────────────── */
+.results{
+  padding:2.5rem 2rem;border-top:1px solid var(--border);
+  background:linear-gradient(180deg,var(--bg) 0%,rgba(202,255,75,.015) 50%,var(--bg) 100%);
+}
+.results-inner{max-width:1200px;margin:0 auto}
+.results-split{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
+
+/* ── Score panel ────────────────────────────────────────────────────────────*/
+.results-score-panel{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);
+  padding:2rem;
+}
+.rsp-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;
+}
+.rsp-tag{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.rsp-badge{
+  font-size:.8rem;font-weight:700;padding:.28rem .75rem;border-radius:6px;
+  background:var(--grade-color);color:#000;
+}
+.rsp-ring-wrap{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:.6rem}
+.rsp-ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rsp-num{font-size:4rem;font-weight:900;color:var(--accent);line-height:1}
+.rsp-denom{font-size:.95rem;color:var(--text3);font-weight:500}
+.rsp-grade-label{text-align:center;font-size:.88rem;color:var(--text2);margin-bottom:2rem;font-weight:500}
+/* Network bars */
+.net-section-label{
+  font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:1rem;
+  padding-top:1.25rem;border-top:1px solid var(--border);
+}
+.net-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.65rem}
+.net-name{font-size:.78rem;color:var(--text2);width:110px;flex-shrink:0}
+.net-bar-bg{flex:1;height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.net-bar-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.net-val{font-size:.75rem;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+
+/* ── Brain panel ────────────────────────────────────────────────────────────*/
+.results-brain-panel{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);
+  padding:2rem;display:flex;flex-direction:column;
+}
+.rbp-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;
+}
+.rbp-tag{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.rbp-live{
+  display:flex;align-items:center;gap:.4rem;
+  font-size:.68rem;font-weight:600;color:var(--accent);
+}
+.rbp-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 2s infinite}
+.brain-viz{
+  flex:1;min-height:260px;
+  background:radial-gradient(ellipse at 50% 45%,rgba(202,255,75,.07) 0%,transparent 65%);
+  border-radius:12px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.brain-viz-svg{width:100%;max-width:280px;height:auto}
+.brain-viz-heatmap{width:100%;height:auto;border-radius:8px}
+.brain-score-overlay{
+  position:absolute;bottom:1rem;right:1rem;
+  background:rgba(13,13,13,.85);backdrop-filter:blur(8px);
+  border:1px solid var(--border2);border-radius:10px;
+  padding:.65rem 1rem;text-align:center;min-width:90px;
+}
+.bso-val{font-size:1.8rem;font-weight:900;color:var(--accent);line-height:1}
+.bso-label{font-size:.65rem;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin-top:.2rem}
+.tribe-badge-panel{
+  display:flex;align-items:center;gap:.5rem;margin-top:1rem;
+  padding:.6rem .9rem;border-radius:8px;
+  background:rgba(202,255,75,.05);border:1px solid rgba(202,255,75,.15);
+}
+.tribe-badge-text{font-size:.72rem;color:var(--accent);font-weight:600}
+.tribe-badge-sub{font-size:.68rem;color:var(--text3)}
+
+/* ── TRIBE VIDEO ──────────────────────────────────────────────────────────── */
+.tribe-section{
+  padding:5rem 2rem;border-top:1px solid var(--border);
+}
+.tribe-inner{max-width:1200px;margin:0 auto}
+.tribe-split{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start}
+.tribe-video-wrap{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);
+  overflow:hidden;
+}
+.tribe-video-header{
+  padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tvh-title{font-size:.82rem;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.06em}
+.tvh-badge{
+  font-size:.65rem;font-weight:700;padding:.2rem .55rem;border-radius:4px;
+  background:rgba(202,255,75,.1);border:1px solid rgba(202,255,75,.25);
+  color:var(--accent);letter-spacing:.06em;text-transform:uppercase;
+}
+.tribe-video-tabs{display:flex;gap:.4rem;padding:.75rem 1.5rem .25rem}
+.tvt{
+  font-size:.72rem;padding:.3rem .7rem;border-radius:6px;
+  cursor:pointer;border:1px solid var(--border2);color:var(--text3);
+  background:var(--s2);transition:all .15s;
+}
+.tvt.active{border-color:rgba(202,255,75,.4);color:var(--accent);background:rgba(202,255,75,.08)}
+video{width:100%;display:block;max-height:420px;object-fit:contain;background:#000}
+.tribe-video-caption{
+  padding:.6rem 1.25rem;background:var(--s2);
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.7rem;color:var(--text3);border-top:1px solid var(--border);
+}
+.tribe-video-dot{width:6px;height:6px;border-radius:50%;background:#7c3aed;animation:blink 2s infinite;flex-shrink:0}
+/* NE metrics panel */
+.ne-panel{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);
+  padding:2rem;
+}
+.ne-score-row{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;
+}
+.ne-cell{
+  background:var(--s2);border:1px solid var(--border);border-radius:12px;
+  padding:1.1rem;text-align:center;
+}
+.ne-big{font-size:2.4rem;font-weight:900;color:var(--accent);line-height:1}
+.ne-small{font-size:1.6rem;font-weight:900;color:var(--accent);line-height:1}
+.ne-sub{font-size:.65rem;color:var(--text3);margin-top:.25rem;line-height:1.35}
+.ne-tier{
+  display:inline-block;margin-top:.4rem;
+  font-size:.72rem;font-weight:700;padding:.2rem .6rem;border-radius:999px;
+}
+.ne-tier.low{background:rgba(237,237,235,.04);color:var(--text3);border:1px solid var(--border)}
+.ne-tier.medium{background:rgba(237,237,235,.06);color:var(--text2);border:1px solid rgba(237,237,235,.12)}
+.ne-tier.high{background:rgba(202,255,75,.1);color:var(--accent);border:1px solid rgba(202,255,75,.3)}
+.ne-interpret{
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  padding:.9rem 1.1rem;margin-bottom:1.25rem;
+}
+.ne-interpret-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:.3rem}
+.ne-interpret-text{font-size:.84rem;color:var(--text2);line-height:1.6}
+/* NE breakdown bars */
+.ne-br-row{display:flex;align-items:center;gap:.65rem;margin-bottom:.5rem}
+.ne-br-label{font-size:.74rem;color:var(--text2);width:120px;flex-shrink:0}
+.ne-br-bg{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.ne-br-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(202,255,75,.4),var(--accent))}
+.ne-br-val{font-size:.72rem;color:var(--text3);width:34px;text-align:right;flex-shrink:0}
+/* Network bars in NE panel */
+.ne-net-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+
+/* ── ENGAGEMENT SCORE SECTION ─────────────────────────────────────────────── */
+.engage-section{
+  padding:5rem 2rem;border-top:1px solid var(--border);
+}
+.engage-inner{max-width:1200px;margin:0 auto}
+.engage-split{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+.engage-copy h2{
+  font-size:clamp(2rem,4vw,3.5rem);font-weight:900;text-transform:uppercase;
+  letter-spacing:.02em;margin-bottom:1rem;line-height:1.05;
+}
+.engage-copy p{font-size:1rem;color:var(--text2);line-height:1.8;max-width:440px}
+.engage-visual{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r-lg);
+  padding:2rem;display:flex;flex-direction:column;gap:1rem;
+}
+.engage-big-ring{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:.5rem}
+.engage-ring-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.eng-num{font-size:3.4rem;font-weight:900;color:var(--accent);line-height:1}
+.eng-sub{font-size:.8rem;color:var(--text3)}
+.engage-bars{display:flex;flex-direction:column;gap:.65rem}
+.engage-bar-row{display:flex;align-items:center;gap:.75rem}
+.engage-bar-label{font-size:.78rem;color:var(--text2);width:130px;flex-shrink:0}
+.engage-bar-bg{flex:1;height:6px;background:var(--s3);border-radius:3px;overflow:hidden}
+.engage-bar-fill{height:100%;border-radius:3px}
+.engage-bar-val{font-size:.78rem;font-weight:700;width:38px;text-align:right;flex-shrink:0}
+
+/* ── BREAKDOWN ────────────────────────────────────────────────────────────── */
+.breakdown{
+  padding:5rem 2rem;border-top:1px solid var(--border);
+}
+.breakdown-inner{max-width:1200px;margin:0 auto}
+.breakdown-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:3rem}
+.dim-card{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);
+  padding:1.4rem;transition:border-color .2s;
+}
+.dim-card:hover{border-color:rgba(202,255,75,.25)}
+.dim-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem}
+.dim-card-label{font-size:.82rem;font-weight:700;color:var(--text)}
+.dim-card-score{
+  font-size:1.1rem;font-weight:900;color:var(--accent);
+}
+.dim-card-bar-bg{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-bottom:.75rem}
+.dim-card-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),rgba(202,255,75,.5));transition:width .6s ease}
+.dim-card-reason{font-size:.78rem;color:var(--text2);line-height:1.55}
+.dim-card-evidence{font-size:.74rem;color:var(--text3);margin-top:.4rem;line-height:1.45}
+.dim-card-evidence::before{content:"↳ "}
+.dim-card-signals{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem}
+.dim-sig{
+  font-size:.68rem;background:var(--s2);border:1px solid var(--border2);
+  border-radius:4px;padding:.12rem .4rem;color:var(--text3);
+}
+
+/* ── HOOK ─────────────────────────────────────────────────────────────────── */
+.hook-section{
+  padding:4rem 2rem;border-top:1px solid var(--border);
+}
+.hook-inner{max-width:1200px;margin:0 auto}
+.hook-box{
+  background:linear-gradient(135deg,rgba(202,255,75,.06),rgba(202,255,75,.02));
+  border:1px solid rgba(202,255,75,.2);border-radius:var(--r-lg);
+  padding:2.5rem 3rem;position:relative;overflow:hidden;
+}
+.hook-box::before{
+  content:'"';position:absolute;top:-1rem;left:1.5rem;
+  font-size:9rem;color:rgba(202,255,75,.06);font-family:Georgia,serif;line-height:1;
+}
+.hook-label{
+  font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:.9rem;
+}
+.hook-text{
+  font-size:clamp(1.2rem,2.5vw,1.9rem);font-weight:700;color:var(--text);
+  line-height:1.4;position:relative;font-style:italic;
+}
+
+/* ── VIRAL ANGLES ─────────────────────────────────────────────────────────── */
+.angles-section{padding:4rem 2rem;border-top:1px solid var(--border)}
+.angles-inner{max-width:1200px;margin:0 auto}
+.angles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;margin-top:2.5rem}
+.angle-card{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);
+  padding:1.4rem;display:flex;gap:1rem;
+  transition:border-color .2s,transform .2s;
+}
+.angle-card:hover{border-color:rgba(202,255,75,.2);transform:translateY(-2px)}
+.angle-num{
+  width:32px;height:32px;border-radius:8px;
+  background:var(--accent);color:#000;font-weight:800;font-size:.82rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem;
+}
+.angle-body{flex:1;min-width:0}
+.angle-text{font-size:.88rem;line-height:1.55;color:var(--text)}
+.angle-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem}
+.angle-chip{
+  font-size:.68rem;border-radius:4px;padding:.15rem .45rem;
+  border:1px solid var(--border2);color:var(--text3);
+}
+.angle-chip.platform{border-color:var(--border2);color:var(--text3)}
+.angle-chip.hook{border-color:var(--border2);color:var(--text3);font-style:italic}
+.angle-chip.reach{border-color:var(--border2);color:var(--text3)}
+
+/* ── PLATFORMS ────────────────────────────────────────────────────────────── */
+.platforms-section{padding:3rem 2rem;border-top:1px solid var(--border)}
+.platforms-inner{
+  max-width:1200px;margin:0 auto;
+  display:grid;grid-template-columns:1fr 1fr;gap:2rem;
+}
+.platform-badges{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.25rem}
+.platform-badge{
+  display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;
+  border-radius:10px;background:var(--s1);border:1px solid var(--border2);
+  font-size:.85rem;font-weight:600;color:var(--text);
+}
+.creator-box{
+  background:var(--s1);border:1px solid var(--border2);border-left:3px solid var(--accent);
+  border-radius:0 var(--r) var(--r) 0;padding:1.25rem 1.5rem;
+  font-size:.9rem;color:var(--text2);line-height:1.7;font-style:italic;margin-top:1.25rem;
+}
+
+/* ── RISK ─────────────────────────────────────────────────────────────────── */
+.risk-section{padding:3rem 2rem;border-top:1px solid var(--border)}
+.risk-inner{max-width:1200px;margin:0 auto}
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-top:1.5rem}
+.risk-item{
+  background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);
+  padding:.9rem 1.1rem;display:flex;align-items:flex-start;gap:.65rem;
+  font-size:.84rem;color:var(--text2);line-height:1.5;
+}
+.risk-icon{font-size:.9rem;flex-shrink:0;margin-top:.05rem}
+
+/* ── COMPARABLE ───────────────────────────────────────────────────────────── */
+.comparable-section{padding:3rem 2rem;border-top:1px solid var(--border)}
+.comparable-inner{max-width:1200px;margin:0 auto}
+.comparable-list{
+  display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1.25rem;
+}
+.comparable-chip{
+  padding:.45rem 1rem;border-radius:999px;background:var(--s1);border:1px solid var(--border2);
+  font-size:.82rem;color:var(--text2);
+}
+.comparable-chip::before{content:"→ ";color:var(--accent);font-weight:700}
+
+/* ── FOOTER ───────────────────────────────────────────────────────────────── */
+footer{
+  padding:2.5rem 2rem;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+  max-width:100%;
+}
+.footer-brand{font-size:.78rem;color:var(--text3);font-weight:500}
+.footer-brand strong{color:var(--text2)}
+.footer-right{
+  display:flex;align-items:center;gap:1.5rem;
+}
+.footer-link{
+  font-size:.75rem;color:var(--text3);text-decoration:none;
+  transition:color .15s;
+}
+.footer-link:hover{color:var(--text2)}
+
+/* ── SECTION HEADER utility ───────────────────────────────────────────────── */
+.section-label{
+  font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:.6rem;
+}
+
+/* ── FAB ──────────────────────────────────────────────────────────────────── */
+.fab{position:fixed;bottom:1.75rem;right:1.75rem;z-index:50;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end}
+.fab-btn{
+  display:flex;align-items:center;gap:.5rem;padding:.55rem 1.1rem;
+  border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer;border:none;
+  transition:opacity .15s,transform .15s;
+}
+.fab-btn:hover{opacity:.85;transform:translateY(-1px)}
+.fab-pdf{background:var(--accent);color:#000}
+.fab-share{background:var(--s2);border:1px solid var(--border2);color:var(--text2)}
+@media print{.fab{display:none}nav{display:none}}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────────────────── */
+@media(max-width:860px){
+  .results-split,.tribe-split,.platforms-inner{grid-template-columns:1fr}
+  .breakdown-grid{grid-template-columns:1fr}
+  nav{padding:.7rem 1.25rem}
+  .compact-hero{padding:calc(56px + .75rem) 1.25rem .75rem}
+  .compact-hero-inner{flex-direction:column;align-items:flex-start}
+  .results,.tribe-section,.breakdown,.hook-section,.angles-section,.platforms-section,.risk-section,.comparable-section{padding:2.5rem 1.25rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     NAV
+     ══════════════════════════════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-dot">S</div>
+    SHOPOS
+    <span class="nav-badge">Virality AI</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-label">Score</span>
+    <span class="nav-score">{{ score }}/100</span>
+    <a href="#results" class="hero-cta" style="padding:.45rem 1.1rem;font-size:.78rem">View Results</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     COMPACT HERO HEADER
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="compact-hero">
+  <div class="compact-hero-inner">
+    <div class="compact-hero-left">
+      <div class="compact-hero-product">Virality Report &middot; Neural Virality Intelligence</div>
+      <div class="compact-hero-name">{{ product_name }}</div>
+    </div>
+    <div class="compact-hero-right">
+      <div style="display:flex;align-items:baseline;gap:.25rem">
+        <span class="compact-score-num">{{ score }}</span>
+        <span class="compact-score-denom">/100</span>
+      </div>
+      <span class="compact-grade-badge">{{ grade[0] if grade else "—" }}</span>
+      <div class="compact-hero-actions">
+        <a href="#results" class="hero-cta" style="font-size:.75rem;padding:.4rem .9rem">↓ Results</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     RESULTS: SCORE + BRAIN MAP
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="results" id="results">
+  <div class="results-inner">
+    <p class="section-label">Your Report</p>
+    <h2 class="section-title" style="text-align:left;margin-bottom:2.5rem">
+      {{ product_name }}<br>
+      <span style="color:var(--text3);font-size:clamp(1rem,2vw,1.6rem)">Virality Analysis</span>
+    </h2>
+
+    {% if scrape_mode == "url_based" %}
+    <div style="display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.75rem;
+      padding:.45rem 1rem;border-radius:8px;background:rgba(34,197,94,.07);
+      border:1px solid rgba(34,197,94,.2);font-size:.78rem;color:#86efac;font-weight:600">
+      🔍 URL-based analysis — scores backed by scraped content and images
+    </div>
+    {% elif scrape_mode == "scrape_failed" %}
+    <div style="display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.75rem;
+      padding:.45rem 1rem;border-radius:8px;background:rgba(245,158,11,.07);
+      border:1px solid rgba(245,158,11,.2);font-size:.78rem;color:#fbbf24;font-weight:600">
+      ⚠ URL not accessible — scored from description only
+    </div>
+    {% else %}
+    <div style="display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.75rem;
+      padding:.45rem 1rem;border-radius:8px;background:var(--s2);
+      border:1px solid var(--border2);font-size:.78rem;color:var(--text3);font-weight:500">
+      ℹ Text-based analysis — add a product URL for visual signal scoring
+    </div>
+    {% endif %}
+
+    <div class="results-split">
+
+      <!-- Score panel -->
+      <div class="results-score-panel">
+        <div class="rsp-header">
+          <span class="rsp-tag">Virality Score</span>
+          <span class="rsp-badge">{{ grade[0] if grade else "—" }}</span>
+        </div>
+
+        {% set r2 = 110 %}
+        {% set circ2 = 2 * 3.14159 * r2 %}
+        {% set dash2 = (score / 100) * circ2 %}
+        <div class="rsp-ring-wrap">
+          <svg width="240" height="240" viewBox="0 0 240 240">
+            <circle cx="120" cy="120" r="{{ r2 }}" fill="none" stroke="#1e1e1e" stroke-width="14"/>
+            <circle cx="120" cy="120" r="{{ r2 }}" fill="none"
+              stroke="{{ grade_color }}" stroke-width="14"
+              stroke-dasharray="{{ dash2 | round(2) }} {{ circ2 | round(2) }}"
+              stroke-linecap="round" transform="rotate(-90 120 120)"/>
+          </svg>
+          <div class="rsp-ring-num">
+            <span class="rsp-num">{{ score }}</span>
+            <span class="rsp-denom">/100</span>
+          </div>
+        </div>
+        <div class="rsp-grade-label">{{ grade if grade else "Virality Potential Score" }}</div>
+
+        <!-- Dimension bars as network-style rows -->
+        <div class="net-section-label">Score Breakdown</div>
+        {% set dim_colors = ["#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B"] %}
+        {% for dim in dimensions %}
+        <div class="net-row">
+          <span class="net-name">{{ dim.label }}</span>
+          <div class="net-bar-bg">
+            <div class="net-bar-fill"
+              style="width:{{ dim.pct }}%;background:{{ dim_colors[loop.index0 % 7] }}"></div>
+          </div>
+          <span class="net-val" style="color:{{ dim_colors[loop.index0 % 7] }}">{{ dim.score }}/10</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Brain panel -->
+      <div class="results-brain-panel">
+        <div class="rbp-header">
+          <span class="rbp-tag">Neural Activation Map</span>
+          {% set ne = neural_engagement %}
+          {% if ne and not ne.get("error") %}
+          <span class="rbp-live"><span class="rbp-live-dot"></span>Live fMRI Data</span>
+          {% else %}
+          <span style="font-size:.68rem;color:var(--text3);font-weight:600">Virality Model</span>
+          {% endif %}
+        </div>
+
+        <div class="brain-viz">
+          {% if brain_map_svg %}
+            <div class="brain-viz-heatmap" style="padding:1rem">{{ brain_map_svg | safe }}</div>
+          {% else %}
+          <!-- Stylized brain SVG placeholder -->
+          <svg class="brain-viz-svg" viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(202,255,75,0.08)"/>
+                <stop offset="100%" stop-color="transparent"/>
+              </radialGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <ellipse cx="140" cy="120" rx="130" ry="98" fill="url(#bgGrad)"/>
+            <!-- Brain outline -->
+            <path d="M75,110 Q65,70 90,55 Q115,40 140,42 Q165,40 190,55 Q215,70 205,110
+                     Q215,140 200,160 Q185,180 165,185 Q155,190 140,190
+                     Q125,190 115,185 Q95,180 80,160 Q65,140 75,110Z"
+              fill="none" stroke="rgba(202,255,75,0.18)" stroke-width="1.5"/>
+            <!-- Brain folds -->
+            <path d="M95,80 Q110,65 130,75 Q145,80 155,70 Q170,60 185,75"
+              fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <path d="M85,105 Q100,95 115,100 Q130,108 145,98 Q162,90 178,100"
+              fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <path d="M88,130 Q105,120 120,128 Q136,138 152,126 Q168,116 185,128"
+              fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <path d="M95,155 Q112,146 128,152 Q142,158 158,150 Q172,143 184,152"
+              fill="none" stroke="rgba(202,255,75,0.1)" stroke-width="1.2"/>
+            <!-- Activation blobs -->
+            {% set brain_network_scores = brain_network_scores %}
+            <circle cx="110" cy="85" r="14" fill="rgba(75,158,255,0.15)" filter="url(#glow)"/>
+            <circle cx="170" cy="85" r="14" fill="rgba(75,158,255,0.15)" filter="url(#glow)"/>
+            <circle cx="140" cy="115" r="18" fill="rgba(202,255,75,0.12)" filter="url(#glow)">
+              <animate attributeName="r" values="16;22;16" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="105" cy="145" r="12" fill="rgba(75,255,140,0.12)" filter="url(#glow)"/>
+            <circle cx="175" cy="145" r="12" fill="rgba(255,140,75,0.12)" filter="url(#glow)"/>
+            <circle cx="140" cy="168" r="10" fill="rgba(167,139,250,0.12)" filter="url(#glow)"/>
+            <!-- Score overlay -->
+            <rect x="92" y="102" width="96" height="50" rx="8"
+              fill="rgba(13,13,13,0.7)" stroke="rgba(202,255,75,0.2)" stroke-width="1"/>
+            <text x="140" y="124" text-anchor="middle" fill="#CAFF4B"
+              font-size="20" font-weight="900" font-family="Inter,sans-serif">{{ score }}</text>
+            <text x="140" y="138" text-anchor="middle" fill="rgba(255,255,255,0.4)"
+              font-size="9" font-family="Inter,sans-serif">VIRALITY SCORE</text>
+          </svg>
+          {% endif %}
+
+          <!-- Score overlay on brain -->
+          {% set ne = neural_engagement %}
+          {% if ne and not ne.get("error") and ne.get("neural_engagement_score") is not none %}
+          <div class="brain-score-overlay">
+            <div class="bso-val">{{ ne.get("neural_engagement_score") }}</div>
+            <div class="bso-label">Neural Score</div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- TRIBE badge -->
+        {% set ne = neural_engagement %}
+        {% if ne and not ne.get("error") %}
+        <div class="tribe-badge-panel">
+          <span style="font-size:1rem">🧠</span>
+          <div>
+            <div class="tribe-badge-text">Meta TRIBE v2 fMRI Encoding Model</div>
+            <div class="tribe-badge-sub">Real neural response simulation · CC-BY-NC-4.0</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="tribe-badge-panel">
+          <span style="font-size:1rem">🤖</span>
+          <div>
+            <div class="tribe-badge-text">Multimodal Virality Model</div>
+            <div class="tribe-badge-sub">LLM + visual signal analysis · TRIBE v2 ready</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Brain network scores if available (non-NE path) -->
+        {% if brain_network_scores %}
+        {% set net_vals = brain_network_scores.values() | list %}
+        {% set net_max  = net_vals | max if net_vals else 1 %}
+        {% set net_labels = {"control":"Exec. Control","default":"Default Mode","attention":"Attention","limbic":"Limbic","motor":"Motor","visual":"Visual","reward":"Reward"} %}
+        {% set net_colors = {"control":"#A78BFA","default":"#FF8C4B","attention":"#FFD04B","limbic":"#FF4B4B","motor":"#4BFF8C","visual":"#4B9EFF","reward":"#CAFF4B"} %}
+        <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+          <div class="net-section-label">Cortical Network Activation</div>
+          <div class="ne-net-grid">
+            {% for net, val in brain_network_scores.items() %}
+            {% set pct = ((val / net_max) * 100) | round | int if net_max > 0 else 0 %}
+            <div class="net-row" style="margin-bottom:.4rem">
+              <span class="net-name" style="width:90px;font-size:.72rem">{{ net_labels.get(net, net | title) }}</span>
+              <div class="net-bar-bg">
+                <div class="net-bar-fill" style="width:{{ pct }}%;background:{{ net_colors.get(net,'#CAFF4B') }}"></div>
+              </div>
+              <span class="net-val" style="font-size:.7rem;color:{{ net_colors.get(net,'#CAFF4B') }}">{{ "%.2f"|format(val) }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     TRIBE v2 NEURAL ENGAGEMENT (if available)
+     ══════════════════════════════════════════════════════════════════════════ -->
+{% set ne = neural_engagement %}
+{% set has_ne = ne and not ne.get("error") and ne.get("neural_engagement_score") is not none %}
+{% set has_vid = tribe_sim_video_url or tribe_reel_video_url %}
+
+{% if has_ne or has_vid %}
+<section class="tribe-section">
+  <div class="tribe-inner">
+    <p class="section-label">TRIBE v2 Neural Engagement</p>
+    <h2 class="section-title" style="text-align:left;margin-bottom:2.5rem">Brain Response Analysis</h2>
+
+    <div class="tribe-split">
+
+      <!-- Video panel -->
+      {% if has_vid %}
+      <div class="tribe-video-wrap">
+        <div class="tribe-video-header">
+          <span class="tvh-title">Brain Simulation</span>
+          <span class="tvh-badge">fMRI Encoding</span>
+        </div>
+        {% if tribe_sim_video_url and tribe_reel_video_url %}
+        <div class="tribe-video-tabs" id="vid-tabs">
+          <span class="tvt active" onclick="switchVideo('sim')">Brain Simulation</span>
+          <span class="tvt" onclick="switchVideo('reel')">Original Reel</span>
+        </div>
+        {% endif %}
+        <video id="vid-sim" controls autoplay muted loop playsinline
+               {% if not tribe_sim_video_url %}style="display:none"{% endif %}>
+          {% if tribe_sim_video_url %}<source src="{{ tribe_sim_video_url }}" type="video/mp4">{% endif %}
+        </video>
+        <video id="vid-reel" controls loop playsinline style="display:none">
+          {% if tribe_reel_video_url %}<source src="{{ tribe_reel_video_url }}" type="video/mp4">{% endif %}
+        </video>
+        <div class="tribe-video-caption">
+          <span class="tribe-video-dot"></span>
+          <span id="vid-caption-text">
+            {% if tribe_sim_video_url %}
+              Brain surface activation · left = reel frame · right = cortical response · 1 TR/sec
+            {% else %}Original product reel{% endif %}
+          </span>
+          {% if tribe_sim_video_url %}
+          <button id="unmute-btn" onclick="toggleMute()"
+            style="margin-left:auto;font-size:.68rem;padding:.2rem .5rem;border-radius:5px;
+                   background:var(--s3);border:1px solid var(--border2);color:var(--text3);cursor:pointer">
+            🔇 Unmute
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- NE metrics panel -->
+      {% if has_ne %}
+      <div class="ne-panel">
+        <div class="net-section-label" style="padding-top:0;border-top:none;margin-bottom:1rem">Neural Engagement Metrics</div>
+
+        <div class="ne-score-row">
+          <div class="ne-cell">
+            <div class="ne-big">{{ ne.get("neural_engagement_score", 0) }}</div>
+            <div class="ne-sub">Neural Score /100</div>
+            <span class="ne-tier {{ (ne.get('tier') or 'Low') | lower }}">{{ ne.get("tier") or "—" }}</span>
+          </div>
+          <div class="ne-cell">
+            <div class="ne-small">{{ ne.get("n_trs_analyzed", 0) }}</div>
+            <div class="ne-sub">TRs Analyzed</div>
+          </div>
+          <div class="ne-cell">
+            <div class="ne-small">{{ ne.get("consistency_score", 0) }}</div>
+            <div class="ne-sub">Consistency /100</div>
+          </div>
+        </div>
+
+        {% if ne.get("interpretation") %}
+        <div class="ne-interpret">
+          <div class="ne-interpret-label">Neural Interpretation</div>
+          <div class="ne-interpret-text">{{ ne.interpretation }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Hook & pacing -->
+        <div class="ne-br-row">
+          <span class="ne-br-label">Early Hook Ratio</span>
+          <div class="ne-br-bg">
+            <div class="ne-br-fill" style="width:{{ ((ne.get('early_hook_ratio') or 0) * 100) | round | int }}%"></div>
+          </div>
+          <span class="ne-br-val">{{ ((ne.get('early_hook_ratio') or 0) * 100) | round | int }}%</span>
+        </div>
+        <div class="ne-br-row">
+          <span class="ne-br-label">Mean Activation</span>
+          <div class="ne-br-bg">
+            {% set act_pct = [((ne.get('mean_absolute_activation') or 0) / 0.5 * 100) | round | int, 100] | min %}
+            <div class="ne-br-fill" style="width:{{ act_pct }}%"></div>
+          </div>
+          <span class="ne-br-val">{{ "%.3f" | format(ne.get("mean_absolute_activation") or 0) }}</span>
+        </div>
+
+        {% set pacing = ne.get("pacing") or {} %}
+        {% if pacing.get("pacing_label") %}
+        <div style="margin-top:.75rem;display:flex;align-items:center;gap:.5rem;
+          padding:.45rem .8rem;border-radius:6px;
+          background:rgba(167,139,250,.07);border:1px solid rgba(167,139,250,.2);
+          font-size:.76rem;color:#c4b5fd;width:fit-content">
+          🎬 {{ pacing.pacing_label }} · {{ pacing.get("cut_count", 0) }} cuts / {{ (pacing.get("duration_s") or 0) | round | int }}s
+        </div>
+        {% endif %}
+
+        <!-- Network scores in NE panel -->
+        {% if brain_network_scores %}
+        {% set net_vals2 = brain_network_scores.values() | list %}
+        {% set net_max2  = net_vals2 | max if net_vals2 else 1 %}
+        {% set net_labels2 = {"control":"Exec. Control","default":"Default Mode","attention":"Attention","limbic":"Limbic","motor":"Motor","visual":"Visual","reward":"Reward"} %}
+        {% set net_colors2 = {"control":"#A78BFA","default":"#FF8C4B","attention":"#FFD04B","limbic":"#FF4B4B","motor":"#4BFF8C","visual":"#4B9EFF","reward":"#CAFF4B"} %}
+        <div class="ne-net-grid">
+          {% for net, val in brain_network_scores.items() %}
+          {% set pct2 = ((val / net_max2) * 100) | round | int if net_max2 > 0 else 0 %}
+          <div class="net-row" style="margin-bottom:.35rem">
+            <span class="net-name" style="width:90px;font-size:.72rem">{{ net_labels2.get(net, net | title) }}</span>
+            <div class="net-bar-bg">
+              <div class="net-bar-fill" style="width:{{ pct2 }}%;background:{{ net_colors2.get(net,'#CAFF4B') }}"></div>
+            </div>
+            <span class="net-val" style="font-size:.7rem;color:{{ net_colors2.get(net,'#CAFF4B') }}">{{ "%.2f"|format(val) }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div style="margin-top:1rem;font-size:.62rem;color:var(--text3)">
+          Meta TRIBE v2 · CC-BY-NC-4.0 · Non-commercial research use only
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</section>
+{% endif %}
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     7-DIMENSION BREAKDOWN
+     ══════════════════════════════════════════════════════════════════════════ -->
+<section class="breakdown">
+  <div class="breakdown-inner">
+    <p class="section-label">Deep Analysis</p>
+    <h2 class="section-title" style="text-align:left">Score Breakdown</h2>
+    <p style="color:var(--text2);font-size:.9rem;max-width:560px;line-height:1.7">
+      Seven dimensions that determine virality. Each scored 0–10 with evidence
+      pulled from your actual content.
+    </p>
+    <div class="breakdown-grid">
+      {% set dim_colors2 = ["#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B","#CAFF4B"] %}
+      {% for dim in dimensions %}
+      <div class="dim-card">
+        <div class="dim-card-header">
+          <span class="dim-card-label">{{ dim.label }}</span>
+          <span class="dim-card-score" style="color:{{ dim_colors2[loop.index0 % 7] }}">{{ dim.score }}/10</span>
+        </div>
+        <div class="dim-card-bar-bg">
+          <div class="dim-card-bar-fill" style="width:{{ dim.pct }}%;background:{{ dim_colors2[loop.index0 % 7] }}"></div>
+        </div>
+        {% if dim.reasoning %}
+        <div class="dim-card-reason">{{ dim.reasoning }}</div>
+        {% endif %}
+        {% if dim.evidence %}
+        <div class="dim-card-evidence">{{ dim.evidence }}</div>
+        {% endif %}
+        {% if dim.signals %}
+        <div class="dim-card-signals">
+          {% for s in dim.signals %}<span class="dim-sig">{{ s }}</span>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     KILLER HOOK
+     ══════════════════════════════════════════════════════════════════════════ -->
+{% if killer_hook %}
+<section class="hook-section">
+  <div class="hook-inner">
+    <p class="section-label">Recommended Hook</p>
+    <div class="hook-box">
+      <div class="hook-label">✦ Killer Hook</div>
+      <div class="hook-text">"{{ killer_hook }}"</div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     VIRAL ANGLES
+     ══════════════════════════════════════════════════════════════════════════ -->
+{% if viral_angles %}
+<section class="angles-section">
+  <div class="angles-inner">
+    <p class="section-label">Content Strategy</p>
+    <h2 class="section-title" style="text-align:left">Viral Content Angles</h2>
+    <div class="angles-grid">
+      {% for angle in viral_angles %}
+      <div class="angle-card">
+        <div class="angle-num">{{ loop.index }}</div>
+        <div class="angle-body">
+          <div class="angle-text">{{ angle.text }}</div>
+          {% if angle.platform or angle.hook or angle.reach %}
+          <div class="angle-chips">
+            {% if angle.platform %}<span class="angle-chip platform">📱 {{ angle.platform }}</span>{% endif %}
+            {% if angle.reach %}<span class="angle-chip reach">📈 {{ angle.reach }}</span>{% endif %}
+            {% if angle.hook %}<span class="angle-chip hook">"{{ angle.hook }}"</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     PLATFORMS + CREATOR PROFILE
+     ══════════════════════════════════════════════════════════════════════════ -->
+{% if best_platforms or ideal_creator %}
+<section class="platforms-section">
+  <div class="platforms-inner">
+    {% if best_platforms %}
+    <div>
+      <p class="section-label">Distribution</p>
+      <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Best Platforms</h3>
+      <div class="platform-badges">
+        {% set picons = {"TikTok":"🎵","Instagram Reels":"📸","Pinterest":"📌","YouTube Shorts":"▶","Twitter/X":"𝕏"} %}
+        {% for p in best_platforms %}
+        <div class="platform-badge">{{ picons.get(p, "🌐") }} {{ p }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if ideal_creator %}
+    <div>
+      <p class="section-label">Casting</p>
+      <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em">Ideal Creator Profile</h3>
+      <div class="creator-box">{{ ideal_creator }}</div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     COMPARABLE + RISK
+     ══════════════════════════════════════════════════════════════════════════ -->
+{% if comparable %}
+<section class="comparable-section">
+  <div class="comparable-inner">
+    <p class="section-label">Benchmarks</p>
+    <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">Comparable Viral Products</h3>
+    <div class="comparable-list">
+      {% for c in comparable %}
+      <span class="comparable-chip">{{ c }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if risk_factors %}
+<section class="risk-section">
+  <div class="risk-inner">
+    <p class="section-label">Watch Out</p>
+    <h3 style="font-size:1.05rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem">Risk Factors</h3>
+    <div class="risk-grid">
+      {% for r in risk_factors %}
+      <div class="risk-item"><span class="risk-icon">⚠</span>{{ r }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     FOOTER
+     ══════════════════════════════════════════════════════════════════════════ -->
+<footer style="max-width:100%;padding:2.5rem 2rem">
+  <div class="footer-brand">
+    Generated by <strong>SHOPOS Virality AI</strong> &nbsp;·&nbsp; {{ generated_at }}
+  </div>
+  <div class="footer-right">
+    <span class="footer-link">Powered by Meta TRIBE v2</span>
+    <button class="fab-btn fab-pdf" onclick="window.print()" style="position:static;font-size:.78rem;padding:.4rem .9rem">⬇ PDF</button>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     FAB
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div class="fab">
+  <button class="fab-btn fab-share" onclick="window.open(window.location.href,'_blank')">↗ Open</button>
+  <button class="fab-btn fab-pdf" onclick="window.print()">⬇ PDF</button>
+</div>
+
+<!-- Video JS -->
+<script>
+function switchVideo(which) {
+  const sim = document.getElementById('vid-sim');
+  const reel = document.getElementById('vid-reel');
+  if (!sim || !reel) return;
+  const tabs = document.querySelectorAll('.tvt');
+  const caption = document.getElementById('vid-caption-text');
+  if (which === 'sim') {
+    sim.style.display = '';  reel.style.display = 'none';
+    tabs[0].classList.add('active');  tabs[1].classList.remove('active');
+    if (caption) caption.textContent = 'Brain surface activation · left = reel frame · right = cortical response · 1 TR/sec';
+    sim.play();
+  } else {
+    reel.style.display = '';  sim.style.display = 'none';
+    tabs[1].classList.add('active');  tabs[0].classList.remove('active');
+    if (caption) caption.textContent = 'Original product reel used for TRIBE v2 neural encoding';
+    reel.play();
+  }
+}
+function toggleMute() {
+  const sim  = document.getElementById('vid-sim');
+  const reel = document.getElementById('vid-reel');
+  const btn  = document.getElementById('unmute-btn');
+  if (!sim) return;
+  const nowMuted = sim.muted;
+  sim.muted = !nowMuted;
+  if (reel) reel.muted = !nowMuted;
+  if (btn) btn.textContent = nowMuted ? '🔊 Mute' : '🔇 Unmute';
+}
+</script>
+
+</body>
+</html>

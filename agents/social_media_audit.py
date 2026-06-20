@@ -27,6 +27,7 @@ import numpy as np
 from scrapers.instagram_scraper import scrape_instagram_profile
 from scrapers.youtube_scraper import scrape_youtube_channel
 from scrapers.instagram_handle_finder import discover_handle
+from scrapers.ig_handle_cache import get_cached_handle, store_handle
 
 if TYPE_CHECKING:
     from llm.client import GroqClient
@@ -543,12 +544,18 @@ class SocialMediaAuditAgent:
         """
         print(f"  [social_audit] Starting audit for {brand_name}", flush=True)
 
-        # ── Step 1: Discover Instagram handle ─────────────────────────────────
-        ig_handle, ig_handle_confidence = await discover_handle(
-            brand_name=brand_name,
-            website_url=website_url,
-            search_agent=self.search,
-        )
+        # ── Step 1: Discover Instagram handle (cache → multi-strategy) ───────
+        _cached = get_cached_handle(website_url)
+        if _cached:
+            ig_handle, ig_handle_confidence = _cached
+            print(f"  [social_audit] IG handle cache hit: @{ig_handle} ({ig_handle_confidence})", flush=True)
+        else:
+            ig_handle, ig_handle_confidence = await discover_handle(
+                brand_name=brand_name,
+                website_url=website_url,
+                search_agent=self.search,
+            )
+            store_handle(website_url, ig_handle, ig_handle_confidence)
         print(f"  [social_audit] Instagram handle: {ig_handle} ({ig_handle_confidence})", flush=True)
 
         # ── Step 2: Scrape Instagram ───────────────────────────────────────────
@@ -646,6 +653,21 @@ class SocialMediaAuditAgent:
             for img in images
         ]
 
+        # Build data_gap_reason based on Instagram post availability
+        ig_posts = ig_data.get("recent_posts", [])
+        data_gap: str | None = None
+        if not ig_posts:
+            ig_source = ig_data.get("source", "unknown")
+            ig_error = ig_data.get("error", "")
+            if "rate" in str(ig_error).lower() or "429" in str(ig_error):
+                data_gap = "Instagram API rate limited — post data unavailable. Engagement scores are estimated from follower count only."
+            elif "403" in str(ig_error) or "blocked" in str(ig_error).lower():
+                data_gap = "Instagram blocked the scrape request — post data unavailable. Try again in 1-2 hours."
+            elif ig_source == "playwright":
+                data_gap = "Instagram profile loaded via browser but posts couldn't be extracted (IG requires login to show posts to bots). Profile stats (followers, bio) are from public meta tags."
+            else:
+                data_gap = "No Instagram posts retrieved — TRIBE neural engagement analysis and engagement rate calculations are unavailable."
+
         return {
             "agent": "social_media_audit",
             "brand_name": brand_name,
@@ -702,6 +724,7 @@ class SocialMediaAuditAgent:
                     yt_data.get("channel_url") if yt_data.get("status") == "found" else None,
                 ] if s
             ],
+            "data_gap_reason": data_gap,
         }
 
 

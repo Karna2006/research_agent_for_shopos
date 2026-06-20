@@ -56,7 +56,7 @@ def app():
         patch("db.database.engine", _TEST_ENGINE),
         patch("main.engine", _TEST_ENGINE),
         patch("main._cache") as mock_cache,
-        patch("main._try_mastra_audit", new_callable=AsyncMock, return_value=False),
+        patch("main._notify_mastra_start", new_callable=AsyncMock, return_value=None),
     ):
         mock_cache.get = AsyncMock(return_value=None)
         mock_cache.set = AsyncMock()

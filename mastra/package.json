@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev":   "mastra dev --port 4111",
+    "dev":   "mastra dev",
     "build": "mastra build",
-    "start": "mastra start --port 4111"
+    "start": "mastra start"
   },
   "dependencies": {
     "@mastra/core":    "^1.37.1",

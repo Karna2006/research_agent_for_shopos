@@ -147,19 +147,38 @@ async def _fetch_shopify_pdp_json(product_url: str) -> dict | None:
             description = _BS(body_html, "html.parser").get_text(" ", strip=True)
         except Exception:
             description = body_html
-        variant = (p.get("variants") or [{}])[0]
+        variants = p.get("variants") or [{}]
+        variant = variants[0]
         price = variant.get("price", "")
-        in_stock = variant.get("available")
+        compare_price = variant.get("compare_at_price", "")
+        in_stock = any(v.get("available") for v in variants) if variants else None
+        images = [img["src"] for img in (p.get("images") or [])[:5] if img.get("src")]
+
+        # Variant / option extraction
+        options = p.get("options") or []
+        variant_options: dict = {}
+        for opt in options:
+            name = opt.get("name", "")
+            values = opt.get("values") or []
+            if name and values:
+                variant_options[name] = values
+        variant_count = len(variants)
+
         return {
-            "product_name": p.get("title", ""),
-            "price":        f"₹{price}" if price else "",
-            "description":  description[:800],
-            "in_stock":     in_stock,
-            "cta_text":     "Add to Cart",
-            "rating":       "",
-            "reviews_count": "",
-            "tags":         p.get("tags", ""),
-            "product_type": p.get("product_type", ""),
+            "product_name":   p.get("title", ""),
+            "price":          f"₹{price}" if price else "",
+            "compare_price":  f"₹{compare_price}" if compare_price else "",
+            "description":    description[:800],
+            "in_stock":       in_stock,
+            "cta_text":       "Add to Cart",
+            "rating":         "",
+            "reviews_count":  "",
+            "tags":           p.get("tags", ""),
+            "product_type":   p.get("product_type", ""),
+            "image_urls":     images,
+            "image_count":    len(images),
+            "variant_count":  variant_count,
+            "variant_options": variant_options,  # e.g. {"Size": ["S","M","L"], "Color": ["Black","White"]}
         }
     except Exception:
         return None
@@ -202,41 +221,83 @@ class ContentCatalogAgent:
             product_urls = _find_product_urls(homepage.get("links", []), url)
             pdp_summaries: list[str] = []
 
-            # 3a. For Shopify (or unknown platform): try /products.json if homepage gave no PDP links.
-            # Works for redirect-based stores (rarerabbit.in → thehouseofrare.com) where the
-            # scraper gets a blocked page with no Shopify signals yet.
+            # 3a. For Shopify (or unknown platform): try /products.json → collection scrape fallback.
+            # Works for redirect-based stores (rarerabbit.in → thehouseofrare.com).
+            # Many Shopify brands block /products.json — in that case we scrape a collection page
+            # for product handles instead.
             if not product_urls and catalog_platform not in ("woocommerce", "magento"):
                 try:
                     from agents.brand_basics import _resolve_shopify_base
                     import httpx as _httpx
+                    import re as _re
                     shopify_base = await _resolve_shopify_base(url)
                     if shopify_base:
-                        async with _httpx.AsyncClient(timeout=10, follow_redirects=True) as _cl:
+                        async with _httpx.AsyncClient(timeout=12, follow_redirects=True,
+                            headers={"User-Agent": "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/124 Safari/537.36"}
+                        ) as _cl:
                             _r = await _cl.get(f"{shopify_base}/products.json?limit=3")
-                        if _r.status_code == 200:
-                            _prods = _r.json().get("products", [])
-                            if _prods:
-                                catalog_platform = "shopify"
-                            product_urls = [
-                                f"{shopify_base}/products/{p['handle']}"
-                                for p in _prods[:3] if p.get("handle")
-                            ]
-                            print(
-                                f"  [content_catalog] Shopify /products.json → "
-                                f"{len(product_urls)} PDP URLs",
-                                flush=True,
-                            )
+                            if _r.status_code == 200:
+                                _prods = _r.json().get("products", [])
+                                if _prods:
+                                    catalog_platform = "shopify"
+                                product_urls = [
+                                    f"{shopify_base}/products/{p['handle']}"
+                                    for p in _prods[:3] if p.get("handle")
+                                ]
+                                print(
+                                    f"  [content_catalog] Shopify /products.json → "
+                                    f"{len(product_urls)} PDP URLs",
+                                    flush=True,
+                                )
+                            elif _r.status_code == 404:
+                                # /products.json blocked — scrape a collection page for handles
+                                _coll_links = _re.findall(
+                                    r'href=["\']?((?:https?://[^/]+)?/collections/[^"\'?#\s]+)',
+                                    page_html,
+                                )
+                                _coll_links = list(dict.fromkeys(
+                                    (shopify_base + l if l.startswith("/") else l)
+                                    for l in _coll_links
+                                    if "gift" not in l.lower()
+                                ))
+                                for _coll_url in _coll_links[:3]:
+                                    _cr = await _cl.get(_coll_url)
+                                    if _cr.status_code == 200:
+                                        _handles = _re.findall(
+                                            r'href=["\']?/products/([a-z0-9_-]+)["\']?',
+                                            _cr.text,
+                                        )
+                                        _handles = list(dict.fromkeys(_handles))[:3]
+                                        if _handles:
+                                            catalog_platform = "shopify"
+                                            product_urls = [
+                                                f"{shopify_base}/products/{h}"
+                                                for h in _handles
+                                            ]
+                                            print(
+                                                f"  [content_catalog] Shopify collection fallback "
+                                                f"({_coll_url}) → {len(product_urls)} PDP URLs",
+                                                flush=True,
+                                            )
+                                            break
                 except Exception as _se:
                     print(f"  [content_catalog] Shopify PDP lookup failed — {_se}", flush=True)
 
             # 3b. Fetch up to 3 PDPs — Shopify JSON API first, HTML scraper fallback
+            all_image_urls: list[str] = []
+            all_pdp_dicts: list[dict] = []
             for pdp_url in product_urls[:3]:
                 try:
                     pdp: dict | None = None
                     if catalog_platform == "shopify":
                         pdp = await _fetch_shopify_pdp_json(pdp_url)
                         if pdp:
-                            print(f"  [content_catalog] Shopify JSON PDP: {pdp['product_name'][:50]}", flush=True)
+                            print(
+                                f"  [content_catalog] Shopify JSON PDP: {pdp['product_name'][:50]}"
+                                f" ({pdp.get('image_count', 0)} images)",
+                                flush=True,
+                            )
+                            all_image_urls.extend(pdp.pop("image_urls", []))
                     if not pdp:
                         # Non-Shopify or JSON fetch failed — fall back to HTML scraper
                         pdp_result = await self.scraper.scrape_pdp(pdp_url)
@@ -244,6 +305,7 @@ class ContentCatalogAgent:
                         pdp = (pdp_result.value or {}) if (pdp_result.ok and pdp_result.value) else None
                     if pdp and pdp.get("product_name"):
                         pdp_summaries.append(_pdp_summary(pdp))
+                        all_pdp_dicts.append(pdp)
                 except Exception as _pdp_exc:
                     print(f"  [content_catalog] PDP fetch skipped — {_pdp_exc}", flush=True)
 
@@ -259,9 +321,60 @@ class ContentCatalogAgent:
                 except Exception as _about_exc:
                     print(f"  [content_catalog] About page scrape skipped — {_about_exc}", flush=True)
 
+            # 4.5 Extract trust signals, policy pages, cross-sell presence
+            homepage_text = homepage.get("body_text", "")
+            page_html_lower = (page_html or "").lower()
+
+            _TRUST_PATTERNS = {
+                "free_shipping":   re.compile(r"free\s*(?:delivery|shipping|ship)", re.I),
+                "easy_returns":    re.compile(r"easy\s*return|free\s*return|hassle.free\s*return|30.day\s*return|7.day\s*return", re.I),
+                "cod":             re.compile(r"\bcod\b|cash\s*on\s*delivery", re.I),
+                "secure_payment":  re.compile(r"secure\s*pay|safe\s*checkout|ssl|razorpay|payu|stripe", re.I),
+                "warranty":        re.compile(r"\d+\s*(?:year|month).{0,10}warranty|warranty\s*\d+", re.I),
+                "exchange":        re.compile(r"\beasy\s*exchange\b|\bfree\s*exchange\b", re.I),
+            }
+            trust_signals: dict[str, bool] = {
+                k: bool(p.search(homepage_text + " " + page_html_lower))
+                for k, p in _TRUST_PATTERNS.items()
+            }
+
+            # Cross-sell / upsell presence (detectable from HTML class names)
+            _CROSSSELL_RE = re.compile(
+                r'class=["\'][^"\']*(?:recommend|related|you.may|frequently.bought|also.like|upsell|cross.sell)[^"\']*["\']',
+                re.I,
+            )
+            has_cross_sell = bool(_CROSSSELL_RE.search(page_html or ""))
+
+            # Policy pages — standard Shopify paths, also common on other platforms
+            policy_text: dict[str, str] = {}
+            if catalog_platform in ("shopify", "custom", "unknown"):
+                try:
+                    import httpx as _hx
+                    from urllib.parse import urlparse as _up
+                    _base = f"{_up(url).scheme}://{_up(url).netloc}"
+                    async with _hx.AsyncClient(timeout=8, follow_redirects=True,
+                        headers={"User-Agent": "Mozilla/5.0"}) as _pc:
+                        for _slug, _key in [
+                            ("/pages/shipping-policy", "shipping"),
+                            ("/pages/return-policy",   "returns"),
+                            ("/pages/refund-policy",   "returns"),
+                        ]:
+                            if _key in policy_text:
+                                continue
+                            try:
+                                _pr = await _pc.get(_base + _slug)
+                                if _pr.status_code == 200 and len(_pr.text) > 200:
+                                    from bs4 import BeautifulSoup as _BS2
+                                    _pt = _BS2(_pr.text, "html.parser").get_text(" ", strip=True)
+                                    if len(_pt) > 100:
+                                        policy_text[_key] = _pt[:600]
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+
             # 5. Pre-compute content signals (no LLM)
             all_pdp_text = " ".join(pdp_summaries)
-            homepage_text = homepage.get("body_text", "")
             combined_text = all_pdp_text + " " + homepage_text
 
             bf_ratio, b_count, f_count = _benefit_feature_ratio(combined_text)
@@ -291,7 +404,20 @@ ABOUT PAGE TEXT:
 {about_text or 'Not found'}
 
 PRODUCT PAGES AUDITED ({len(pdp_summaries)} of {len(product_urls)} found):
-{'---'.join(pdp_summaries) if pdp_summaries else 'No product pages found on homepage'}"""
+{'---'.join(pdp_summaries) if pdp_summaries else 'No product pages found on homepage'}
+
+PRODUCT IMAGES: {len(all_image_urls)} images found across {len(pdp_summaries)} PDPs.
+{('Sample URLs: ' + ', '.join(all_image_urls[:3])) if all_image_urls else 'No product images extracted.'}
+
+TRUST & CONVERSION SIGNALS (extracted from homepage):
+{chr(10).join(f'- {k.replace("_"," ").title()}: {"YES" if v else "NO"}' for k, v in trust_signals.items())}
+- Cross-sell / Upsell section present: {'YES' if has_cross_sell else 'NO'}
+
+POLICY PAGES:
+{chr(10).join(f'- {k.title()} policy found: {v[:200]}' for k, v in policy_text.items()) if policy_text else '- No policy pages found'}
+
+VARIANT DATA (from product pages):
+{chr(10).join(f"- {d.get('product_name','?')}: {d.get('variant_count','?')} variants, options={d.get('variant_options',{})}" for d in all_pdp_dicts if d.get('variant_options')) or '- No variant data extracted'}"""
 
             # 7. LLM call
             analysis = await self.llm.analyze_structured(
@@ -319,10 +445,35 @@ PRODUCT PAGES AUDITED ({len(pdp_summaries)} of {len(product_urls)} found):
             else:
                 catalog_status_note = "pdps_scraped_successfully"
 
+            _gap_reasons = {
+                "site_blocked_no_pdp_access": "Product pages are protected by Cloudflare — scraped brand info from homepage only. Product quality scoring is estimated.",
+                "shopify_pdp_links_not_found_on_homepage": "Shopify store found but no product links on homepage — couldn't audit individual product pages.",
+                "pdps_scraped_successfully": None,
+            }
+            out["data_gap_reason"] = _gap_reasons.get(catalog_status_note)
+
             out["catalog_platform"] = catalog_platform
             out["catalog_status_note"] = catalog_status_note
             out["product_urls_found"] = product_urls
             out["pdps_scraped"] = len(pdp_summaries)
+            out["product_images_found"] = len(all_image_urls)
+            out["product_image_urls"] = all_image_urls[:15]
+            out["trust_signals"] = trust_signals
+            out["has_cross_sell"] = has_cross_sell
+            out["policy_pages"] = {k: v[:300] for k, v in policy_text.items()}
+            out["pdp_details"] = [
+                {
+                    "product_name":    d.get("product_name"),
+                    "price":           d.get("price"),
+                    "compare_price":   d.get("compare_price"),
+                    "in_stock":        d.get("in_stock"),
+                    "variant_count":   d.get("variant_count"),
+                    "variant_options": d.get("variant_options"),
+                    "product_type":    d.get("product_type"),
+                    "tags":            d.get("tags"),
+                }
+                for d in all_pdp_dicts
+            ]
             out["precomputed_signals"] = {
                 "benefit_vs_feature": bf_label,
                 "benefit_ratio": round(bf_ratio, 2),
@@ -337,6 +488,7 @@ PRODUCT PAGES AUDITED ({len(pdp_summaries)} of {len(product_urls)} found):
 
         except Exception as exc:
             out["error"] = str(exc)
+            out["data_gap_reason"] = f"Agent crashed unexpectedly: {type(exc).__name__}: {str(exc)[:150]}. Content analysis unavailable."
             out["status"] = "failed"
             out["sources_used"] = [dr.to_dict() for dr in sources]
             out["data_coverage"] = "unavailable"

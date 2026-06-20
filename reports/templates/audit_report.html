@@ -5,101 +5,169 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>{{ brand_name }} — Brand Audit Report</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 /* ── Reset & base ─────────────────────────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0a0a0a;--card:#141414;--card2:#1e1e1e;--border:#2a2a2a;
-  --text:#e8e8e8;--muted:#6b7280;--subtle:#3f3f3f;
-  --blue:#3b82f6;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--purple:#a78bfa;
+  --bg:#0e0d0b;
+  --card:#161412;
+  --card2:#1d1b18;
+  --border:#2d2a26;
+  --border2:#3d3930;
+  --text:#ede8df;
+  --text2:#c2bdb4;
+  --muted:#6b6560;
+  --subtle:#3a3630;
+  --blue:#60a5fa;
+  --green:#4ade80;
+  --amber:#e8a84c;
+  --red:#f87171;
+  --purple:#c084fc;
   --r:10px;
 }
 html{font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-body{font-family:system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
-     max-width:960px;margin:0 auto;padding:0 1.5rem 5rem;line-height:1.6}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  max-width:900px;margin:0 auto;padding:0 1.75rem 5rem;line-height:1.65;
+}
 a{color:var(--blue);text-decoration:none}
-h1,h2,h3{line-height:1.25}
+h1,h2,h3{line-height:1.2}
 
 /* ── Report header ────────────────────────────────────────────────────────── */
 .rpt-header{
   display:flex;align-items:flex-start;justify-content:space-between;
-  padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2rem;
-  gap:2rem;flex-wrap:wrap
+  padding:4rem 0 2.5rem;border-bottom:1px solid var(--border);margin-bottom:0;
+  gap:3rem;flex-wrap:wrap;
 }
-.rpt-brand{font-size:2.2rem;font-weight:800;letter-spacing:-.5px}
-.rpt-title{font-size:.95rem;font-weight:500;color:var(--muted);margin-top:.2rem}
-.rpt-meta{display:flex;gap:1.5rem;font-size:.78rem;color:var(--muted);
-  margin-top:.65rem;flex-wrap:wrap}
+.rpt-eyebrow{
+  font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;
+  color:var(--amber);margin-bottom:.7rem;
+  display:inline-flex;align-items:center;gap:.4rem;
+}
+.rpt-eyebrow::before{
+  content:"";display:inline-block;width:16px;height:2px;background:var(--amber);border-radius:1px;
+}
+.rpt-brand{font-size:3rem;font-weight:900;letter-spacing:-.8px}
+.rpt-title{font-size:1rem;color:var(--muted);margin-top:.5rem;line-height:1.5}
+.rpt-meta{
+  display:flex;gap:1.5rem;font-size:.75rem;color:var(--muted);
+  margin-top:.75rem;flex-wrap:wrap;
+}
 .rpt-meta span::before{content:"·";margin-right:.4rem;opacity:.4}
 .rpt-meta span:first-child::before{content:""}
-.rpt-badge{display:inline-block;padding:.15rem .55rem;border-radius:5px;
-  font-size:.72rem;font-weight:700;border:1px solid currentColor;margin-left:.5rem}
+.rpt-badge{
+  display:inline-block;padding:.15rem .55rem;border-radius:4px;
+  font-size:.7rem;font-weight:700;border:1px solid currentColor;margin-left:.5rem;
+}
 
 /* Health ring */
 .health-ring{flex-shrink:0;text-align:center}
-.ring-wrap{position:relative;width:90px;height:90px}
+.ring-wrap{position:relative;width:130px;height:130px}
 .ring-svg{transform:rotate(-90deg)}
-.ring-num{position:absolute;inset:0;display:flex;align-items:center;
-  justify-content:center;font-size:1.65rem;font-weight:800}
-.ring-label{font-size:.68rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.08em;color:var(--muted);margin-top:.3rem}
+.ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.6rem;font-weight:900}
+.ring-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:.5rem}
+
+/* ── KPI strip ────────────────────────────────────────────────────────────── */
+.kpi-strip{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;
+  margin:2rem 0 2.5rem;padding-bottom:2.5rem;border-bottom:1px solid var(--border);
+}
+.kpi-chip{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:.85rem 1.1rem;display:flex;flex-direction:column;gap:.2rem;
+  position:relative;overflow:hidden;
+}
+.kpi-chip::after{
+  content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--amber);opacity:.5;
+}
+.kpi-chip-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.kpi-chip-val{font-size:1.45rem;font-weight:900;letter-spacing:-.5px;line-height:1;color:var(--text)}
+.kpi-chip-sub{font-size:.68rem;color:var(--muted);margin-top:.1rem}
 
 /* ── Executive summary ────────────────────────────────────────────────────── */
-.exec{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2.5rem}
-.exec-card{background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:1.1rem 1.25rem}
-.exec-ttl{font-size:.68rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.09em;margin-bottom:.65rem}
+.exec-section-label{
+  font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.16em;
+  color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem;
+  padding-top:2rem;
+}
+.exec-section-label::after{content:"";flex:1;height:1px;background:var(--border)}
+.exec{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:3rem}
+.exec-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.5rem 1.75rem;
+}
+.exec-card.wins{border-left:4px solid var(--green);background:rgba(74,222,128,.03)}
+.exec-card.gaps{border-left:4px solid var(--amber);background:rgba(232,168,76,.03)}
+.exec-ttl{
+  font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+  margin-bottom:.85rem;display:flex;align-items:center;gap:.45rem;
+}
 .exec-ttl.wins{color:var(--green)}
+.exec-ttl.wins::before{content:"✦";font-size:.65rem}
 .exec-ttl.gaps{color:var(--amber)}
+.exec-ttl.gaps::before{content:"◆";font-size:.65rem}
 .exec-list{list-style:none;padding:0}
-.exec-list li{font-size:.84rem;padding:.32rem 0;padding-left:1.1rem;
-  position:relative;border-bottom:1px solid var(--border);color:var(--text)}
+.exec-list li{
+  font-size:.84rem;padding:.4rem 0;padding-left:1.35rem;
+  position:relative;border-bottom:1px solid var(--border);color:var(--text);line-height:1.5;
+}
 .exec-list li:last-child{border-bottom:none}
-.exec-list li::before{position:absolute;left:0}
+.exec-list li::before{position:absolute;left:0;font-weight:700}
 .exec-list.wins li::before{content:"✓";color:var(--green)}
 .exec-list.gaps li::before{content:"⚠";color:var(--amber)}
 
 /* ── Section structure ────────────────────────────────────────────────────── */
-.section{margin:3rem 0 0}
-.sec-hdr{display:flex;align-items:baseline;gap:.75rem;
-  padding-left:1rem;border-left:4px solid var(--blue);margin-bottom:1.4rem}
-.sec-num{font-size:.7rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--blue)}
-.sec-title{font-size:1.25rem;font-weight:700;letter-spacing:-.2px}
-.subsec{margin-top:1.4rem}
-.subsec-title{font-size:.78rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.08em;color:var(--muted);margin-bottom:.75rem;
-  padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+.section{margin:5rem 0 0}
+.sec-hdr{
+  display:flex;align-items:center;gap:.85rem;
+  padding:1.25rem 1.25rem 1.25rem 1.5rem;
+  border-bottom:1px solid var(--border);
+  border-left:3px solid var(--amber);
+  margin-bottom:2rem;
+  background:var(--card);
+  border-radius:0 var(--r) 0 0;
+}
+.sec-num{
+  font-size:.62rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.12em;color:var(--amber);
+  background:rgba(232,168,76,.1);border:1px solid rgba(232,168,76,.2);
+  padding:.18rem .55rem;border-radius:4px;flex-shrink:0;
+}
+.sec-title{font-size:1.25rem;font-weight:800;letter-spacing:-.4px;flex:1}
+.sec-score-badge{
+  font-size:.78rem;font-weight:700;padding:.2rem .65rem;border-radius:6px;
+  margin-left:auto;
+}
+.subsec{margin-top:1.5rem}
+.subsec-title{
+  font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--muted);margin-bottom:.85rem;padding-bottom:.45rem;border-bottom:1px solid var(--border);
+}
 
 /* ── Cards ────────────────────────────────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);
-  border-radius:var(--r);padding:1.25rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.35rem}
 .card+.card{margin-top:.75rem}
 
 /* ── Info table (Section 1) ───────────────────────────────────────────────── */
-.info-table{width:100%;border-collapse:collapse;font-size:.88rem}
+.info-table{width:100%;border-collapse:collapse;font-size:.87rem}
 .info-table tr{border-bottom:1px solid var(--border)}
 .info-table tr:last-child{border-bottom:none}
-.info-table td{padding:.6rem .85rem;vertical-align:top;line-height:1.5}
-.info-table td:first-child{color:var(--muted);font-weight:600;
-  width:175px;white-space:nowrap;background:var(--card2)}
+.info-table td{padding:.65rem .9rem;vertical-align:top;line-height:1.55}
+.info-table td:first-child{color:var(--muted);font-weight:600;width:180px;white-space:nowrap;background:var(--card2)}
 
 /* ── Score pills ──────────────────────────────────────────────────────────── */
-.pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .65rem;
-  border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid transparent}
-.pill-green{background:rgba(34,197,94,.12);color:var(--green);border-color:rgba(34,197,94,.25)}
-.pill-amber{background:rgba(245,158,11,.12);color:var(--amber);border-color:rgba(245,158,11,.25)}
-.pill-red{background:rgba(239,68,68,.12);color:var(--red);border-color:rgba(239,68,68,.25)}
-.pill-blue{background:rgba(59,130,246,.12);color:var(--blue);border-color:rgba(59,130,246,.25)}
-.pill-muted{background:rgba(107,114,128,.1);color:var(--muted);border-color:rgba(107,114,128,.2)}
+.pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .65rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid transparent}
+.pill-green{background:rgba(74,222,128,.1);color:var(--green);border-color:rgba(74,222,128,.2)}
+.pill-amber{background:rgba(245,158,11,.1);color:var(--amber);border-color:rgba(245,158,11,.2)}
+.pill-red{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.2)}
+.pill-blue{background:rgba(96,165,250,.1);color:var(--blue);border-color:rgba(96,165,250,.2)}
+.pill-muted{background:rgba(107,101,96,.1);color:var(--muted);border-color:rgba(107,101,96,.15)}
 
 /* ── Score grid (metrics row) ─────────────────────────────────────────────── */
 .score-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem}
-.score-item{background:var(--card2);border:1px solid var(--border);
-  border-radius:8px;padding:.6rem .9rem;min-width:130px;flex:1}
-.score-item-label{font-size:.7rem;color:var(--muted);font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem}
-.score-item-val{font-size:1.25rem;font-weight:800;line-height:1}
+.score-item{background:var(--card2);border:1px solid var(--border);border-radius:var(--r);padding:.75rem 1.1rem;min-width:140px;flex:1}
+.score-item-label{font-size:.63rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.3rem}
+.score-item-val{font-size:1.6rem;font-weight:900;line-height:1}
 
 /* ── Check / warn lists ───────────────────────────────────────────────────── */
 .check-list{list-style:none;padding:0}
@@ -113,11 +181,10 @@ h1,h2,h3{line-height:1.25}
 
 /* ── Before / After rewrite ───────────────────────────────────────────────── */
 .ba-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
-.ba-box{border-radius:8px;padding:1rem 1.15rem;font-size:.86rem;line-height:1.65}
-.ba-before{background:#1c0a0a;border-left:4px solid var(--red)}
-.ba-after{background:#0a1c0a;border-left:4px solid var(--green)}
-.ba-label{font-size:.65rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;margin-bottom:.4rem}
+.ba-box{border-radius:var(--r);padding:1rem 1.15rem;font-size:.86rem;line-height:1.65}
+.ba-before{background:rgba(248,113,113,.05);border-left:3px solid var(--red)}
+.ba-after{background:rgba(74,222,128,.05);border-left:3px solid var(--green)}
+.ba-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
 .ba-before .ba-label{color:var(--red)}
 .ba-after  .ba-label{color:var(--green)}
 .ba-text{color:var(--text);font-style:italic}
@@ -290,23 +357,37 @@ h1,h2,h3{line-height:1.25}
   color:var(--muted);padding:.18rem .55rem;border-radius:4px;
   background:var(--card2);border:1px solid var(--border);margin-top:.8rem}
 
+/* ── SWOT narrative stack ─────────────────────────────────────────────────── */
+.swot-grid{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+.swot-cell{padding:1rem 1.2rem;border-radius:var(--r);font-size:.86rem;line-height:1.75}
+.swot-ttl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;opacity:.65}
+
 /* ── Section accordions ───────────────────────────────────────────────────── */
 details.section-accordion{border:1px solid var(--border);border-radius:var(--r);
-  margin-top:2rem;margin-bottom:.75rem;overflow:hidden}
+  margin-top:2.5rem;margin-bottom:.75rem;overflow:hidden}
 details.section-accordion[open] summary.section-header .accordion-arrow{transform:rotate(180deg)}
-summary.section-header{display:flex;align-items:center;gap:.75rem;
-  padding:1rem 1.25rem;cursor:pointer;list-style:none;background:var(--card);
-  user-select:none}
+summary.section-header{
+  display:flex;align-items:center;gap:.85rem;
+  padding:1.2rem 1.35rem 1.2rem 1.5rem;cursor:pointer;list-style:none;
+  background:var(--card);user-select:none;
+  border-left:3px solid var(--amber);
+}
 summary.section-header::-webkit-details-marker{display:none}
 summary.section-header:focus{outline:none}
-.section-num{font-size:.7rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--blue)}
-.section-title{font-size:1.1rem;font-weight:700;letter-spacing:-.2px}
-.section-score-badge{font-size:.8rem;font-weight:700;padding:.18rem .65rem;
-  border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
-.accordion-arrow{margin-left:auto;transition:transform .2s;color:var(--blue);
-  font-size:1.1rem;flex-shrink:0}
-.section-body{padding:1.25rem}
+summary.section-header:hover{background:var(--card2)}
+.section-num{
+  font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--amber);
+  background:rgba(232,168,76,.1);border:1px solid rgba(232,168,76,.2);
+  padding:.18rem .55rem;border-radius:4px;flex-shrink:0;
+}
+.section-title{font-size:1.15rem;font-weight:800;letter-spacing:-.3px;flex:1}
+.section-score-badge{
+  font-size:.76rem;font-weight:700;padding:.2rem .65rem;border-radius:6px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);
+}
+.accordion-arrow{margin-left:.5rem;transition:transform .2s;color:var(--muted);font-size:.95rem;flex-shrink:0}
+.section-body{padding:1.35rem 1.5rem}
 
 /* ── Footer ───────────────────────────────────────────────────────────────── */
 footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem;
@@ -315,7 +396,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 /* ── Print ────────────────────────────────────────────────────────────────── */
 @media print{
   :root{--bg:#fff;--card:#f9f9f9;--card2:#f2f2f2;--border:#ddd;
-    --text:#111;--muted:#555;--subtle:#aaa}
+    --text:#111;--text2:#333;--muted:#555;--subtle:#aaa;--amber:#92640a}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html{font-size:10.5pt;background:#fff}
   body{max-width:100%;padding:0;color:#111}
@@ -323,13 +404,22 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
   a{color:#1a56db}
   button,.no-print{display:none!important}
 
+  /* KPI strip in print */
+  .kpi-strip{background:#f9f9f9;border:1px solid #ddd;padding:.5rem}
+  .kpi-chip{background:#fff!important;border-color:#ccc!important}
+  .kpi-chip::after{background:#92640a}
+
   /* Each section on its own page */
   .section{page-break-before:always;margin-top:1.5cm}
   .exec{page-break-before:auto;margin-top:0}
+  .exec-section-label{page-break-before:auto}
   details.section-accordion{page-break-before:always;margin-top:1.5cm;
     border:none!important;overflow:visible}
   details.section-accordion[open],.section-body{display:block!important}
-  summary.section-header{background:#f2f2f2!important;border-bottom:1px solid #ccc}
+  summary.section-header{
+    background:#f2f2f2!important;border-bottom:1px solid #ccc;
+    border-left:3px solid #92640a!important;
+  }
 
   /* Cards to greyscale */
   .card,.exec-card,.score-item,.stat-box,.qw-card,.opp-card,.rec-card,.cwv-box{
@@ -338,7 +428,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
   .subsec-title+*,.ba-before,.ba-after{background:#f2f2f2!important}
 
   /* Remove coloured left borders — replace with grey */
-  .sec-hdr{border-left-color:#999}
+  .sec-hdr{border-left-color:#92640a}
   .opp-card{border-top-color:#999}
   .ba-before{border-left-color:#999}
   .ba-after{border-left-color:#555}
@@ -370,7 +460,8 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     background:#f3f4f6!important;color:#111!important}
 
   /* Amber/green accent text that washes out on white */
-  [style*="color:#f59e0b"]{color:#b45309!important}
+  [style*="color:#e8a84c"]{color:#92640a!important}
+  [style*="color:#f59e0b"]{color:#92640a!important}
   [style*="color:#22c55e"]{color:#15803d!important}
   [style*="color:#3b82f6"]{color:#1d4ed8!important}
   [style*="color:#ef4444"]{color:#b91c1c!important}
@@ -455,8 +546,9 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 
 <header class="rpt-header">
   <div>
+    <div class="rpt-eyebrow">Brand Intelligence Report</div>
     <div class="rpt-brand">{{ brand_name }}</div>
-    <div class="rpt-title">Brand Audit Report</div>
+    <div class="rpt-title">Full-Spectrum Brand Audit</div>
     <div class="rpt-meta">
       <span>{{ generated_at }}</span>
       {% if url %}<span><a href="{{ url }}" target="_blank">{{ url }}</a></span>{% endif %}
@@ -466,17 +558,44 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
   </div>
   <div class="health-ring">
     <div class="ring-wrap">
-      <svg class="ring-svg" width="90" height="90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="#2a2a2a" stroke-width="8"/>
+      <svg class="ring-svg" width="130" height="130" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#2a2a2a" stroke-width="7"/>
         <circle cx="50" cy="50" r="45" fill="none" stroke="{{ health_color }}"
-          stroke-width="8" stroke-dasharray="{{ ring_circ }}"
+          stroke-width="7" stroke-dasharray="{{ ring_circ }}"
           stroke-dashoffset="{{ ring_offset }}" stroke-linecap="round"/>
       </svg>
       <div class="ring-num" style="color:{{ health_color }}">{{ overall_health }}</div>
     </div>
     <div class="ring-label">Health Score</div>
+    <div style="text-align:center;font-size:.68rem;color:var(--muted);margin-top:.5rem">
+      Avg D2C brand: <span style="color:var(--text2);font-weight:600">54</span>/100
+    </div>
   </div>
 </header>
+
+{# ── KPI Strip ───────────────────────────────────────────────────────────── #}
+<div class="kpi-strip">
+  <div class="kpi-chip">
+    <div class="kpi-chip-label">Overall Score</div>
+    <div class="kpi-chip-val" style="color:{{ health_color }}">{{ overall_health }}<span style="font-size:.75rem;font-weight:500;color:var(--muted)">/100</span></div>
+    <div class="kpi-chip-sub">Brand health</div>
+  </div>
+  <div class="kpi-chip">
+    <div class="kpi-chip-label">Sections Analysed</div>
+    <div class="kpi-chip-val">{{ scorecard_10 | length if scorecard_10 else '10' }}</div>
+    <div class="kpi-chip-sub">Audit dimensions</div>
+  </div>
+  <div class="kpi-chip">
+    <div class="kpi-chip-label">Priority Fixes</div>
+    <div class="kpi-chip-val" style="color:var(--amber)">{{ (priority_recs.red | length + priority_recs.yellow | length + priority_recs.green | length) if priority_recs else '—' }}</div>
+    <div class="kpi-chip-sub">Ranked by impact</div>
+  </div>
+  <div class="kpi-chip">
+    <div class="kpi-chip-label">Generated</div>
+    <div class="kpi-chip-val" style="font-size:.95rem;font-weight:700;letter-spacing:0">{{ generated_at }}</div>
+    <div class="kpi-chip-sub">{{ platform | title if platform else 'D2C' }} brand</div>
+  </div>
+</div>
 
 {% if one_thing_banner %}{{ one_thing_banner | safe }}{% endif %}
 {% if changes_banner %}{{ changes_banner | safe }}{% endif %}
@@ -485,15 +604,16 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# EXECUTIVE SUMMARY                                                           #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if top_wins or top_gaps %}
+<div class="exec-section-label">Executive Summary</div>
 <div class="exec">
-  <div class="exec-card">
+  <div class="exec-card wins">
     <div class="exec-ttl wins">Top Strengths</div>
     <ul class="exec-list wins">
       {% for w in top_wins %}<li>{{ w }}</li>{% endfor %}
       {% if not top_wins %}<li style="color:var(--muted)">No data</li>{% endif %}
     </ul>
   </div>
-  <div class="exec-card">
+  <div class="exec-card gaps">
     <div class="exec-ttl gaps">Priority Gaps</div>
     <ul class="exec-list gaps">
       {% for g in top_gaps %}<li>{{ g }}</li>{% endfor %}
@@ -507,7 +627,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# 30-DAY ACTION ROADMAP                                                        #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 {% if roadmap and (roadmap.week_1 or roadmap.week_2_3 or roadmap.week_4) %}
-<details class="section-accordion" style="margin-top:1.5rem">
+<details class="section-accordion" open style="margin-top:1.5rem">
   <summary class="section-header" style="background:linear-gradient(135deg,#0d1f3c,#0a1628)">
     <span class="section-num" style="color:var(--amber)">📅</span>
     <span class="section-title">30-Day Action Roadmap</span>
@@ -657,7 +777,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:content_catalog -->
 {% set _s2_score = (cc.pdp_quality_score or 0) | int %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header">
     <span class="section-num">02</span>
     <span class="section-title">Content &amp; Catalog</span>
@@ -805,7 +925,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:performance_ads -->
 {% set _s3_score = (pa.hook_strength_score or 0) | int %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header">
     <span class="section-num">03</span>
     <span class="section-title">Performance &amp; Ads</span>
@@ -939,7 +1059,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:geo_visibility -->
 {% set _s4_score = (geo.geo_score or 0) | int %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header">
     <span class="section-num">04</span>
     <span class="section-title">GEO &amp; AI Visibility</span>
@@ -1083,7 +1203,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:store_cro -->
 {% set _s5_score = mobile_score | int %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header">
     <span class="section-num">05</span>
     <span class="section-title">Store &amp; CRO</span>
@@ -1242,7 +1362,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:research -->
 {% set _s6_score = (res.research_score or 0) | int %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header">
     <span class="section-num">06</span>
     <span class="section-title">Competitive Landscape</span>
@@ -1488,6 +1608,191 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 
   {% endif %}{# /market_forecast #}
 
+  {# ── App Store + Play Store ────────────────────────────────────────────── #}
+  {% if app_data and app_data.has_app %}
+  <div style="margin-top:1.25rem">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem">App Presence</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      {% if app_data.app_store and app_data.app_store.name %}
+      {% set ios = app_data.app_store %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem">
+        <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.08em">iOS App Store</div>
+        <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:.35rem">{{ ios.name | truncate(30) }}</div>
+        <div style="display:flex;align-items:baseline;gap:.4rem">
+          <span style="font-size:1.3rem;font-weight:800;color:var(--text)">{{ ios.rating or '—' }}</span>
+          <span style="font-size:.72rem;color:var(--muted)">/5 · {{ '{:,}'.format(ios.rating_count or 0) }} ratings</span>
+        </div>
+        {% if ios.updated_at %}<div style="font-size:.65rem;color:var(--muted);margin-top:.25rem">Updated {{ ios.updated_at }}</div>{% endif %}
+      </div>
+      {% endif %}
+      {% if app_data.play_store and app_data.play_store.name %}
+      {% set gpl = app_data.play_store %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem">
+        <div style="font-size:.65rem;color:var(--muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.08em">Google Play Store</div>
+        <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:.35rem">{{ gpl.name | truncate(30) }}</div>
+        <div style="display:flex;align-items:baseline;gap:.4rem">
+          <span style="font-size:1.3rem;font-weight:800;color:var(--text)">{{ gpl.rating or '—' }}</span>
+          <span style="font-size:.72rem;color:var(--muted)">/5 · {{ gpl.installs or '?' }} installs</span>
+        </div>
+        {% if gpl.updated_at %}<div style="font-size:.65rem;color:var(--muted);margin-top:.25rem">Updated {{ gpl.updated_at }}</div>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {# Recent app reviews #}
+    {% set all_app_reviews = (app_data.app_store_reviews or []) + (app_data.play_store_reviews or []) %}
+    {% if all_app_reviews %}
+    <div style="margin-top:.65rem;display:flex;flex-direction:column;gap:.4rem">
+      {% for rv in all_app_reviews[:3] %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:.55rem .85rem;font-size:.77rem;color:var(--text2)">
+        <span style="color:var(--amber)">{{'★' * rv.rating}}{{'☆' * (5 - rv.rating)}}</span>
+        &nbsp;{{ rv.body | truncate(120) }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Trustpilot ─────────────────────────────────────────────────────────── #}
+  {% if trustpilot and trustpilot.found %}
+  <div style="margin-top:1.25rem">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem">Trustpilot</div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.85rem 1rem">
+      <div style="display:flex;align-items:baseline;gap:.6rem;margin-bottom:.5rem">
+        <span style="font-size:1.5rem;font-weight:900;color:var(--text)">{{ trustpilot.rating or '—' }}</span>
+        <span style="font-size:.77rem;color:var(--muted)">/5 · {{ '{:,}'.format(trustpilot.review_count or 0) }} reviews</span>
+        {% if trustpilot.trust_label %}<span style="font-size:.7rem;font-weight:600;color:var(--amber);padding:.15rem .5rem;border:1px solid var(--amber);border-radius:4px">{{ trustpilot.trust_label }}</span>{% endif %}
+      </div>
+      {% if trustpilot.reviews %}
+      <div style="display:flex;flex-direction:column;gap:.4rem;margin-top:.5rem">
+        {% for rv in trustpilot.reviews[:2] %}
+        <div style="font-size:.77rem;color:var(--text2);line-height:1.5">
+          <span style="color:var(--amber)">{{'★' * rv.rating}}{{'☆' * (5 - rv.rating)}}</span>
+          &nbsp;"{{ rv.body | truncate(120) }}"
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Tech Stack ─────────────────────────────────────────────────────────── #}
+  {% if tech_stack and tech_stack.platform %}
+  <div style="margin-top:1.25rem">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem">Tech Stack</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem">
+      {% for label, key in [('Platform','platform'),('Payment','payment'),('Analytics','analytics'),('Chat','chat_support'),('Reviews Tool','reviews_tools'),('Email Marketing','email_marketing'),('A/B Testing','ab_testing')] %}
+      {% set val = tech_stack[key] if key in tech_stack else '' %}
+      {% if val %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:.5rem .75rem">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">{{ label }}</div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--text)">
+          {% if val is string %}{{ val }}{% else %}{{ val | join(', ') }}{% endif %}
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Domain Intelligence ─────────────────────────────────────────────────── #}
+  {% if domain_intel and domain_intel.age_years %}
+  <div style="margin-top:1.25rem">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem">Domain Intelligence</div>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem 1rem;min-width:120px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">Domain Age</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--text)">{{ domain_intel.age_years }}yr</div>
+        <div style="font-size:.65rem;color:var(--muted)">est. {{ domain_intel.created_year or '?' }}</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem 1rem;min-width:120px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">Maturity</div>
+        <div style="font-size:.95rem;font-weight:700;color:var(--text);text-transform:capitalize">{{ domain_intel.maturity_signal or '—' }}</div>
+      </div>
+      {% if domain_intel.subdomains and domain_intel.subdomains.total %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem 1rem;min-width:120px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">Subdomains</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--text)">{{ domain_intel.subdomains.total }}</div>
+        {% if domain_intel.subdomains.app %}<div style="font-size:.65rem;color:var(--muted)">app: {{ domain_intel.subdomains.app | join(', ') }}</div>{% endif %}
+        {% if domain_intel.subdomains.staging %}<div style="font-size:.65rem;color:var(--amber)">dev: {{ domain_intel.subdomains.staging | join(', ') }}</div>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Reddit / Community Sentiment ─────────────────────────────────────────── #}
+  {% if reddit_data and reddit_data.total_found %}
+  <div style="margin-top:1.25rem">
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.6rem">Reddit / Community Sentiment</div>
+    {# Sentiment badge row #}
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.85rem">
+      {% set sent = reddit_data.sentiment or {} %}
+      {% set overall = sent.overall or 'neutral' %}
+      {% set sent_color = '#22c55e' if overall == 'positive' else ('#ef4444' if overall == 'negative' else '#6b7280') %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem 1rem;min-width:110px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">Overall Sentiment</div>
+        <div style="font-size:.95rem;font-weight:800;color:{{ sent_color }};text-transform:capitalize">{{ overall }}</div>
+        <div style="font-size:.63rem;color:var(--muted)">source: {{ reddit_data.source or '?' }}</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem 1rem;min-width:110px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.2rem">Posts Found</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--text)">{{ reddit_data.total_found }}</div>
+        <div style="font-size:.63rem;color:var(--muted)">
+          <span style="color:#22c55e">{{ sent.positive or 0 }}+</span>
+          <span style="color:#ef4444;margin-left:.35rem">{{ sent.negative or 0 }}-</span>
+          <span style="color:#6b7280;margin-left:.35rem">{{ sent.neutral or 0 }}~</span>
+        </div>
+      </div>
+      {% if reddit_data.subreddits %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.65rem 1rem;flex:1;min-width:160px">
+        <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem">Top Subreddits</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          {% for sub in reddit_data.subreddits[:5] %}
+          <span style="font-size:.68rem;background:#1e1e2e;border:1px solid #2d2d3e;border-radius:4px;padding:.1rem .45rem;color:#a78bfa">r/{{ sub }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {# Top posts #}
+    {% if reddit_data.posts %}
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      {% for post in reddit_data.posts[:5] %}
+      {% set ph = post.sentiment_hint or 'neutral' %}
+      {% set pc = '#22c55e' if ph == 'positive' else ('#ef4444' if ph == 'negative' else '#4b5563') %}
+      <div style="background:var(--card2);border:1px solid var(--border);border-left:3px solid {{ pc }};border-radius:8px;padding:.65rem .9rem">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.3rem">
+          <div style="font-size:.82rem;font-weight:600;color:var(--text);line-height:1.35;flex:1">{{ post.title }}</div>
+          <div style="display:flex;gap:.4rem;flex-shrink:0;align-items:center">
+            <span style="font-size:.65rem;background:#1e1e2e;border:1px solid #2d2d3e;border-radius:4px;padding:.1rem .4rem;color:#a78bfa">r/{{ post.subreddit }}</span>
+            {% if post.score %}<span style="font-size:.63rem;color:var(--muted)">▲ {{ post.score }}</span>{% endif %}
+          </div>
+        </div>
+        {% if post.body and post.body | length > 10 %}
+        <div style="font-size:.75rem;color:var(--muted);line-height:1.45">{{ post.body[:200] }}{% if post.body|length > 200 %}…{% endif %}</div>
+        {% endif %}
+        {% if post.top_comments %}
+        <div style="margin-top:.4rem;padding:.4rem .6rem;background:rgba(0,0,0,.25);border-radius:5px">
+          {% for c in post.top_comments[:2] %}
+          <div style="font-size:.72rem;color:#8892a4;line-height:1.4;{% if not loop.first %}margin-top:.3rem;padding-top:.3rem;border-top:1px solid #2d2d3e{% endif %}">
+            <span style="color:#6b7280;font-size:.63rem">▲{{ c.score }} </span>{{ c.body[:120] }}{% if c.body|length > 120 %}…{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if post.url %}
+        <div style="margin-top:.3rem"><a href="{{ post.url }}" target="_blank" rel="noopener" style="font-size:.65rem;color:var(--blue);text-decoration:none">↗ view on Reddit</a>{% if post.created %} <span style="color:var(--muted);font-size:.63rem">· {{ post.created }}</span>{% endif %}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {# — Data Sources — #}
   {% if res_google_trends_url or res_tracxn_url %}
   <div style="margin-top:1rem;padding:.65rem 1rem;background:var(--card2);
@@ -1502,6 +1807,18 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
     <a href="{{ res_tracxn_url }}" target="_blank" rel="noopener"
       style="color:var(--blue);text-decoration:none">↗ Tracxn Profile</a>
     {% endif %}
+    {% if trustpilot and trustpilot.url %}
+    <a href="{{ trustpilot.url }}" target="_blank" rel="noopener"
+      style="color:var(--blue);text-decoration:none">↗ Trustpilot</a>
+    {% endif %}
+    {% if app_data and app_data.app_store and app_data.app_store.store_url %}
+    <a href="{{ app_data.app_store.store_url }}" target="_blank" rel="noopener"
+      style="color:var(--blue);text-decoration:none">↗ App Store</a>
+    {% endif %}
+    {% if app_data and app_data.play_store and app_data.play_store.store_url %}
+    <a href="{{ app_data.play_store.store_url }}" target="_blank" rel="noopener"
+      style="color:var(--blue);text-decoration:none">↗ Play Store</a>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -1513,7 +1830,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# SECTION 7: SOCIAL & BRAND PRESENCE                                          #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:social_profile -->
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header">
     <span class="section-num">07</span>
     <span class="section-title">Social &amp; Brand Presence</span>
@@ -1792,7 +2109,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 
 <!-- SECTION:social_media_audit -->
 {% if sma and sma.get('platforms') %}
-<details class="section-accordion">
+<details class="section-accordion" open>
 <summary class="section-header">
   <span class="section-num">08</span>
   <span class="section-title">Social Media Deep Audit</span>
@@ -2111,7 +2428,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 </div>
 </details>
 {% else %}
-<details class="section-accordion">
+<details class="section-accordion" open>
 <summary class="section-header">
   <span class="section-num">08</span>
   <span class="section-title">Social Media Deep Audit</span>
@@ -2286,7 +2603,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 </details>
 {% elif sma and sma.get('platforms') %}
 {# Tribe not available — show a teaser / unavailable notice #}
-<details id="section-reels_neural" class="audit-section">
+<details id="section-reels_neural" class="audit-section" open>
 <summary class="section-header">
   <span class="section-title">Reels Neural Engagement · Meta TRIBE v2</span>
   <span style="font-size:.68rem;color:#4b5563;font-weight:500;margin-left:.5rem">not processed</span>
@@ -2310,7 +2627,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:financial_snapshot -->
 {% set _has_fin = bb_revenue_range or bb_store_count or bb_valuation or bb_yoy_growth or bb_parent_company or bb_ceo %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header" style="background:linear-gradient(135deg,#0d1a0d,#0a1a0a)">
     <span class="section-num" style="color:var(--green)">💰</span>
     <span class="section-title">Financial &amp; Brand Snapshot</span>
@@ -2429,7 +2746,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 <!-- SECTION:competitive_landscape -->
 {% set _has_comp = res.top_competitors and res.top_competitors | length > 0 %}
 {% if _has_comp %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header" style="background:linear-gradient(135deg,#1a0a0a,#1a0a0d)">
     <span class="section-num" style="color:var(--red)">⚔</span>
     <span class="section-title">Competitive Landscape</span>
@@ -2553,7 +2870,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 <!-- SECTION:priority_framework -->
 {% set _total_recs = (priority_recs.red | length) + (priority_recs.yellow | length) + (priority_recs.green | length) %}
 {% if _total_recs > 0 %}
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header" style="background:linear-gradient(135deg,#1a0d00,#1a1000)">
     <span class="section-num" style="color:var(--amber)">🎯</span>
     <span class="section-title">Priority Action Framework</span>
@@ -2618,7 +2935,7 @@ footer{text-align:center;padding:2rem 0 1rem;color:var(--muted);font-size:.78rem
 {# SECTION: 10-DIMENSION SCORECARD                                             #}
 {# ═══════════════════════════════════════════════════════════════════════════ #}
 <!-- SECTION:scorecard -->
-<details class="section-accordion">
+<details class="section-accordion" open>
   <summary class="section-header" style="background:linear-gradient(135deg,#0a0a1a,#0d0d20)">
     <span class="section-num" style="color:var(--purple)">◈</span>
     <span class="section-title">10-Dimension Audit Scorecard</span>

@@ -17,7 +17,9 @@ Confidence levels:
 from __future__ import annotations
 
 import asyncio
+import random
 import re
+import time
 from urllib.parse import urlparse, quote
 
 import httpx
@@ -31,12 +33,25 @@ _IG_BLOCKLIST = frozenset({
 _IG_SEARCH_API  = "https://i.instagram.com/api/v1/users/search/?q={q}&count=10"
 _IG_PROFILE_API = "https://i.instagram.com/api/v1/users/web_profile_info/?username={}"
 
-_MOBILE_HEADERS = {
-    "User-Agent": "Instagram 219.0.0.12.117 Android",
-    "X-IG-App-ID": "936619743392459",
-    "Accept": "*/*",
-    "Accept-Language": "en-US",
-}
+# Rotate mobile UAs — IG rate-limits partly by fingerprint
+_MOBILE_UA_POOL = [
+    "Instagram 219.0.0.12.117 Android (30/11; 420dpi; 1080x2170; samsung; SM-G991B; o1s; exynos2100; en_US; 346066567)",
+    "Instagram 275.0.0.27.98 Android (31/12; 440dpi; 1080x2340; OnePlus; OP515BL1; OnePlus9Pro; qcom; en_US; 458229258)",
+    "Instagram 269.0.0.18.75 Android (33/13; 480dpi; 1080x2400; Xiaomi; 2201123G; zeus; qcom; en_US; 447466366)",
+    "Instagram 219.0.0.12.117 Android (29/10; 560dpi; 1440x3088; samsung; SM-G981B; y2q; exynos990; en_US; 346066567)",
+]
+
+# Tracks last S1 call time to apply inter-request jitter (shared across coroutines)
+_last_s1_call: float = 0.0
+_s1_lock = asyncio.Lock()
+
+def _mobile_headers() -> dict:
+    return {
+        "User-Agent": random.choice(_MOBILE_UA_POOL),
+        "X-IG-App-ID": "936619743392459",
+        "Accept": "*/*",
+        "Accept-Language": "en-US",
+    }
 _BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -84,13 +99,25 @@ async def _strategy_ig_search(
     if slug.lower() != brand_name.lower():
         queries.append(slug)
 
+    # Jitter: enforce at least 1.5s between S1 calls across concurrent audits
+    global _last_s1_call
+    async with _s1_lock:
+        now = time.monotonic()
+        gap = now - _last_s1_call
+        if gap < 1.5:
+            await asyncio.sleep(1.5 - gap + random.uniform(0.1, 0.6))
+        _last_s1_call = time.monotonic()
+
     seen: set[str] = set()
     results: list[dict] = []
 
     for query in queries:
         try:
             url = _IG_SEARCH_API.format(q=quote(query))
-            r = await client.get(url, headers=_MOBILE_HEADERS, timeout=8, follow_redirects=True)
+            r = await client.get(url, headers=_mobile_headers(), timeout=8, follow_redirects=True)
+            if r.status_code == 429:
+                print("  [ig_finder] S1 rate-limited (429) — skipping IG search API", flush=True)
+                return []   # fast-fail: let S2/S3 carry the weight
             if r.status_code != 200:
                 continue
             users = r.json().get("users", [])

@@ -160,6 +160,7 @@ async def _fetch_via_playwright(username: str) -> dict | None:
     """Playwright-based fallback for when the mobile API is blocked.
 
     Attempts in order:
+      0. Intercept IG's internal GraphQL/API responses for post data (network-level).
       1. Extract ``window.__additionalDataLoaded`` JSON from the page source.
       2. Extract ``window._sharedData`` JSON from the page source.
       3. Scrape basic info (profile picture, bio) from meta tags.
@@ -183,11 +184,51 @@ async def _fetch_via_playwright(username: str) -> dict | None:
                 )
                 page = await context.new_page()
 
+                # ── Attempt 0: intercept IG's internal API responses ──────────
+                intercepted_user: dict | None = None
+
+                async def _on_response(response) -> None:
+                    nonlocal intercepted_user
+                    if intercepted_user:
+                        return
+                    url_str = response.url
+                    if (
+                        "instagram.com" in url_str
+                        and any(k in url_str for k in (
+                            "web_profile_info", "graphql/query", "/api/v1/users/",
+                        ))
+                    ):
+                        try:
+                            body = await response.json()
+                            # web_profile_info shape
+                            user = (
+                                body.get("data", {}).get("user")
+                                or body.get("user")
+                            )
+                            if isinstance(user, dict) and (
+                                user.get("edge_owner_to_timeline_media")
+                                or user.get("biography") is not None
+                            ):
+                                intercepted_user = user
+                        except Exception:
+                            pass
+
+                page.on("response", _on_response)
+
                 try:
                     await page.goto(profile_url, wait_until="networkidle", timeout=30_000)
                 except PWTimeout:
                     # networkidle can time out on IG; still try to parse what loaded
                     pass
+
+                # Give interceptor a moment to process any late responses
+                await asyncio.sleep(1)
+
+                if intercepted_user:
+                    result = _parse_shared_data_user(username, intercepted_user)
+                    if result:
+                        result["source"] = "playwright_intercept"
+                        return result
 
                 html: str = await page.content()
 

@@ -135,9 +135,9 @@ _LOADING_PAGE = """\
 <head><meta charset="UTF-8"/><meta http-equiv="refresh" content="4"/>
 <title>Audit Running…</title>
 <style>
-body{background:#080808;color:#e8e8e8;font-family:system-ui,sans-serif;
+body{background:#0e0d0b;color:#ede8df;font-family:system-ui,sans-serif;
      display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.box{text-align:center}.ring{width:44px;height:44px;border:3px solid #222;
+.box{text-align:center}.ring{width:40px;height:40px;border:2px solid #2d2a26;
   border-top-color:#f59e0b;border-radius:50%;animation:sp .9s linear infinite;
   margin:0 auto 1rem}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -169,7 +169,7 @@ def _html_error_page(
         f'<title>{title}</title>'
         f'<style>'
         f'*{{box-sizing:border-box;margin:0;padding:0}}'
-        f'body{{background:#080808;color:#e8e8e8;font-family:system-ui,sans-serif;'
+        f'body{{background:#0e0d0b;color:#ede8df;font-family:system-ui,sans-serif;'
         f'display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}}'
         f'.box{{text-align:center;max-width:480px}}'
         f'.icon{{font-size:2.5rem;margin-bottom:1rem;opacity:.7}}'
@@ -212,371 +212,730 @@ UI_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Research Agent — Ecommerce Intelligence</title>
+<title>SHOPOS — D2C Brand Intelligence</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#080808;--surface:#111;--surface2:#1c1c1c;--border:#242424;
-  --text:#e8e8e8;--muted:#585858;--r:12px;
-  --amber:#f59e0b;--green:#22c55e;--blue:#3b82f6;--red:#ef4444;
+  --bg:#0e0d0b;
+  --surface:#161412;
+  --surface2:#1d1b18;
+  --border:#2d2a26;
+  --border2:#3d3930;
+  --text:#ede8df;
+  --text2:#c2bdb4;
+  --muted:#6b6560;
+  --subtle:#3a3630;
+  --amber:#f59e0b;
+  --amber-dim:rgba(245,158,11,.08);
+  --green:#4ade80;
+  --red:#f87171;
+  --blue:#60a5fa;
+  --purple:#c084fc;
+  --r-sm:6px;
+  --r:10px;
+  --r-lg:14px;
 }
-html{font-size:15px;background:var(--bg);color:var(--text)}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+html{font-size:15px;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
 input,textarea,button,select{font-family:inherit}
-a{color:var(--amber);text-decoration:none}
+a{color:var(--blue);text-decoration:none}
 
 /* layout */
-.hdr{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.75rem;
-  border-bottom:1px solid var(--border)}
-.logo{font-size:1.05rem;font-weight:800;letter-spacing:-.3px}
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 2.5rem;
+  border-bottom:1px solid var(--border);
+  background:rgba(14,13,11,.92);
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(10px);
+}
+.logo{font-size:1.1rem;font-weight:900;letter-spacing:-.01em;color:var(--text);text-transform:uppercase;line-height:1}
 .logo em{color:var(--amber);font-style:normal}
-.sub{font-size:.72rem;color:var(--muted);margin-top:.08rem}
-main{max-width:1200px;margin:0 auto;padding:2.25rem 1.5rem 5rem}
+.sub{font-size:.63rem;color:var(--muted);margin-top:.18rem;font-weight:400;letter-spacing:.06em;text-transform:uppercase}
+main{width:100%;padding:2rem 2.5rem 6rem;box-sizing:border-box}
 
 /* tabs */
-.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:2rem}
-.tab{background:none;border:none;border-bottom:2px solid transparent;
-  margin-bottom:-1px;padding:.5rem 1.1rem;font-size:.86rem;font-weight:500;
-  color:var(--muted);cursor:pointer;transition:color .15s}
-.tab.on{color:var(--text);border-bottom-color:var(--amber)}
+.tabs{
+  display:flex;gap:.25rem;
+  border-bottom:1px solid var(--border);
+  margin:0 -2.5rem 2rem;
+  padding:0 2.5rem;
+}
+.tab{
+  background:none;border:none;
+  border-bottom:2px solid transparent;
+  margin-bottom:-1px;
+  padding:.6rem 1.1rem;
+  font-size:.81rem;font-weight:500;
+  color:var(--muted);cursor:pointer;
+  transition:color .15s,border-color .15s;
+  letter-spacing:.02em;
+}
+.tab:hover{color:var(--text2)}
+.tab.on{color:var(--text);border-bottom-color:rgba(237,232,223,.75);font-weight:600}
 .pane{display:none}.pane.on{display:block}
 
 /* form */
-.field{margin-bottom:.95rem}
-.field label{display:block;font-size:.74rem;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem}
-.opt{text-transform:none;letter-spacing:0;font-weight:400}
+.field{margin-bottom:1rem}
+.field label{
+  display:block;font-size:.7rem;font-weight:600;
+  color:var(--muted);text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:.4rem;
+}
+.opt{text-transform:none;letter-spacing:0;font-weight:400;opacity:.7}
 input[type=text],input[type=url],textarea{
-  display:block;width:100%;background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;padding:.62rem .85rem;font-size:.9rem;color:var(--text);
-  outline:none;transition:border-color .15s}
-input:focus,textarea:focus{border-color:var(--amber)}
-textarea{min-height:88px;resize:vertical;line-height:1.55}
-.row{display:flex;gap:.6rem;align-items:flex-end}.row input{flex:1}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  display:block;width:100%;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:.65rem 1rem;
+  font-size:.9rem;color:var(--text);
+  outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+input:focus,textarea:focus{
+  border-color:var(--border2);
+  box-shadow:0 0 0 3px rgba(255,255,255,.05);
+}
+textarea{min-height:88px;resize:vertical;line-height:1.6}
+.row{display:flex;gap:.5rem;align-items:flex-end}.row input{flex:1}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
 
 /* buttons */
-.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.58rem 1.2rem;
-  border-radius:8px;border:none;font-size:.87rem;font-weight:600;
-  cursor:pointer;white-space:nowrap;transition:opacity .15s}
-.btn:disabled{opacity:.42;cursor:not-allowed}
-.btn-p{background:var(--amber);color:#000}.btn-p:hover:not(:disabled){opacity:.87}
-.btn-g{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-.btn-g:hover:not(:disabled){border-color:var(--amber)}
+.btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.6rem 1.25rem;
+  border-radius:var(--r);border:none;
+  font-size:.875rem;font-weight:600;
+  cursor:pointer;white-space:nowrap;
+  transition:opacity .15s,transform .1s;
+  letter-spacing:.01em;
+}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn-p{background:var(--amber);color:#000}
+.btn-p:hover:not(:disabled){opacity:.9}
+.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-g:hover:not(:disabled){border-color:var(--border2);color:var(--text)}
 
 /* card */
-.card{background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r);padding:1.2rem;margin-top:1.15rem}
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:1.35rem;margin-top:1.25rem;
+}
 
-/* pipeline */
-.pl-hd{font-size:.7rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.09em;color:var(--muted);margin-bottom:.7rem}
-.ag-row{display:flex;align-items:center;gap:.65rem;padding:.42rem 0;
-  border-bottom:1px solid var(--border)}
+/* pipeline — phase indicator */
+.pl-phases{display:flex;align-items:center;margin-bottom:.7rem}
+.pl-phase{display:flex;flex-direction:column;align-items:center;gap:.28rem}
+.pl-phase-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:var(--surface2);border:1.5px solid var(--border2);
+  transition:all .25s;
+}
+.pl-phase-dot.active{background:var(--amber);border-color:var(--amber);box-shadow:0 0 5px rgba(232,168,76,.4)}
+.pl-phase-dot.done{background:var(--green);border-color:var(--green)}
+.pl-phase-label{font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);white-space:nowrap}
+.pl-phase-line{flex:1;height:1px;background:var(--border);margin:0 .4rem;margin-bottom:.9rem;transition:background .25s}
+.pl-phase-line.done{background:var(--green)}
+
+/* pipeline — activity log */
+.pl-log{
+  display:flex;flex-direction:column;
+  max-height:300px;overflow-y:auto;
+  border:1px solid var(--border);border-radius:8px;
+  background:var(--surface);
+  scrollbar-width:thin;scrollbar-color:var(--border2) transparent;
+}
+.pl-log-line{
+  display:flex;align-items:flex-start;gap:.55rem;
+  padding:.32rem .7rem;border-bottom:1px solid var(--border);
+  font-size:.71rem;line-height:1.45;
+}
+.pl-log-line:last-child{border-bottom:none}
+.pl-log-ic{flex-shrink:0;margin-top:.05rem;font-size:.68rem}
+.pl-log-body{color:var(--text2);flex:1}
+.pl-log-body strong{color:var(--text);font-weight:600}
+.pl-log-time{font-size:.59rem;color:var(--muted);flex-shrink:0;margin-left:.35rem;padding-top:.05rem}
+.pl-log-init{opacity:.5}
+
+/* legacy compat — kept for fallback refs */
+.pl-hd{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.85rem}
+.ag-row{display:flex;align-items:center;gap:.7rem;padding:.45rem 0;border-bottom:1px solid var(--border)}
 .ag-row:last-of-type{border-bottom:none}
-.ag-ic{width:22px;font-size:.88rem;flex-shrink:0;text-align:center;transition:color .2s}
-.ag-name{flex:1;font-size:.86rem}
-.ag-st{font-size:.75rem;transition:color .2s}
-.prog-wrap{margin-top:.85rem;height:3px;background:var(--border);
-  border-radius:2px;overflow:hidden}
-.prog-fill{height:100%;background:var(--amber);border-radius:2px;
-  transition:width .5s ease}
+.ag-ic{width:22px;font-size:.9rem;flex-shrink:0;text-align:center;transition:color .2s}
+.ag-name{flex:1;font-size:.83rem;font-weight:500;color:var(--text2)}
+.ag-st{font-size:.72rem;color:var(--muted);transition:color .2s}
+.prog-wrap{height:2px;background:var(--border);border-radius:999px;overflow:hidden}
+.prog-fill{height:100%;background:var(--amber);border-radius:999px;transition:width .5s ease}
 
 /* spinner */
 @keyframes spin{to{transform:rotate(360deg)}}
-.spin{display:inline-block;border-radius:50%;animation:spin .85s linear infinite;
-  flex-shrink:0}
-.spin-lg{width:38px;height:38px;border:3px solid var(--border);
-  border-top-color:var(--amber);margin:0 auto .7rem;display:block}
+.spin{display:inline-block;border-radius:50%;animation:spin .85s linear infinite;flex-shrink:0}
+.spin-lg{
+  width:36px;height:36px;
+  border:2px solid var(--border);
+  border-top-color:var(--text2);
+  margin:0 auto .7rem;display:block;
+}
 .ic-spin{display:inline-block;animation:spin 1.1s linear infinite}
 
 /* status badges */
-.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .55rem;
-  border-radius:4px;font-size:.73rem;font-weight:600}
-.b-ok{background:rgba(34,197,94,.12);color:var(--green)}
-.b-err{background:rgba(239,68,68,.12);color:var(--red)}
+.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .6rem;border-radius:var(--r-sm);font-size:.72rem;font-weight:600}
+.b-ok{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.2)}
+.b-err{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
 
 /* ── Split-pane audit layout ───────────────────────────────────────────────── */
 #audit-layout{width:100%}
 #audit-sidebar{width:100%}
 #audit-content{display:none;flex:1;min-width:0}
-#audit-layout.audit-split{display:flex;gap:1.25rem;align-items:flex-start}
-#audit-layout.audit-split #audit-sidebar{width:310px;flex-shrink:0}
+#audit-layout.audit-split{display:flex;gap:1.5rem;align-items:flex-start}
+#audit-layout.audit-split #audit-sidebar{width:340px;flex-shrink:0}
 #audit-layout.audit-split #audit-content{display:block}
 
 /* ── Inline report iframe ──────────────────────────────────────────────────── */
 .report-wrap{display:none}
-.report-toolbar{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:.55rem}
-.report-frame{width:100%;height:calc(100vh - 130px);min-height:560px;
-  border:1px solid #1e1e1e;border-radius:10px;background:#0a0a0a;display:block}
+.report-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem}
+.report-frame{
+  width:100%;height:calc(100vh - 140px);min-height:560px;
+  border:1px solid var(--border);border-radius:var(--r-lg);
+  background:var(--surface);display:block;
+}
 
 /* ── Live section styles — full report CSS injected so fragments render properly ── */
 #live-sections{padding-bottom:2rem}
 @keyframes sec-appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 #live-sections>[data-agent]{animation:sec-appear .35s ease forwards}
 #live-sections details.section-accordion,#live-sections details.audit-section{
-  border:1px solid var(--border);border-radius:var(--r);margin-top:1.25rem;overflow:hidden}
+  border:1px solid var(--border);border-radius:var(--r-lg);margin-top:1.25rem;overflow:hidden}
 #live-sections details[open] summary .accordion-arrow{transform:rotate(180deg)}
-#live-sections summary.section-header{display:flex;align-items:center;gap:.75rem;
-  padding:1rem 1.25rem;cursor:pointer;list-style:none;background:var(--surface);user-select:none}
+#live-sections summary.section-header{
+  display:flex;align-items:center;gap:.75rem;
+  padding:1rem 1.35rem;cursor:pointer;list-style:none;
+  background:var(--surface);user-select:none;
+}
 #live-sections summary.section-header::-webkit-details-marker,
 #live-sections summary::-webkit-details-marker{display:none}
-#live-sections .section-num{font-size:.7rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:var(--blue)}
-#live-sections .section-title{font-size:1.1rem;font-weight:700;letter-spacing:-.2px}
-#live-sections .section-score-badge{font-size:.8rem;font-weight:700;padding:.18rem .65rem;
-  border-radius:999px;background:rgba(255,255,255,.06);border:1px solid var(--border)}
-#live-sections .accordion-arrow{margin-left:auto;transition:transform .2s;color:var(--blue);font-size:1.1rem;flex-shrink:0}
-#live-sections .section-body{padding:1.25rem}
+#live-sections .section-num{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+#live-sections .section-title{font-size:1.05rem;font-weight:700;letter-spacing:-.2px}
+#live-sections .section-score-badge{font-size:.76rem;font-weight:700;padding:.18rem .65rem;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--border)}
+#live-sections .accordion-arrow{margin-left:auto;transition:transform .2s;color:var(--muted);font-size:.95rem;flex-shrink:0}
+#live-sections .section-body{padding:1.35rem}
 /* ── Report fragment CSS — identical to audit_report.html so fragments render correctly ── */
-#live-sections .card{background:#141414;border:1px solid #2a2a2a;border-radius:10px;padding:1.25rem}
+#live-sections .card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem}
 #live-sections .card+.card{margin-top:.75rem}
-#live-sections .sh{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
-  color:#6b7280;margin-bottom:.65rem;padding-bottom:.4rem;border-bottom:1px solid #2a2a2a}
-#live-sections .dim-bg{height:7px;background:#1e1e1e;border-radius:999px;margin:.3rem 0}
-#live-sections .dim-fill{height:7px;border-radius:999px;transition:width .6s ease}
-#live-sections .pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .65rem;
-  border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid transparent}
-#live-sections .pill-green{background:rgba(34,197,94,.12);color:#22c55e;border-color:rgba(34,197,94,.25)}
-#live-sections .pill-amber{background:rgba(245,158,11,.12);color:#f59e0b;border-color:rgba(245,158,11,.25)}
-#live-sections .pill-red{background:rgba(239,68,68,.12);color:#ef4444;border-color:rgba(239,68,68,.25)}
-#live-sections .pill-blue{background:rgba(59,130,246,.12);color:#3b82f6;border-color:rgba(59,130,246,.25)}
-#live-sections .pill-muted{background:rgba(107,114,128,.1);color:#6b7280;border-color:rgba(107,114,128,.2)}
-#live-sections .pill-tribe{background:#052e16;color:#22c55e}
+#live-sections .sh{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:.65rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+#live-sections .dim-bg{height:6px;background:var(--border);border-radius:999px;margin:.3rem 0}
+#live-sections .dim-fill{height:6px;border-radius:999px;transition:width .6s ease}
+#live-sections .pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .65rem;border-radius:999px;font-size:.75rem;font-weight:600;border:1px solid transparent}
+#live-sections .pill-green{background:rgba(74,222,128,.1);color:var(--green);border-color:rgba(74,222,128,.2)}
+#live-sections .pill-amber{background:rgba(245,158,11,.1);color:var(--amber);border-color:rgba(245,158,11,.2)}
+#live-sections .pill-red{background:rgba(248,113,113,.1);color:var(--red);border-color:rgba(248,113,113,.2)}
+#live-sections .pill-blue{background:rgba(96,165,250,.1);color:var(--blue);border-color:rgba(96,165,250,.2)}
+#live-sections .pill-muted{background:rgba(107,101,96,.1);color:var(--muted);border-color:rgba(107,101,96,.15)}
+#live-sections .pill-tribe{background:rgba(192,132,252,.1);color:var(--purple);border-color:rgba(192,132,252,.2)}
 #live-sections .score-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem}
-#live-sections .score-item{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;
-  padding:.6rem .9rem;min-width:130px;flex:1}
-#live-sections .score-item-label{font-size:.7rem;color:#6b7280;font-weight:600;
-  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem}
-#live-sections .score-item-val{font-size:1.25rem;font-weight:800;line-height:1}
+#live-sections .score-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.85rem 1rem;min-width:140px;flex:1}
+#live-sections .score-item-label{font-size:.6rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.09em;margin-bottom:.4rem}
+#live-sections .score-item-val{font-size:2rem;font-weight:900;line-height:1;letter-spacing:-.03em}
 #live-sections .check-list{list-style:none;padding:0}
-#live-sections .check-list li{display:flex;align-items:flex-start;gap:.55rem;
-  font-size:.87rem;padding:.32rem 0;border-bottom:1px solid #2a2a2a}
+#live-sections .check-list li{display:flex;align-items:flex-start;gap:.55rem;font-size:.86rem;padding:.35rem 0;border-bottom:1px solid var(--border)}
 #live-sections .check-list li:last-child{border-bottom:none}
 #live-sections .ci{flex-shrink:0;font-size:.9rem;margin-top:.05rem}
-#live-sections .ci-ok{color:#22c55e}
-#live-sections .ci-warn{color:#f59e0b}
-#live-sections .ci-bad{color:#ef4444}
-#live-sections .info-table{width:100%;border-collapse:collapse;font-size:.88rem}
-#live-sections .info-table tr{border-bottom:1px solid #2a2a2a}
+#live-sections .ci-ok{color:var(--green)}
+#live-sections .ci-warn{color:var(--amber)}
+#live-sections .ci-bad{color:var(--red)}
+#live-sections .info-table{width:100%;border-collapse:collapse;font-size:.87rem}
+#live-sections .info-table tr{border-bottom:1px solid var(--border)}
 #live-sections .info-table tr:last-child{border-bottom:none}
-#live-sections .info-table td{padding:.6rem .85rem;vertical-align:top;line-height:1.5}
-#live-sections .info-table td:first-child{color:#6b7280;font-weight:600;width:175px;background:#1e1e1e}
+#live-sections .info-table td{padding:.65rem .9rem;vertical-align:top;line-height:1.55}
+#live-sections .info-table td:first-child{color:var(--muted);font-weight:600;width:175px;background:var(--surface)}
 #live-sections .ba-wrap{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem}
-#live-sections .ba-box{border-radius:8px;padding:1rem 1.15rem;font-size:.86rem;line-height:1.65}
-#live-sections .ba-before{background:#1c0a0a;border-left:4px solid #ef4444}
-#live-sections .ba-after{background:#0a1c0a;border-left:4px solid #22c55e}
-#live-sections .ba-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:.4rem}
-#live-sections .ba-before .ba-label{color:#ef4444}
-#live-sections .ba-after .ba-label{color:#22c55e}
+#live-sections .ba-box{border-radius:var(--r);padding:1rem 1.15rem;font-size:.86rem;line-height:1.7;background:var(--surface2)}
+#live-sections .ba-before{border-left:2px solid rgba(248,113,113,.5)}
+#live-sections .ba-after{border-left:2px solid rgba(74,222,128,.5)}
+#live-sections .ba-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.4rem;opacity:.7}
+#live-sections .ba-before .ba-label{color:var(--red)}
+#live-sections .ba-after .ba-label{color:var(--green)}
 #live-sections .fmt-bars{display:flex;flex-direction:column;gap:.55rem}
 #live-sections .fmt-bar{display:flex;align-items:center;gap:.7rem;font-size:.83rem}
-#live-sections .fmt-bar-label{min-width:90px;color:#e8e8e8;font-weight:500}
-#live-sections .fmt-bar-track{flex:1;height:8px;background:#1e1e1e;border-radius:999px;overflow:hidden}
-#live-sections .fmt-bar-fill{height:8px;border-radius:999px;background:#3b82f6}
-#live-sections .fmt-bar-val{min-width:36px;text-align:right;color:#6b7280;font-size:.78rem}
-#live-sections .swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.5rem}
-#live-sections .swot-cell{padding:.75rem .9rem;border-radius:8px;font-size:.83rem;line-height:1.55}
-#live-sections .swot-s{background:rgba(34,197,94,.07);border-left:3px solid #22c55e}
-#live-sections .swot-w{background:rgba(239,68,68,.07);border-left:3px solid #ef4444}
-#live-sections .swot-o{background:rgba(59,130,246,.07);border-left:3px solid #3b82f6}
-#live-sections .swot-t{background:rgba(245,158,11,.07);border-left:3px solid #f59e0b}
-#live-sections .swot-ttl{font-size:.67rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;margin-bottom:.4rem}
-#live-sections .wspace{border-radius:10px;padding:1rem 1.2rem;margin-top:.65rem}
-#live-sections .wspace-blue{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2)}
-#live-sections .wspace-amber{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2)}
-#live-sections .wspace-red{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2)}
+#live-sections .fmt-bar-label{min-width:90px;color:var(--text2);font-weight:500}
+#live-sections .fmt-bar-track{flex:1;height:6px;background:var(--border);border-radius:999px;overflow:hidden}
+#live-sections .fmt-bar-fill{height:6px;border-radius:999px;background:var(--blue)}
+#live-sections .fmt-bar-val{min-width:36px;text-align:right;color:var(--muted);font-size:.76rem}
+#live-sections .swot-grid{display:flex;flex-direction:column;gap:.6rem;margin-top:.5rem}
+#live-sections .swot-cell{padding:1rem 1.2rem;border-radius:var(--r);font-size:.85rem;line-height:1.7}
+#live-sections .swot-s{background:rgba(74,222,128,.04);border-left:3px solid var(--green)}
+#live-sections .swot-w{background:rgba(248,113,113,.04);border-left:3px solid var(--red)}
+#live-sections .swot-o{background:rgba(96,165,250,.04);border-left:3px solid var(--blue)}
+#live-sections .swot-t{background:rgba(245,158,11,.04);border-left:3px solid var(--amber)}
+#live-sections .swot-ttl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:.45rem;opacity:.7}
+/* ── Skeleton loading ───────────────────────────────────────────────────────── */
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.skel{background:linear-gradient(90deg,var(--surface) 25%,var(--surface2) 50%,var(--surface) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite;border-radius:4px}
+.skel-line{height:.75rem;margin-bottom:.5rem}
+.skel-h{height:1.25rem;margin-bottom:.75rem;width:60%}
+.skel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:1.35rem;margin-top:1.25rem}
+#live-sections .wspace{border-radius:var(--r);padding:1rem 1.2rem;margin-top:.65rem}
+#live-sections .wspace-blue{background:rgba(96,165,250,.06);border:1px solid rgba(96,165,250,.18)}
+#live-sections .wspace-amber{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18)}
+#live-sections .wspace-red{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.18)}
 
-/* ── FIX 3: Audit example chips ───────────────────────────────────────────── */
-.chip-bar{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.9rem}
-.chip-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.07em;color:var(--muted)}
-.chip{padding:.28rem .78rem;border-radius:999px;font-size:.79rem;font-weight:600;
-  cursor:pointer;border:1px solid var(--border);background:var(--surface);
-  color:var(--text);transition:border-color .15s,color .15s}
-.chip:hover{border-color:var(--amber);color:var(--amber)}
+/* ── Audit example chips ───────────────────────────────────────────────────── */
+.chip-bar{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.chip-lbl{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.chip{
+  padding:.3rem .85rem;border-radius:999px;font-size:.77rem;font-weight:500;
+  cursor:pointer;border:1px solid var(--border);
+  background:var(--surface);color:var(--text2);
+  transition:border-color .15s,color .15s;
+}
+.chip:hover{border-color:var(--border2);color:var(--text)}
 
 /* virality result */
-.v-center{text-align:center;padding:1.2rem 0 .9rem}
-.v-num{font-size:3.4rem;font-weight:900;line-height:1;letter-spacing:-.5px}
-.v-denom{font-size:.82rem;color:var(--muted)}
-.v-badge{display:inline-block;padding:.28rem .9rem;border-radius:999px;
-  font-size:.8rem;font-weight:700;margin-top:.6rem;color:#000}
-.dim-row{margin-bottom:.65rem}
-.dim-top{display:flex;justify-content:space-between;align-items:baseline;
-  margin-bottom:.2rem}
+.v-center{text-align:center;padding:1.4rem 0 1rem}
+.v-num{font-size:3.6rem;font-weight:900;line-height:1;letter-spacing:-.5px}
+.v-denom{font-size:.8rem;color:var(--muted)}
+.v-badge{display:inline-block;padding:.3rem 1rem;border-radius:999px;font-size:.78rem;font-weight:700;margin-top:.7rem;color:#000}
+.dim-row{margin-bottom:.7rem}
+.dim-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.25rem}
 .dim-label{font-size:.82rem;font-weight:500}
 .dim-score{font-size:.82rem;font-weight:700}
-.dim-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.dim-fill{height:100%;border-radius:3px;transition:width .65s .05s ease}
-.dim-rsn{font-size:.74rem;color:var(--muted);margin-top:.12rem}
-.sh{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
-  color:var(--muted);margin:1.05rem 0 .55rem}
-.hook-box{background:linear-gradient(135deg,#1a1000,#0d0d00);
-  border:1px solid #3a2900;border-radius:10px;padding:.9rem 1.15rem;margin:.9rem 0}
-.hook-lbl{font-size:.66rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.1em;color:#f59e0b;margin-bottom:.28rem}
-.hook-txt{font-size:.97rem;font-weight:600;color:#fde68a;line-height:1.4}
-.ang-item{padding:.32rem 0;font-size:.85rem;border-bottom:1px solid var(--border);
-  display:flex;gap:.45rem;align-items:flex-start}
+.dim-bg{height:4px;background:var(--border);border-radius:999px;overflow:hidden}
+.dim-fill{height:100%;border-radius:999px;transition:width .65s .05s ease}
+.dim-rsn{font-size:.72rem;color:var(--muted);margin-top:.12rem}
+.sh{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:1.1rem 0 .6rem}
+.hook-box{
+  background:rgba(245,158,11,.06);
+  border:1px solid rgba(245,158,11,.2);
+  border-radius:var(--r);padding:.9rem 1.15rem;margin:.9rem 0;
+}
+.hook-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:.3rem}
+.hook-txt{font-size:.95rem;font-weight:600;color:var(--text);line-height:1.45}
+.ang-item{padding:.35rem 0;font-size:.85rem;border-bottom:1px solid var(--border);display:flex;gap:.45rem;align-items:flex-start}
 .ang-item:last-child{border-bottom:none}
-.ang-n{width:20px;height:20px;border-radius:50%;font-size:.7rem;font-weight:700;
-  color:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  margin-top:.05rem}
+.ang-n{width:20px;height:20px;border-radius:50%;font-size:.7rem;font-weight:700;color:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem}
 .plat-wrap{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.5rem}
-.plat{padding:.2rem .6rem;background:var(--surface2);border:1px solid var(--border);
-  border-radius:6px;font-size:.77rem}
-.err-box{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.22);
-  border-radius:8px;padding:.65rem .9rem;font-size:.83rem;color:var(--red);
-  margin-top:.9rem}
+.plat{padding:.2rem .65rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);font-size:.76rem}
+.err-box{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);border-radius:var(--r);padding:.7rem 1rem;font-size:.83rem;color:var(--red);margin-top:.9rem}
 
 /* ── Compare pane ─────────────────────────────────────────────────────────── */
-.cmp-vs{color:var(--muted);font-size:.82rem;align-self:center;padding-top:1.6rem;
-  flex-shrink:0;font-weight:700}
+.cmp-vs{color:var(--muted);font-size:.82rem;align-self:center;padding-top:1.6rem;flex-shrink:0;font-weight:700}
 .cmp-dual{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.85rem}
-.cmp-col-hdr{font-size:.7rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.08em;margin-bottom:.5rem}
-.cmp-col-hdr.a{color:#60a5fa}.cmp-col-hdr.b{color:#fcd34d}
-.cmp-agent-row{display:flex;align-items:center;gap:.5rem;padding:.32rem 0;
-  border-bottom:1px solid var(--border);font-size:.82rem}
+.cmp-col-hdr{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-bottom:.5rem}
+.cmp-col-hdr.a{color:var(--blue)}.cmp-col-hdr.b{color:#fbbf24}
+.cmp-agent-row{display:flex;align-items:center;gap:.5rem;padding:.32rem 0;border-bottom:1px solid var(--border);font-size:.82rem}
 .cmp-agent-row:last-child{border-bottom:none}
 .cmp-ic{width:20px;font-size:.85rem;flex-shrink:0;text-align:center}
 .cmp-st{margin-left:auto;font-size:.72rem;color:var(--muted)}
 
-/* ── FIX 3: Virality example cards ───────────────────────────────────────── */
-.ex-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-top:.5rem}
-.ex-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:.85rem .7rem;cursor:pointer;transition:border-color .15s;text-align:center}
-.ex-card:hover{border-color:var(--amber)}
-.ex-card.active{border-color:var(--amber);background:rgba(245,158,11,.06)}
-.ex-icon{font-size:1.5rem;margin-bottom:.2rem}
-.ex-name{font-size:.77rem;font-weight:600;margin-bottom:.12rem;line-height:1.3}
-.ex-meta{font-size:.66rem;color:var(--muted);margin-bottom:.3rem}
-.ex-badge{display:inline-block;padding:.1rem .42rem;border-radius:4px;
-  font-size:.64rem;font-weight:700;background:var(--surface2);color:var(--muted);
-  border:1px solid var(--border)}
+/* ── Virality example cards ────────────────────────────────────────────────── */
+.ex-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.6rem}
+.ex-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:.9rem .8rem;cursor:pointer;
+  transition:border-color .15s,background .15s;text-align:center;
+}
+.ex-card:hover{border-color:var(--border2);background:var(--surface2)}
+.ex-card.active{border-color:var(--amber);background:rgba(245,158,11,.05)}
+.ex-icon{font-size:1.4rem;margin-bottom:.25rem}
+.ex-name{font-size:.76rem;font-weight:600;margin-bottom:.12rem;line-height:1.3}
+.ex-meta{font-size:.65rem;color:var(--muted);margin-bottom:.35rem}
+.ex-badge{display:inline-block;padding:.1rem .45rem;border-radius:4px;font-size:.62rem;font-weight:600;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-.ex-badge.loading{background:rgba(245,158,11,.15);color:var(--amber);
-  border-color:rgba(245,158,11,.4);animation:pulse 1.1s ease-in-out infinite}
+.ex-badge.loading{background:rgba(245,158,11,.12);color:var(--amber);border-color:rgba(245,158,11,.35);animation:pulse 1.1s ease-in-out infinite}
 
 /* loading state */
-.ld{margin-top:1rem;text-align:center;color:var(--muted);font-size:.84rem}
+.ld{margin-top:1.25rem;text-align:center;color:var(--muted);font-size:.83rem;line-height:1.7}
 
 /* ── Cache indicator ───────────────────────────────────────────────────────── */
-.cache-hit{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .6rem;
-  border-radius:6px;font-size:.73rem;font-weight:600;
-  background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.25)}
+.cache-hit{
+  display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .6rem;
+  border-radius:var(--r-sm);font-size:.72rem;font-weight:600;
+  background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2);
+}
 
-/* ── Feature 1: Live finding cards ─────────────────────────────────────────── */
-@keyframes slide-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+/* ── Live finding cards ─────────────────────────────────────────────────────── */
+@keyframes slide-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
 .findings-feed{display:flex;flex-direction:column;gap:.45rem;margin-top:.85rem}
-.finding-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--amber);
-  border-radius:8px;padding:.7rem 1rem;animation:slide-in .4s ease forwards}
-.finding-agent{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;
-  color:var(--muted);margin-bottom:.2rem}
-.finding-headline{font-size:.88rem;font-weight:700;color:var(--text);margin-bottom:.16rem;line-height:1.35}
-.finding-stat{font-size:.75rem;font-weight:600;color:var(--amber);margin-bottom:.12rem}
-.finding-insight{font-size:.75rem;color:var(--muted);line-height:1.5}
+.finding-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-left:3px solid var(--amber);
+  border-radius:var(--r);padding:.75rem 1rem;
+  animation:slide-in .4s ease forwards;
+}
+.finding-card.fc-strength{border-left-color:var(--green)}
+.finding-card.fc-critical{border-left-color:var(--red)}
+.finding-card.fc-info{border-left-color:var(--blue)}
+.finding-agent{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin-bottom:.2rem}
+.finding-headline{font-size:.87rem;font-weight:700;color:var(--text);margin-bottom:.16rem;line-height:1.35}
+.finding-stat{font-size:.74rem;font-weight:600;color:var(--text2);margin-bottom:.12rem}
+.finding-insight{font-size:.74rem;color:var(--muted);line-height:1.5}
 
-/* ── Feature 2: Data counter ────────────────────────────────────────────────── */
-.data-counter{text-align:center;font-size:.77rem;color:var(--muted);margin-top:.55rem;
-  padding:.28rem;letter-spacing:.01em;transition:opacity .3s}
+/* ── Data counter ────────────────────────────────────────────────────────────── */
+.data-counter{text-align:center;font-size:.76rem;color:var(--muted);margin-top:.55rem;padding:.28rem;letter-spacing:.01em;transition:opacity .3s}
 .data-counter strong{color:var(--text);font-variant-numeric:tabular-nums}
 
-/* ── Feature 3: Insights panel ──────────────────────────────────────────────── */
-.insight-panel{margin-top:.85rem;border-left:3px solid var(--blue)}
-.insight-hdr{font-size:.63rem;font-weight:700;text-transform:uppercase;
-  letter-spacing:.09em;color:var(--blue);margin-bottom:.5rem}
-#insight-text{font-size:.84rem;line-height:1.7;color:var(--text);
-  min-height:3rem;transition:opacity .3s ease}
+/* ── Insights panel ──────────────────────────────────────────────────────────── */
+.insight-panel{margin-top:.85rem;border-left:2px solid var(--border2)}
+.insight-hdr{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem}
+#insight-text{font-size:.82rem;line-height:1.75;color:var(--text2);min-height:3rem;transition:opacity .3s ease}
 .insight-dots-row{display:flex;justify-content:center;gap:5px;margin-top:.65rem}
-.insight-dot{width:5px;height:5px;border-radius:50%;background:var(--border);
-  display:inline-block;transition:background .3s}
-.insight-dot.on{background:var(--blue)}
+.insight-dot{width:4px;height:4px;border-radius:50%;background:var(--border);display:inline-block;transition:background .3s}
+.insight-dot.on{background:var(--muted)}
 
-/* ── Feature 4: Phase 3 parallel dots ──────────────────────────────────────── */
+/* ── Phase 3 parallel dots ──────────────────────────────────────────────────── */
 @keyframes p3pulse{0%,100%{opacity:.2}50%{opacity:1}}
 .phase3-dots{display:inline-flex;gap:3px;align-items:center}
-.phase3-dots span{width:5px;height:5px;border-radius:50%;background:var(--amber);
-  animation:p3pulse 1.4s ease-in-out infinite;display:inline-block}
+.phase3-dots span{width:4px;height:4px;border-radius:50%;background:var(--amber);animation:p3pulse 1.4s ease-in-out infinite;display:inline-block}
 .phase3-dots span:nth-child(1){animation-delay:0s}
 .phase3-dots span:nth-child(2){animation-delay:.2s}
 .phase3-dots span:nth-child(3){animation-delay:.4s}
 .phase3-dots span:nth-child(4){animation-delay:.6s}
+
+/* ── Virality Pane Hero ───────────────────────────────────────────────────── */
+.vp-hero-split{
+  display:grid;grid-template-columns:1fr 1fr;gap:2rem;
+  align-items:center;padding:2rem 0 1.75rem;
+}
+@media(max-width:860px){.vp-hero-split{grid-template-columns:1fr}}
+.vp-hero-copy{padding-right:.5rem}
+.vp-hero-video{}
+.vp-divider{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--muted);margin:1.5rem 0 .9rem;
+  display:flex;align-items:center;gap:.75rem;
+}
+.vp-divider::before,.vp-divider::after{content:"";flex:1;height:1px;background:var(--border)}
+.vp-hero{text-align:center;padding:3rem 0 2rem;max-width:680px;margin:0 auto}
+.vp-eyebrow{
+  display:inline-flex;align-items:center;gap:.5rem;
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--green);margin-bottom:1.25rem;
+}
+.vp-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  display:inline-block;animation:pulse .2s ease-in-out infinite alternate;
+}
+@keyframes pulse{from{opacity:.3}to{opacity:1}}
+.vp-title{
+  font-size:clamp(2.2rem,5vw,4rem);font-weight:900;line-height:1.0;
+  text-transform:uppercase;letter-spacing:-.03em;margin-bottom:.85rem;color:var(--text);
+}
+.vp-accent{color:var(--green)}
+.vp-body{font-size:.9rem;color:var(--text2);line-height:1.8;max-width:560px;margin:0 auto}
+.vp-section{margin:1.75rem 0}
+.vp-section-label{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--muted);margin-bottom:.85rem;
+}
+.vp-form-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:1.5rem;margin-bottom:1.5rem;
+}
+/* TRIBE demo panel */
+.vp-tribe-demo{margin:2rem 0}
+.vp-tribe-hdr{margin-bottom:1.1rem}
+.vp-tribe-title{font-size:1.15rem;font-weight:800;margin-bottom:.4rem}
+.vp-tribe-sub{font-size:.8rem;color:var(--text2);line-height:1.65;max-width:560px}
+.tribe-video-panel{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  overflow:hidden;
+}
+.tribe-vid-tabs{display:flex;gap:.4rem;padding:.75rem 1.25rem .5rem;align-items:center}
+.tvt{
+  font-size:.72rem;padding:.3rem .7rem;border-radius:6px;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);
+  background:transparent;transition:all .15s;
+}
+.tvt.active{border-color:rgba(74,222,128,.4);color:var(--green);background:rgba(74,222,128,.08)}
+.tvt:hover:not(.active){border-color:var(--border2);color:var(--text2)}
+.tribe-vid-caption{
+  padding:.5rem 1.25rem;background:var(--surface2);
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.68rem;color:var(--muted);border-top:1px solid var(--border);
+}
+.tribe-vid-dot{
+  width:6px;height:6px;border-radius:50%;background:#7c3aed;
+  animation:pulse .2s ease-in-out infinite alternate;flex-shrink:0;
+}
+
+/* ── Virality hero — Higgsfield layout ──────────────────────────────────── */
+.vp-hero-main{
+  display:grid;grid-template-columns:280px 1fr;gap:1.75rem;
+  align-items:start;margin-top:1.5rem;
+}
+@media(max-width:760px){.vp-hero-main{grid-template-columns:1fr}}
+.vp-hero-left{padding-top:.25rem}
+.vp-hero-right{border-radius:12px;overflow:hidden}
+
+/* ── Virality HIW + dim strip ────────────────────────────────────────────── */
+.vp-hiw{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:2.5rem 0 2rem}
+@media(max-width:680px){.vp-hiw{grid-template-columns:1fr}}
+.vp-hiw-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:1.4rem 1.25rem;text-align:left;
+}
+.vp-hiw-num{
+  font-size:.7rem;font-weight:800;letter-spacing:.1em;color:var(--muted);margin-bottom:.7rem;
+  font-variant-numeric:tabular-nums;
+}
+.vp-hiw-title{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:.4rem}
+.vp-hiw-desc{font-size:.77rem;color:var(--text2);line-height:1.65}
+.vp-dim-strip{
+  display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:center;
+  margin-bottom:2.5rem;
+}
+.vp-dim-dot{
+  font-size:.7rem;font-weight:600;padding:.3rem .75rem;border-radius:20px;
+  border:1px solid;letter-spacing:.02em;
+}
+
+/* ── Hero — pre-audit landing state ──────────────────────────────────────── */
+/* In split mode: hide all hero-wrap blocks */
+#audit-layout.audit-split .hero-wrap{display:none}
+
+/* Pre-split: center sidebar and give it breathing room */
+#audit-layout:not(.audit-split) #audit-sidebar{
+  max-width:640px;margin:0 auto;padding:3rem 0 2.5rem;
+}
+
+/* Pre-split: center the chip-bar */
+#audit-layout:not(.audit-split) .chip-bar{justify-content:center}
+
+/* Hero text */
+.hero-wrap{text-align:center;margin-bottom:.25rem}
+.hero-eyebrow{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--muted);margin-bottom:1.35rem;
+}
+.hero-title{
+  font-size:clamp(1.85rem,4vw,2.75rem);font-weight:800;letter-spacing:-.5px;
+  line-height:1.15;margin-bottom:1rem;color:var(--text);
+}
+.hero-body{
+  font-size:.9rem;color:var(--text2);line-height:1.8;
+  max-width:600px;margin:0 auto 2.5rem;
+}
+
+/* Search wrap: the always-visible URL input */
+.search-wrap{margin-bottom:.5rem}
+.search-row{display:flex;gap:.5rem;align-items:center;margin-bottom:.6rem}
+.search-row input{flex:1}
+#audit-layout:not(.audit-split) .search-row input{font-size:1rem;padding:.85rem 1.2rem}
+#audit-layout:not(.audit-split) .search-row .btn-p{padding:.85rem 1.65rem;font-size:.9rem}
+.deep-opt{margin-top:.45rem;text-align:center}
+.deep-opt label{
+  display:inline-flex;align-items:center;gap:.4rem;
+  cursor:pointer;font-size:.78rem;color:var(--muted);
+}
+.opt-note{font-size:.67rem;color:var(--subtle)}
+
+/* Agents section */
+.agents-section{margin-top:2.5rem}
+.section-eyebrow{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;
+  color:var(--muted);margin-bottom:1.1rem;
+}
+.agents-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;
+  text-align:left;margin-bottom:1.75rem;
+}
+@media(max-width:900px){.agents-grid{grid-template-columns:repeat(2,1fr)}}
+.agent-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-lg);padding:1.1rem 1rem;
+  transition:border-color .15s;
+}
+.agent-card:hover{border-color:var(--border2)}
+.agent-card-fmri{
+  border-color:rgba(192,132,252,.22);
+  background:rgba(192,132,252,.04);
+}
+.agent-num{
+  font-size:.6rem;font-weight:800;letter-spacing:.08em;
+  color:var(--muted);background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:.18rem .45rem;margin-bottom:.6rem;
+  display:inline-block;font-variant-numeric:tabular-nums;
+}
+.agent-name{
+  font-size:.81rem;font-weight:700;margin-bottom:.28rem;
+  display:flex;align-items:center;gap:.35rem;
+}
+.fmri-badge{
+  font-size:.56rem;font-weight:700;
+  background:rgba(192,132,252,.15);color:var(--purple);
+  border:1px solid rgba(192,132,252,.3);border-radius:3px;
+  padding:.08rem .3rem;letter-spacing:.04em;
+}
+.agent-desc{font-size:.72rem;color:var(--muted);line-height:1.55}
+
+/* "Built for" tags */
+.for-section{
+  display:flex;align-items:center;gap:.85rem;justify-content:center;
+  flex-wrap:wrap;padding-bottom:.5rem;margin-top:.25rem;
+}
+.for-label{
+  font-size:.65rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:var(--muted);white-space:nowrap;
+}
+.for-tags{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center}
+.for-tag{
+  padding:.22rem .75rem;border:1px solid var(--border);border-radius:999px;
+  font-size:.75rem;color:var(--text2);
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <div>
-    <div class="logo">Research <em>Agent</em></div>
-    <div class="sub">Ecommerce Intelligence</div>
+    <div class="logo">SHO<em>POS</em></div>
+    <div class="sub">D2C Intelligence Platform</div>
   </div>
 </header>
 
 <main>
 <!-- tabs -->
 <div class="tabs">
-  <button class="tab on" onclick="showTab('audit',this)">Brand Audit</button>
-  <button class="tab"    onclick="showTab('virality',this)">Virality Score</button>
-  <button class="tab"    onclick="showTab('compare',this)">Compare Brands</button>
-  <button class="tab"    onclick="showTab('brands',this);loadBrands()">My Brands</button>
-  <button class="tab"    onclick="showTab('connectors',this);loadConnectors()">🔌 Connectors</button>
+  <button class="tab on" onclick="showTab('audit',this)">Audit</button>
+  <button class="tab"    onclick="showTab('virality',this)">Virality</button>
+  <button class="tab"    onclick="showTab('compare',this)">Compare</button>
+  <button class="tab"    onclick="showTab('brands',this);loadBrands()">Brands</button>
+  <button class="tab"    onclick="showTab('connectors',this);loadConnectors()">Integrations</button>
 </div>
 
 <!-- ── Brand Audit pane ──────────────────────────────────────────────────── -->
 <div id="pane-audit" class="pane on">
 <div id="audit-layout">
 
-  <!-- LEFT SIDEBAR: form + pipeline tracker -->
+  <!-- LEFT SIDEBAR: hero pre-audit · pipeline during audit -->
   <div id="audit-sidebar">
-    <!-- Example chips -->
-    <div class="chip-bar">
-      <span class="chip-lbl">Examples:</span>
-      <button class="chip" onclick="loadAuditExample('https://rarerabbit.in','demo')">⚡ Rare Rabbit</button>
-      <button class="chip" onclick="loadAuditExample('https://www.hoka.com/en-in/')">Hoka</button>
-      <button class="chip" onclick="loadAuditExample('https://www.boat-lifestyle.com/')">boAt</button>
+
+    <!-- ── Hero content — hidden when audit-split activates ── -->
+    <div class="hero-wrap">
+      <div class="hero-eyebrow">8 AI Agents &middot; Real scraped data &middot; Live intelligence</div>
+      <h1 class="hero-title">Full-stack brand intelligence<br>for D2C brands.</h1>
+      <p class="hero-body">We audit your entire digital presence — ads, store performance, SEO, social media, content, competitor landscape, and fMRI-backed neural engagement — and return a structured intelligence report with specific, actionable recommendations.</p>
     </div>
 
-    <div class="field">
-      <label>Brand URL</label>
-      <div class="row">
-        <input type="url" id="a-url" placeholder="https://rarerabbit.in"
+    <!-- ── Search bar — always visible ── -->
+    <div class="search-wrap">
+      <div class="chip-bar">
+        <span class="chip-lbl">Try:</span>
+        <button class="chip" onclick="loadAuditExample('https://rarerabbit.in','demo')">Rare Rabbit</button>
+        <button class="chip" onclick="loadAuditExample('https://www.hoka.com/en-in/')">Hoka</button>
+        <button class="chip" onclick="loadAuditExample('https://www.boat-lifestyle.com/')">boAt</button>
+      </div>
+      <div class="search-row">
+        <input type="url" id="a-url" placeholder="https://yourbrand.com"
                onkeydown="if(event.key==='Enter')startAudit()"/>
-        <button class="btn btn-p" id="a-btn" onclick="startAudit()">Run →</button>
+        <button class="btn btn-p" id="a-btn" onclick="startAudit()">Audit →</button>
+      </div>
+      <div class="deep-opt">
+        <label>
+          <input type="checkbox" id="a-deep-visual" style="accent-color:#a855f7;width:13px;height:13px"/>
+          <span>Deep Visual Analysis</span>
+          <span class="opt-note">Instagram Reels + TRIBE v2 fMRI neural encoding</span>
+        </label>
       </div>
     </div>
-    <div style="margin-top:.55rem;display:flex;align-items:center;gap:.5rem">
-      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem;color:var(--muted)">
-        <input type="checkbox" id="a-deep-visual" style="accent-color:#a855f7;width:13px;height:13px"/>
-        <span>Deep Visual Analysis</span>
-        <span style="font-size:.68rem;color:#4b5563">(Instagram Reels + TRIBE v2 fMRI · adds ~20 min)</span>
-      </label>
+
+    <!-- ── Agent feature grid — hidden in split mode ── -->
+    <div class="hero-wrap agents-section">
+      <div class="section-eyebrow">What we analyze</div>
+      <div class="agents-grid">
+        <div class="agent-card">
+          <div class="agent-name">Brand Basics</div>
+          <div class="agent-desc">Domain trust, WHOIS, tech stack, founding narrative, category positioning</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-name">Content Audit</div>
+          <div class="agent-desc">Product catalog quality, copy scoring, visual consistency, homepage structure</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-name">Ad Intelligence</div>
+          <div class="agent-desc">Meta Ad Library scraping, creative formats, messaging themes, spend signals</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-name">GEO Visibility</div>
+          <div class="agent-desc">AI search citations (ChatGPT, Perplexity), geo presence, local SEO health</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-name">Store & CRO</div>
+          <div class="agent-desc">PageSpeed, Core Web Vitals, checkout friction, product page conversion leaks</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-name">Competitive Research</div>
+          <div class="agent-desc">Market positioning, competitor benchmarks, pricing analysis, whitespace map</div>
+        </div>
+        <div class="agent-card">
+          <div class="agent-name">Social Presence</div>
+          <div class="agent-desc">Follower health, engagement rates, platform mix, influencer signal detection</div>
+        </div>
+        <div class="agent-card agent-card-fmri">
+          <div class="agent-name">Neural Reels <span class="fmri-badge">fMRI</span></div>
+          <div class="agent-desc">TRIBE v2 brain model — which cortical networks your Reels activate vs. competitors</div>
+        </div>
+      </div>
+
+      <div class="for-section">
+        <span class="for-label">Built for</span>
+        <div class="for-tags">
+          <span class="for-tag">D2C Founders</span>
+          <span class="for-tag">Brand Agencies</span>
+          <span class="for-tag">Growth Marketers</span>
+          <span class="for-tag">Investors</span>
+          <span class="for-tag">Category Managers</span>
+        </div>
+      </div>
     </div>
 
+    <!-- ── Pipeline tracker — shown during audit ── -->
     <div id="a-pipeline" style="display:none">
-      <div class="card" style="margin-top:.7rem">
-        <div class="pl-hd">Analysis Pipeline</div>
-        <div id="a-agents"></div>
-        <div class="prog-wrap">
-          <div class="prog-fill" id="a-prog" style="width:0"></div>
+
+      <!-- Phase indicator -->
+      <div class="pl-phases">
+        <div class="pl-phase">
+          <div class="pl-phase-dot" id="phd-gathering"></div>
+          <div class="pl-phase-label">Scraping</div>
         </div>
-        <div class="data-counter" id="data-counter" style="display:none">
-          Analysed <strong id="data-count-num">0</strong> data points&hellip;
+        <div class="pl-phase-line" id="phl-1"></div>
+        <div class="pl-phase">
+          <div class="pl-phase-dot" id="phd-analyzing"></div>
+          <div class="pl-phase-label">Analyzing</div>
+        </div>
+        <div class="pl-phase-line" id="phl-2"></div>
+        <div class="pl-phase">
+          <div class="pl-phase-dot" id="phd-synthesizing"></div>
+          <div class="pl-phase-label">Synthesizing</div>
         </div>
       </div>
 
-      <!-- While-you-wait insights -->
-      <div id="insights-panel" class="card insight-panel" style="display:none">
-        <div class="insight-hdr">Did you know?</div>
+      <!-- Thin progress bar -->
+      <div class="prog-wrap" style="margin:.3rem 0 .9rem">
+        <div class="prog-fill" id="a-prog" style="width:0"></div>
+      </div>
+
+      <!-- Activity log -->
+      <div class="pl-log" id="a-agents">
+        <div class="pl-log-line pl-log-init">
+          <span class="pl-log-ic" style="color:var(--muted)">·</span>
+          <span class="pl-log-body" style="color:var(--muted)">Connecting to pipeline…</span>
+        </div>
+      </div>
+
+      <div class="data-counter" id="data-counter" style="display:none;margin-top:.5rem">
+        Processed <strong id="data-count-num">0</strong> data points
+      </div>
+
+      <!-- kept for JS compat — hidden -->
+      <div id="insights-panel" style="display:none">
         <div id="insight-text"></div>
-        <div class="insight-dots-row" id="insight-dots"></div>
+        <div id="insight-dots"></div>
       </div>
-
-      <!-- finding cards removed — sections are the live feed -->
-      <div id="live-findings" class="findings-feed" style="display:none"></div>
+      <div id="live-findings" style="display:none"></div>
     </div>
 
     <div id="a-result"></div>
@@ -584,14 +943,13 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
 
   <!-- RIGHT CONTENT: report fills this area -->
   <div id="audit-content">
-    <!-- Progressive sections while report is loading -->
     <div id="live-sections" style="display:none"></div>
 
     <div id="a-report-wrap" class="report-wrap">
       <div class="report-toolbar">
         <div style="display:flex;align-items:center;gap:.5rem">
           <span class="badge b-ok">✓ Audit complete</span>
-          <span id="a-cache-badge" style="display:none" class="cache-hit">⚡ Loaded from cache</span>
+          <span id="a-cache-badge" style="display:none" class="cache-hit">⚡ From cache</span>
         </div>
         <button class="btn btn-g" onclick="printReport()"
           style="font-size:.8rem;padding:.38rem .85rem">⬇ Download PDF</button>
@@ -605,128 +963,243 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
 
 <!-- ── Virality pane ─────────────────────────────────────────────────────── -->
 <div id="pane-virality" class="pane">
-  <div class="field">
-    <label>Product URL <span class="opt">(optional — we'll scrape it)</span></label>
-    <input type="url" id="v-url" placeholder="https://example.com/products/item"/>
-  </div>
-  <div class="two">
-    <div class="field">
-      <label>Product Name</label>
-      <input type="text" id="v-name" placeholder="Hydrogel Eye Patches"/>
-    </div>
-    <div class="field">
-      <label>Category <span class="opt">(optional)</span></label>
-      <input type="text" id="v-cat" placeholder="skincare"/>
-    </div>
-  </div>
-  <div class="field">
-    <label>Product Description</label>
-    <textarea id="v-desc"
-      placeholder="Describe the product — key features, bold claims, target audience, price point…"></textarea>
-  </div>
-  <button class="btn btn-p" id="v-btn" onclick="startVirality()">Score It →</button>
 
-  <!-- FIX 3: Example cards -->
-  <div style="margin-top:1.15rem">
-    <div class="sh">Try an example</div>
-    <div class="ex-cards">
-      <div class="ex-card" id="exc-0" onclick="loadViralityExample(0)">
-        <div class="ex-icon">👔</div>
-        <div class="ex-name">Rare Rabbit Linen Shirt</div>
-        <div class="ex-meta">Premium Menswear · 79/100 A</div>
-        <div class="ex-badge" id="excb-0">Pre-cached</div>
+  <!-- ══ HERO: Brain dominant, video inset, input left ══ -->
+  <div class="vp-hero-main">
+
+    <!-- LEFT: input + labels -->
+    <div class="vp-hero-left">
+      <div style="display:inline-flex;align-items:center;gap:.5rem;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;color:var(--green);margin-bottom:1.1rem">
+        <span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        Meta TRIBE v2 &middot; fMRI
       </div>
-      <div class="ex-card" id="exc-1" onclick="loadViralityExample(1)">
-        <div class="ex-icon">🎧</div>
-        <div class="ex-name">boAt Airdopes 141</div>
-        <div class="ex-meta">TWS Earbuds · TRIBE v2 fMRI</div>
-        <div class="ex-badge" id="excb-1">Pre-cached</div>
+      <h1 style="font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:900;letter-spacing:-.5px;line-height:1.1;margin-bottom:.85rem;color:var(--text)">
+        Check Before<br>You Post.
+      </h1>
+      <p style="font-size:.82rem;color:var(--text2);line-height:1.8;margin-bottom:1.5rem">
+        Drop any Reel or TikTok URL. We run it through a computational fMRI model of the brain and tell you whether it earns the scroll — before you spend on distribution.
+      </p>
+
+      <!-- URL input — the primary action -->
+      <div style="margin-bottom:1rem">
+        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.4rem">Video URL</div>
+        <input type="url" id="nv-url"
+          placeholder="https://instagram.com/reel/… or youtu.be/…"
+          style="width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:.65rem .85rem;color:var(--text);font-family:inherit;font-size:.84rem;outline:none"/>
+        <input type="text" id="nv-label" placeholder="Label (optional)"
+          style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);padding:.4rem 0;color:var(--text2);font-family:inherit;font-size:.78rem;outline:none;margin-top:.4rem"/>
       </div>
-      <div class="ex-card" id="exc-2" onclick="loadViralityExample(2)">
-        <div class="ex-icon">👕</div>
-        <div class="ex-name">Generic White Tee</div>
-        <div class="ex-meta">Basics · 3-Pack</div>
-        <div class="ex-badge" id="excb-2">Live</div>
+      <button class="btn btn-p" id="nv-btn" onclick="startVideoAnalysis()" style="width:100%;font-size:.84rem;padding:.65rem 1rem;margin-bottom:.75rem">
+        Analyze with TRIBE v2 →
+      </button>
+      <div id="nv-loading" style="display:none" class="ld">
+        <span class="spin spin-lg"></span>
+        Running TRIBE v2 fMRI inference…
+        <div style="font-size:.65rem;color:var(--muted);margin-top:.2rem">Downloading → extracting features → predicting activations</div>
+      </div>
+      <div id="nv-result" style="margin-top:.5rem"></div>
+
+      <!-- Dim strip -->
+      <div style="margin-top:1.25rem">
+        <div style="font-size:.58rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem">7 brain networks</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          <span class="vp-dim-dot" style="border-color:rgba(167,139,250,.3);color:#a78bfa;font-size:.62rem;padding:.2rem .55rem">Visual</span>
+          <span class="vp-dim-dot" style="border-color:rgba(255,139,75,.3);color:#FF8C4B;font-size:.62rem;padding:.2rem .55rem">Default Mode</span>
+          <span class="vp-dim-dot" style="border-color:rgba(255,208,75,.3);color:#FFD04B;font-size:.62rem;padding:.2rem .55rem">Attention</span>
+          <span class="vp-dim-dot" style="border-color:rgba(255,75,75,.3);color:#FF4B4B;font-size:.62rem;padding:.2rem .55rem">Limbic</span>
+          <span class="vp-dim-dot" style="border-color:rgba(75,255,140,.3);color:#4BFF8C;font-size:.62rem;padding:.2rem .55rem">Motor</span>
+          <span class="vp-dim-dot" style="border-color:rgba(75,158,255,.3);color:#4B9EFF;font-size:.62rem;padding:.2rem .55rem">Control</span>
+          <span class="vp-dim-dot" style="border-color:rgba(202,255,75,.3);color:var(--green);font-size:.62rem;padding:.2rem .55rem">Reward</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Brain dominant + reel inset -->
+    <div class="vp-hero-right">
+      <!-- Score header bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.55rem .85rem;background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:12px 12px 0 0">
+        <span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#a78bfa">Neural Activation · TRIBE v2</span>
+        <div style="display:flex;align-items:baseline;gap:.2rem">
+          <span style="font-size:1.1rem;font-weight:900;color:var(--green)">79</span>
+          <span style="font-size:.65rem;color:var(--muted)">/100</span>
+          <span style="font-size:.65rem;padding:.15rem .45rem;border-radius:4px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.2);color:var(--green);font-weight:700;margin-left:.3rem">A</span>
+        </div>
+      </div>
+      <!-- Score bar -->
+      <div style="height:3px;background:var(--border);border-left:1px solid var(--border);border-right:1px solid var(--border)">
+        <div style="width:79%;height:100%;background:linear-gradient(90deg,#a78bfa,#4ade80)"></div>
+      </div>
+      <!-- Brain video — dominant, fills the panel -->
+      <div style="position:relative;background:#000;border-left:1px solid var(--border);border-right:1px solid var(--border);overflow:hidden">
+        <video id="demo-vid-brain" src="/tribe_videos/1d822560d42d_brain.mp4"
+          autoplay loop muted playsinline
+          style="width:100%;display:block;height:420px;object-fit:cover"></video>
+        <!-- Original reel — small pip, bottom-left, plays freely, no timestamp sync -->
+        <div style="position:absolute;bottom:.75rem;left:.75rem;width:72px;border-radius:8px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.8);border:1.5px solid rgba(255,255,255,.1)">
+          <video id="demo-vid-reel" src="/tribe_videos/1d822560d42d_reel.mp4"
+            autoplay loop muted playsinline
+            style="width:100%;display:block;object-fit:cover"></video>
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:.15rem .3rem;background:rgba(0,0,0,.55);font-size:.45rem;color:rgba(255,255,255,.6);text-align:center;letter-spacing:.04em">ORIGINAL</div>
+        </div>
+        <!-- Unmute -->
+        <div style="position:absolute;top:.5rem;right:.5rem">
+          <button id="demo-unmute-btn" onclick="toggleDemoMute()"
+            style="font-size:.6rem;padding:.2rem .55rem;border-radius:5px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);cursor:pointer;backdrop-filter:blur(4px)">Unmute</button>
+        </div>
+      </div>
+      <!-- Metrics row -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px">
+        <div style="padding:.55rem .7rem;text-align:center">
+          <div style="font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Hook Str.</div>
+          <div style="font-size:1rem;font-weight:900;color:var(--text)">8.4</div>
+        </div>
+        <div style="padding:.55rem .7rem;text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+          <div style="font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Attention</div>
+          <div style="font-size:1rem;font-weight:900;color:var(--text)">7.1</div>
+        </div>
+        <div style="padding:.55rem .7rem;text-align:center">
+          <div style="font-size:.57rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Limbic</div>
+          <div style="font-size:1rem;font-weight:900;color:var(--text)">6.8</div>
+        </div>
       </div>
     </div>
   </div>
 
+  <!-- ── Description + How it works ── -->
+  <div style="margin:2.5rem auto 0">
+    <div class="vp-hiw">
+      <div class="vp-hiw-card">
+        <div class="vp-hiw-num">01</div>
+        <div class="vp-hiw-title">Submit Your Reel</div>
+        <div class="vp-hiw-desc">Paste any Instagram Reel, TikTok, YouTube or .mp4 URL — we download and process it automatically.</div>
+      </div>
+      <div class="vp-hiw-card">
+        <div class="vp-hiw-num">02</div>
+        <div class="vp-hiw-title">Neural Simulation</div>
+        <div class="vp-hiw-desc">TRIBE v2 fMRI encoding model predicts cortical activation across 7 brain networks, frame by frame.</div>
+      </div>
+      <div class="vp-hiw-card">
+        <div class="vp-hiw-num">03</div>
+        <div class="vp-hiw-title">Virality Score</div>
+        <div class="vp-hiw-desc">0–100 neural engagement score + per-TR brain heatmap + hook strength + creator brief.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Divider ── -->
+  <div class="vp-divider" style="margin:2rem auto">Score a Product Instead</div>
+
+  <!-- ── Example cards ── -->
+  <div class="ex-cards" style="margin:0 auto 1rem">
+    <div class="ex-card" id="exc-0" onclick="loadViralityExample(0)">
+      <div class="ex-name">Rare Rabbit Linen Shirt</div>
+      <div class="ex-meta">Premium Menswear · 79/100 A</div>
+      <div class="ex-badge" id="excb-0">Pre-cached</div>
+    </div>
+    <div class="ex-card" id="exc-1" onclick="loadViralityExample(1)">
+      <div class="ex-name">boAt Airdopes 141</div>
+      <div class="ex-meta">TWS Earbuds · TRIBE v2 fMRI</div>
+      <div class="ex-badge" id="excb-1">Pre-cached</div>
+    </div>
+    <div class="ex-card" id="exc-2" onclick="loadViralityExample(2)">
+      <div class="ex-name">Generic White Tee</div>
+      <div class="ex-meta">Basics · 3-Pack</div>
+      <div class="ex-badge" id="excb-2">Live</div>
+    </div>
+  </div>
+
+  <!-- ── Product score form ── -->
+  <div class="vp-form-card" style="margin:0 auto">
+    <div class="field">
+      <label>Product URL <span class="opt">(optional — we'll scrape it)</span></label>
+      <input type="url" id="v-url" placeholder="https://example.com/products/item"/>
+    </div>
+    <div class="two">
+      <div class="field">
+        <label>Product Name</label>
+        <input type="text" id="v-name" placeholder="Hydrogel Eye Patches"/>
+      </div>
+      <div class="field">
+        <label>Category <span class="opt">(optional)</span></label>
+        <input type="text" id="v-cat" placeholder="skincare"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Product Description</label>
+      <textarea id="v-desc" placeholder="Key features, bold claims, target audience, price point…"></textarea>
+    </div>
+    <button class="btn btn-g" id="v-btn" onclick="startVirality()">Score It →</button>
+  </div>
+
+  <!-- ── Loading + Result ── -->
   <div id="v-loading" style="display:none" class="ld">
     <span class="spin spin-lg"></span>
-    Analysing virality potential… this takes ~20 seconds.
+    Analysing virality potential…
   </div>
   <div id="v-result"></div>
 
-  <!-- ── TRIBE v2 Video Neural Analysis ──────────────────────────────────── -->
-  <div style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--border)">
-    <div class="sh" style="font-size:.78rem;margin-bottom:.55rem">
-      Neural Video Analysis
-      <span style="font-size:.62rem;color:var(--muted);font-weight:400;margin-left:.35rem">· Meta TRIBE v2 fMRI · any video platform</span>
-    </div>
-    <p style="font-size:.78rem;color:#4b5563;margin-bottom:.75rem;line-height:1.5">
-      Paste any video URL — YouTube, Instagram Reels, TikTok, Vimeo, direct .mp4, or any yt-dlp-supported platform.
-      TRIBE v2 predicts which brain networks the video activates. Takes ~10–30 min on CPU.
-    </p>
-    <div style="display:flex;gap:.5rem;align-items:flex-end">
-      <div class="field" style="flex:1;margin-bottom:0">
-        <label style="font-size:.72rem">Video URL</label>
-        <input type="url" id="nv-url"
-          placeholder="https://youtu.be/… or instagram.com/reel/… or direct .mp4"
-          style="font-size:.83rem"/>
-      </div>
-      <div class="field" style="width:160px;margin-bottom:0">
-        <label style="font-size:.72rem">Label <span class="opt">(optional)</span></label>
-        <input type="text" id="nv-label" placeholder="Brand Ad — Q1"
-          style="font-size:.83rem"/>
-      </div>
-    </div>
-    <button class="btn btn-g" id="nv-btn" onclick="startVideoAnalysis()"
-      style="margin-top:.65rem;font-size:.82rem;padding:.45rem 1.1rem">
-      Analyze with TRIBE v2 →
-    </button>
-    <div id="nv-loading" style="display:none;margin-top:.65rem" class="ld">
-      <span class="spin spin-lg"></span>
-      Running TRIBE v2 fMRI inference… this takes 10–30 minutes on CPU.
-      <div style="font-size:.68rem;color:#374151;margin-top:.25rem">
-        Downloading video → extracting audio/visual features → predicting cortical activations
-      </div>
-    </div>
-    <div id="nv-result" style="margin-top:.75rem"></div>
-  </div>
 </div>
 
 <!-- ── Compare Brands pane ───────────────────────────────────────────────── -->
 <div id="pane-compare" class="pane">
 
-  <div class="chip-bar">
-    <span class="chip-lbl">Examples:</span>
-    <button class="chip" onclick="loadCmpExample('https://rarerabbit.in','https://www.boat-lifestyle.com/')">Rare Rabbit vs boAt</button>
-    <button class="chip" onclick="loadCmpExample('https://rarerabbit.in','https://bewakoof.com')">Rare Rabbit vs Bewakoof</button>
-    <button class="chip" onclick="loadCmpExample('https://www.nike.com/in/','https://www.hoka.com/en-in/')">Nike vs Hoka India</button>
+  <!-- Hero -->
+  <div style="margin:0 auto;padding:3.5rem 0 0;text-align:center">
+    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:1rem">Competitive Intelligence</div>
+    <h1 style="font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-.5px;line-height:1.15;margin-bottom:.85rem;color:var(--text)">
+      Compare Any Two Brands<br><span style="color:var(--amber)">Head-to-Head</span>
+    </h1>
+    <p style="font-size:.88rem;color:var(--text2);line-height:1.8;max-width:540px;margin:0 auto 2rem">
+      Two full 8-agent audits run in parallel, then synthesised into a side-by-side intelligence report — scores, gaps, strengths, and strategic recommendations.
+    </p>
+    <!-- Featured example -->
+    <div style="margin-bottom:2rem">
+      <div style="font-size:.61rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.75rem">Featured Example</div>
+      <button onclick="loadCmpExample('https://rarerabbit.in','https://www.boat-lifestyle.com/')"
+        style="display:inline-flex;align-items:center;gap:1rem;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:.85rem 1.25rem;cursor:pointer;transition:border-color .15s;text-align:left;width:auto"
+        onmouseover="this.style.borderColor='rgba(232,168,76,.4)'" onmouseout="this.style.borderColor='var(--border2)'">
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:.75rem;font-weight:700;color:#60a5fa">Rare Rabbit</span>
+          <span style="font-size:.65rem;color:var(--muted)">vs</span>
+          <span style="font-size:.75rem;font-weight:700;color:#fcd34d">boAt</span>
+        </div>
+        <span style="font-size:.65rem;padding:.2rem .55rem;border-radius:20px;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);color:var(--green);font-weight:600">Pre-cached ⚡</span>
+        <span style="font-size:.72rem;color:var(--muted)">Premium Menswear vs Consumer Electronics</span>
+      </button>
+    </div>
+    <!-- More examples -->
+    <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;justify-content:center;margin-bottom:2.5rem">
+      <span style="font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">More:</span>
+      <button class="chip" onclick="loadCmpExample('https://rarerabbit.in','https://bewakoof.com')">Rare Rabbit vs Bewakoof</button>
+      <button class="chip" onclick="loadCmpExample('https://www.nike.com/in/','https://www.hoka.com/en-in/')">Nike vs Hoka India</button>
+    </div>
   </div>
 
-  <div style="display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap">
-    <div class="field" style="flex:1;min-width:200px;margin-bottom:0">
-      <label style="color:#60a5fa">Brand A URL</label>
+  <!-- Dual URL inputs -->
+  <div style="margin:0 auto;display:grid;grid-template-columns:1fr 48px 1fr;gap:.75rem;align-items:center">
+    <div style="background:rgba(96,165,250,.05);border:1px solid rgba(96,165,250,.18);border-radius:12px;padding:1.25rem 1.25rem 1.1rem">
+      <div style="font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#60a5fa;margin-bottom:.65rem">Brand A</div>
       <input type="url" id="cmp-url-a" placeholder="https://rarerabbit.in"
-             onkeydown="if(event.key==='Enter')startCompare()"/>
+        onkeydown="if(event.key==='Enter')startCompare()"
+        style="width:100%;background:transparent;border:none;outline:none;color:var(--text);font-size:.92rem;font-family:inherit;padding:.1rem 0"/>
     </div>
-    <div class="cmp-vs">vs</div>
-    <div class="field" style="flex:1;min-width:200px;margin-bottom:0">
-      <label style="color:#fcd34d">Brand B URL</label>
+    <div style="text-align:center;font-size:.78rem;font-weight:800;color:var(--muted)">VS</div>
+    <div style="background:rgba(252,211,77,.05);border:1px solid rgba(252,211,77,.18);border-radius:12px;padding:1.25rem 1.25rem 1.1rem">
+      <div style="font-size:.61rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#fcd34d;margin-bottom:.65rem">Brand B</div>
       <input type="url" id="cmp-url-b" placeholder="https://bewakoof.com"
-             onkeydown="if(event.key==='Enter')startCompare()"/>
+        onkeydown="if(event.key==='Enter')startCompare()"
+        style="width:100%;background:transparent;border:none;outline:none;color:var(--text);font-size:.92rem;font-family:inherit;padding:.1rem 0"/>
     </div>
-    <button class="btn btn-p" id="cmp-btn" onclick="startCompare()"
-      style="white-space:nowrap">Compare →</button>
+  </div>
+
+  <div style="margin:.85rem auto 0;text-align:center">
+    <button class="btn btn-p" id="cmp-btn" onclick="startCompare()" style="padding:.6rem 2rem;font-size:.88rem">Compare Brands →</button>
   </div>
 
   <!-- Dual pipeline progress -->
-  <div id="cmp-pipeline" style="display:none;margin-top:.85rem">
+  <div id="cmp-pipeline" style="display:none;margin-top:1.25rem">
     <div class="card">
-      <div class="cmp-dual" id="cmp-dual-cols">
-        <!-- filled by JS -->
-      </div>
+      <div class="cmp-dual" id="cmp-dual-cols"></div>
       <div class="prog-wrap" style="margin-top:.75rem">
         <div class="prog-fill" id="cmp-prog" style="width:0"></div>
       </div>
@@ -747,138 +1220,158 @@ textarea{min-height:88px;resize:vertical;line-height:1.55}
 
 <!-- ── My Brands pane ────────────────────────────────────────────────────── -->
 <div id="pane-brands" class="pane">
-  <div class="card" style="margin-top:1.5rem">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem">
+  <div style="margin:0 auto;padding:3rem 0 2rem">
+    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:.7rem">Dashboard</div>
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:2rem">
       <div>
-        <div style="font-size:1.05rem;font-weight:700">Tracked Brands</div>
-        <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">All brands ever audited — enable monitoring to track weekly changes</div>
+        <h1 style="font-size:1.85rem;font-weight:800;letter-spacing:-.4px;line-height:1.2;margin-bottom:.3rem">Brand Intelligence Hub</h1>
+        <p style="font-size:.83rem;color:var(--muted)">All audited brands — enable monitoring for weekly change tracking</p>
       </div>
       <div style="display:flex;gap:.5rem;align-items:center">
         <input id="brands-url-input" type="url" placeholder="https://yourbrand.com"
-          style="padding:.4rem .75rem;border-radius:6px;border:1px solid var(--border);
-          background:var(--card2);color:var(--text);font-size:.84rem;width:220px"/>
+          style="padding:.45rem .85rem;border-radius:8px;border:1px solid var(--border);
+          background:var(--surface2);color:var(--text);font-size:.84rem;width:230px;font-family:inherit"/>
         <button onclick="addBrandMonitor()"
-          style="padding:.4rem .9rem;border-radius:6px;border:1px solid var(--blue);
-          background:transparent;color:var(--blue);font-size:.84rem;font-weight:600;cursor:pointer">
-          + Add Brand
+          style="padding:.45rem 1rem;border-radius:8px;border:1px solid rgba(96,165,250,.35);
+          background:rgba(96,165,250,.08);color:#60a5fa;font-size:.84rem;font-weight:600;cursor:pointer;font-family:inherit">
+          + Add
         </button>
         <button onclick="loadBrands()"
-          style="padding:.4rem .75rem;border-radius:6px;border:1px solid var(--border);
-          background:transparent;color:var(--muted);font-size:.82rem;cursor:pointer">
-          ↻ Refresh
+          style="padding:.45rem .8rem;border-radius:8px;border:1px solid var(--border);
+          background:transparent;color:var(--muted);font-size:.82rem;cursor:pointer;font-family:inherit">
+          ↻
         </button>
       </div>
     </div>
     <div id="brands-table-wrap">
-      <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.88rem">Loading…</div>
+      <div style="text-align:center;padding:3rem;color:var(--muted);font-size:.88rem">Loading…</div>
     </div>
   </div>
 </div>
 
 <!-- ── Connectors pane ──────────────────────────────────────────────────── -->
 <div id="pane-connectors" class="pane">
+  <div style="margin:0 auto;padding:3rem 0 2rem">
 
-  <!-- Brand URL selector + status lookup -->
-  <div class="card" style="margin-top:1.5rem">
-    <div style="font-size:1.05rem;font-weight:700;margin-bottom:.35rem">API Connectors</div>
-    <div style="font-size:.78rem;color:var(--muted);margin-bottom:1.25rem">
-      Connect private API keys for deeper brand analysis — private store data, real ad spend, ROAS, and customer metrics.
+    <!-- Header -->
+    <div style="margin-bottom:2.5rem">
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin-bottom:.7rem">Settings</div>
+      <h1 style="font-size:1.85rem;font-weight:800;letter-spacing:-.4px;margin-bottom:.4rem">API Connectors</h1>
+      <p style="font-size:.85rem;color:var(--text2);line-height:1.7;max-width:560px">
+        Connect private API keys for deeper brand analysis — access real store data, ad spend, ROAS, and customer metrics directly.
+      </p>
     </div>
 
-    <div class="field">
-      <label>Brand URL to configure</label>
-      <div class="row">
+    <!-- Brand URL field -->
+    <div style="margin-bottom:1.75rem">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:.4rem">Brand URL</div>
+      <div style="display:flex;gap:.5rem;align-items:center">
         <input type="url" id="conn-brand-url" placeholder="https://yourbrand.com"
-               oninput="onConnBrandUrl(this.value)"/>
-        <button class="btn btn-g" onclick="checkConnectorStatus()">Check Status</button>
+          oninput="onConnBrandUrl(this.value)"
+          style="flex:1;padding:.5rem .85rem;border-radius:8px;border:1px solid var(--border);
+          background:var(--surface2);color:var(--text);font-size:.875rem;font-family:inherit"/>
+        <button class="btn btn-g" onclick="checkConnectorStatus()" style="white-space:nowrap">Check Status</button>
       </div>
+      <div id="conn-status-row" style="display:none;gap:.5rem;margin-top:.65rem;flex-wrap:wrap"></div>
     </div>
 
-    <!-- Status indicator -->
-    <div id="conn-status-row" style="display:none;gap:.65rem;margin-bottom:1.1rem;display:none;flex-wrap:wrap"></div>
+    <!-- Connector cards -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:2rem">
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem" class="conn-forms">
-
-      <!-- ── Shopify ────────────────────────────────────────────────── -->
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.1rem">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
-          <span style="font-size:1.3rem">🛒</span>
-          <div>
-            <div style="font-weight:700;font-size:.95rem">Shopify</div>
-            <div style="font-size:.72rem;color:var(--muted)">Private store data — orders, inventory, customers</div>
+      <!-- Shopify -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:1.1rem 1.25rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.7rem">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(149,191,71,.1);border:1px solid rgba(149,191,71,.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">🛒</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.92rem">Shopify</div>
+            <div style="font-size:.69rem;color:var(--muted)">Orders · Inventory · Customers</div>
           </div>
-          <span id="shopify-badge" style="margin-left:auto;font-size:.7rem;font-weight:600;
-            padding:.15rem .5rem;border-radius:4px;display:none"></span>
+          <span id="shopify-badge" style="font-size:.67rem;font-weight:600;padding:.14rem .48rem;border-radius:4px;display:none"></span>
         </div>
-
-        <div class="field">
-          <label>Store URL</label>
-          <input type="url" id="shopify-store-url" placeholder="https://mystore.myshopify.com"/>
-        </div>
-        <div class="field">
-          <label>Admin API Access Token</label>
-          <input type="password" id="shopify-token" placeholder="shpat_xxxxxxxxxxxxxxxx"/>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-top:.6rem">
-          <button class="btn btn-p" style="flex:1" onclick="saveShopify()">Connect Shopify</button>
-          <button class="btn btn-g" id="shopify-disconnect-btn" style="display:none" onclick="disconnectConnector('shopify')">Disconnect</button>
-        </div>
-        <div id="shopify-msg" style="font-size:.78rem;margin-top:.5rem;display:none"></div>
-
-        <div style="margin-top:.85rem;padding:.7rem;background:var(--surface);border-radius:7px;font-size:.72rem;color:var(--muted)">
-          <strong style="color:var(--text)">How to get token:</strong><br/>
-          Shopify Admin → Settings → Apps → Develop apps → Create app →
-          Configure Admin API scopes (read_orders, read_products, read_customers, read_analytics) → Install → copy token
-        </div>
-      </div>
-
-      <!-- ── Meta Ads ───────────────────────────────────────────────── -->
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.1rem">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
-          <span style="font-size:1.3rem">📘</span>
-          <div>
-            <div style="font-weight:700;font-size:.95rem">Meta Ads</div>
-            <div style="font-size:.72rem;color:var(--muted)">Real ad performance — ROAS, spend, CTR, campaigns</div>
+        <div style="padding:1rem 1.25rem 1.25rem">
+          <div style="margin-bottom:.55rem">
+            <div style="font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.28rem">Store URL</div>
+            <input type="url" id="shopify-store-url" placeholder="https://mystore.myshopify.com"
+              style="width:100%;padding:.42rem .7rem;border-radius:7px;border:1px solid var(--border);
+              background:var(--surface);color:var(--text);font-size:.83rem;font-family:inherit"/>
           </div>
-          <span id="meta-badge" style="margin-left:auto;font-size:.7rem;font-weight:600;
-            padding:.15rem .5rem;border-radius:4px;display:none"></span>
+          <div style="margin-bottom:.75rem">
+            <div style="font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.28rem">Admin API Token</div>
+            <input type="password" id="shopify-token" placeholder="shpat_xxxxxxxxxxxxxxxx"
+              style="width:100%;padding:.42rem .7rem;border-radius:7px;border:1px solid var(--border);
+              background:var(--surface);color:var(--text);font-size:.83rem;font-family:inherit"/>
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-p" style="flex:1;font-size:.82rem;padding:.42rem .75rem" onclick="saveShopify()">Connect</button>
+            <button class="btn btn-g" id="shopify-disconnect-btn" style="display:none;font-size:.82rem;padding:.42rem .75rem" onclick="disconnectConnector('shopify')">Disconnect</button>
+          </div>
+          <div id="shopify-msg" style="font-size:.76rem;margin-top:.45rem;display:none"></div>
+          <details style="margin-top:.85rem">
+            <summary style="font-size:.7rem;color:var(--muted);cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:.3rem">
+              <span style="opacity:.5">▸</span> How to get token
+            </summary>
+            <div style="font-size:.71rem;color:var(--muted);margin-top:.45rem;line-height:1.65;padding-left:.85rem">
+              Shopify Admin → Settings → Apps → Develop apps → Create app →
+              Configure Admin API scopes (read_orders, read_products, read_customers, read_analytics) → Install → copy token
+            </div>
+          </details>
         </div>
+      </div>
 
-        <div class="field">
-          <label>Access Token</label>
-          <input type="password" id="meta-token" placeholder="EAAxxxxxxxxxxxxxxxx"/>
+      <!-- Meta Ads -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:1.1rem 1.25rem .9rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.7rem">
+          <div style="width:34px;height:34px;border-radius:9px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">📘</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.92rem">Meta Ads</div>
+            <div style="font-size:.69rem;color:var(--muted)">ROAS · Spend · CTR · Campaigns</div>
+          </div>
+          <span id="meta-badge" style="font-size:.67rem;font-weight:600;padding:.14rem .48rem;border-radius:4px;display:none"></span>
         </div>
-        <div class="field">
-          <label>Ad Account ID</label>
-          <input type="text" id="meta-account-id" placeholder="act_1234567890  or  1234567890"/>
-        </div>
-        <div style="display:flex;gap:.5rem;margin-top:.6rem">
-          <button class="btn btn-p" style="flex:1" onclick="saveMeta()">Connect Meta</button>
-          <button class="btn btn-g" id="meta-disconnect-btn" style="display:none" onclick="disconnectConnector('meta')">Disconnect</button>
-        </div>
-        <div id="meta-msg" style="font-size:.78rem;margin-top:.5rem;display:none"></div>
-
-        <div style="margin-top:.85rem;padding:.7rem;background:var(--surface);border-radius:7px;font-size:.72rem;color:var(--muted)">
-          <strong style="color:var(--text)">How to get token:</strong><br/>
-          Meta Business Suite → Business Settings → Users → System Users → Add system user →
-          Generate token with ads_read, ads_management scopes → copy token + Ad Account ID
+        <div style="padding:1rem 1.25rem 1.25rem">
+          <div style="margin-bottom:.55rem">
+            <div style="font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.28rem">Access Token</div>
+            <input type="password" id="meta-token" placeholder="EAAxxxxxxxxxxxxxxxx"
+              style="width:100%;padding:.42rem .7rem;border-radius:7px;border:1px solid var(--border);
+              background:var(--surface);color:var(--text);font-size:.83rem;font-family:inherit"/>
+          </div>
+          <div style="margin-bottom:.75rem">
+            <div style="font-size:.67rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.28rem">Ad Account ID</div>
+            <input type="text" id="meta-account-id" placeholder="act_1234567890"
+              style="width:100%;padding:.42rem .7rem;border-radius:7px;border:1px solid var(--border);
+              background:var(--surface);color:var(--text);font-size:.83rem;font-family:inherit"/>
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn btn-p" style="flex:1;font-size:.82rem;padding:.42rem .75rem" onclick="saveMeta()">Connect</button>
+            <button class="btn btn-g" id="meta-disconnect-btn" style="display:none;font-size:.82rem;padding:.42rem .75rem" onclick="disconnectConnector('meta')">Disconnect</button>
+          </div>
+          <div id="meta-msg" style="font-size:.76rem;margin-top:.45rem;display:none"></div>
+          <details style="margin-top:.85rem">
+            <summary style="font-size:.7rem;color:var(--muted);cursor:pointer;font-weight:600;list-style:none;display:flex;align-items:center;gap:.3rem">
+              <span style="opacity:.5">▸</span> How to get token
+            </summary>
+            <div style="font-size:.71rem;color:var(--muted);margin-top:.45rem;line-height:1.65;padding-left:.85rem">
+              Meta Business Suite → Business Settings → Users → System Users → Add system user →
+              Generate token with ads_read, ads_management scopes → copy token + Ad Account ID
+            </div>
+          </details>
         </div>
       </div>
 
     </div>
-  </div>
 
-  <!-- Connected brands list -->
-  <div class="card" style="margin-top:1.25rem">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-      <div style="font-weight:700;font-size:.95rem">Connected Brands</div>
-      <button class="btn btn-g" onclick="loadConnectors()" style="font-size:.78rem;padding:.35rem .75rem">↻ Refresh</button>
+    <!-- Connected brands list -->
+    <div style="border-top:1px solid var(--border);padding-top:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div style="font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Connected Brands</div>
+        <button class="btn btn-g" onclick="loadConnectors()" style="font-size:.76rem;padding:.3rem .7rem">↻ Refresh</button>
+      </div>
+      <div id="connectors-list">
+        <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">Loading…</div>
+      </div>
     </div>
-    <div id="connectors-list">
-      <div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem">Loading…</div>
-    </div>
-  </div>
 
+  </div>
 </div>
 </main>
 
@@ -888,8 +1381,23 @@ function showTab(id, btn) {
   document.querySelectorAll('.pane').forEach(el => el.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
   document.getElementById('pane-' + id).classList.add('on');
-  btn.classList.add('on');
+  if (btn) btn.classList.add('on');
+  // Sync URL so /audit, /virality, /compare stay bookmarkable
+  var tabToPath = {audit:'/audit', virality:'/virality', compare:'/compare', brands:'/audit', connectors:'/audit'};
+  var path = tabToPath[id] || '/' + id;
+  if (window.location.pathname !== path) history.pushState({tab: id}, '', path);
 }
+
+// Handle browser back/forward
+window.addEventListener('popstate', function(e) {
+  var pathToTab = {'/audit':'audit', '/virality':'virality', '/compare':'compare'};
+  var tab = (e.state && e.state.tab) || pathToTab[location.pathname] || 'audit';
+  var btn = document.querySelector('.tab[onclick*="' + tab + '"]');
+  document.querySelectorAll('.pane').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('on'));
+  document.getElementById('pane-' + tab)?.classList.add('on');
+  if (btn) btn.classList.add('on');
+});
 
 /* ── Agent pipeline ───────────────────────────────────────────────────────── */
 // [key, label, est_seconds]
@@ -905,36 +1413,62 @@ const AGENTS = [
 ];
 
 function buildPipeline() {
-  document.getElementById('a-agents').innerHTML = AGENTS.map(([k, lbl, est]) =>
-    `<div class="ag-row" id="row-${k}">
-       <span class="ag-ic" id="ic-${k}" style="color:var(--border)">○</span>
-       <div style="flex:1;min-width:0">
-         <span class="ag-name">${lbl}</span>
-         <span class="ag-eta" id="eta-${k}" style="font-size:.62rem;color:#4b5563;margin-left:.35rem">~${est}s</span>
-       </div>
-       <span class="ag-st" id="st-${k}" style="color:var(--muted)">Pending</span>
-     </div>`
-  ).join('');
+  // Clear init placeholder; log lines appended dynamically
+  var log = document.getElementById('a-agents');
+  if (log) log.innerHTML = '';
+  // Reset phase dots
+  ['gathering','analyzing','synthesizing'].forEach(function(p) {
+    var d = document.getElementById('phd-' + p);
+    if (d) { d.className = 'pl-phase-dot'; }
+  });
+  ['phl-1','phl-2'].forEach(function(id) {
+    var l = document.getElementById(id);
+    if (l) l.classList.remove('done');
+  });
 }
 
+function _plLog(icon, iconColor, html, timeStr) {
+  var log = document.getElementById('a-agents');
+  if (!log) return;
+  var line = document.createElement('div');
+  line.className = 'pl-log-line';
+  line.innerHTML =
+    '<span class="pl-log-ic" style="color:' + iconColor + '">' + icon + '</span>' +
+    '<span class="pl-log-body">' + html + '</span>' +
+    (timeStr ? '<span class="pl-log-time">' + timeStr + '</span>' : '');
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function _setPhase(phase) {
+  // phase: 'gathering' | 'analyzing' | 'synthesizing'
+  var order = ['gathering','analyzing','synthesizing'];
+  var idx = order.indexOf(phase);
+  order.forEach(function(p, i) {
+    var d = document.getElementById('phd-' + p);
+    if (!d) return;
+    if (i < idx) { d.className = 'pl-phase-dot done'; }
+    else if (i === idx) { d.className = 'pl-phase-dot active'; }
+    else { d.className = 'pl-phase-dot'; }
+  });
+  // lines
+  if (idx >= 1) { var l1 = document.getElementById('phl-1'); if (l1) l1.classList.add('done'); }
+  if (idx >= 2) { var l2 = document.getElementById('phl-2'); if (l2) l2.classList.add('done'); }
+}
+
+var _agentRunStart = {};
 function setAgent(key, state, elapsed) {
-  const ic  = document.getElementById('ic-'  + key);
-  const st  = document.getElementById('st-'  + key);
-  const eta = document.getElementById('eta-' + key);
-  if (!ic) return;
+  var agentLabelMap = {};
+  AGENTS.forEach(function(a) { agentLabelMap[a[0]] = a[1]; });
+  var label = agentLabelMap[key] || key;
   if (state === 'running') {
-    ic.innerHTML = '<span class="ic-spin" style="color:var(--amber)">↻</span>';
-    ic.style.color = 'var(--amber)';
-    st.textContent = 'Running…'; st.style.color = 'var(--amber)';
-    if (eta) eta.style.display = 'inline';
+    _agentRunStart[key] = Date.now();
+    _plLog('▶', 'var(--amber)', '<strong>' + label + '</strong> — scanning…', '');
   } else if (state === 'done') {
-    ic.innerHTML = '✓'; ic.style.color = 'var(--green)';
-    st.textContent = elapsed ? elapsed + 's' : 'Done'; st.style.color = 'var(--green)';
-    if (eta) eta.style.display = 'none';
+    var secs = elapsed || ((_agentRunStart[key] ? Math.round((Date.now() - _agentRunStart[key]) / 1000) : 0));
+    _plLog('✓', 'var(--green)', '<strong>' + label + '</strong> complete', secs ? secs + 's' : '');
   } else if (state === 'error') {
-    ic.innerHTML = '✗'; ic.style.color = 'var(--red)';
-    st.textContent = 'Error'; st.style.color = 'var(--red)';
-    if (eta) eta.style.display = 'none';
+    _plLog('✗', 'var(--red)', '<strong>' + label + '</strong> — error', '');
   }
 }
 
@@ -944,7 +1478,9 @@ function addFindingCard(key, label, preview) {
   var feed = document.getElementById('live-findings');
   if (!feed) return;
   var card = document.createElement('div');
-  card.className = 'finding-card';
+  var t = preview.type || 'warning';
+  var cls = t === 'strength' ? 'fc-strength' : t === 'critical' ? 'fc-critical' : t === 'info' ? 'fc-info' : '';
+  card.className = 'finding-card' + (cls ? ' ' + cls : '');
   card.innerHTML =
     '<div class="finding-agent">' + (label || key) + '</div>' +
     '<div class="finding-headline">' + (preview.headline || '') + '</div>' +
@@ -981,7 +1517,7 @@ function updateDataCounter(final) {
   if (!el || !numEl) return;
   el.style.display = 'block';
   if (final) {
-    el.innerHTML = 'Analysed <strong>801</strong> data points across 8 intelligence agents';
+    el.innerHTML = 'Analysis complete across 8 intelligence agents';
     return;
   }
   var prev = parseInt(numEl.textContent.replace(/,/g, '')) || 0;
@@ -1092,29 +1628,12 @@ function _startTribePolling(auditId, reportUrl) {
 
 /* ── Feature 4: Phase 3 parallel indicator ───────────────────────────────── */
 function setPhase3Running() {
-  var P3 = ['content_catalog', 'performance_ads', 'geo_visibility', 'store_cro'];
-  P3.forEach(function(k, i) {
-    var ic = document.getElementById('ic-' + k);
-    var st = document.getElementById('st-' + k);
-    if (ic) ic.innerHTML = '<span class="phase3-dots"><span></span><span></span><span></span><span></span></span>';
-    if (ic) ic.style.color = 'var(--amber)';
-    if (st) { st.textContent = i === 0 ? 'In parallel' : '…'; st.style.color = 'var(--amber)'; }
-  });
-  // Annotate first row to signal parallelism
-  var firstRow = document.getElementById('row-content_catalog');
-  if (firstRow) {
-    var nm = firstRow.querySelector('.ag-name');
-    if (nm) nm.innerHTML = 'Content Audit <span style="font-size:.63rem;color:var(--amber);font-weight:700;margin-left:.3rem">✜ +3 parallel</span>';
-  }
+  // With the new log UI, this is handled by the phase3_start event log line
+  // No-op — log line already added in SSE handler
 }
 
 function restorePhase3AgentName(key) {
-  var row = document.getElementById('row-' + key);
-  if (!row) return;
-  var nm = row.querySelector('.ag-name');
-  if (!nm) return;
-  var entry = AGENTS.find(function(a) { return a[0] === key; });
-  if (entry) nm.textContent = entry[1];
+  // No-op — new log UI doesn't have named rows to restore
 }
 
 /* ── FIX 3: Audit example chips ───────────────────────────────────────────── */
@@ -1138,8 +1657,11 @@ async function loadDemoAudit() {
   // Activate split layout
   document.getElementById('audit-layout').classList.add('audit-split');
 
-  // Pre-cached — mark all agents done instantly
-  AGENTS.forEach(([k]) => setAgent(k, 'done', '—'));
+  // Pre-cached — show instant completion
+  _setPhase('synthesizing');
+  setTimeout(function(){ var d=document.getElementById('phd-synthesizing'); if(d) d.className='pl-phase-dot done'; },400);
+  _plLog('⚡', 'var(--amber)', 'Pre-cached demo — loading instantly', '');
+  _plLog('★', 'var(--green)', '<strong>Audit complete</strong> — full report ready', '');
   document.getElementById('a-prog').style.width = '100%';
 
   // Load /demo into the inline iframe
@@ -1200,7 +1722,7 @@ async function startAudit() {
     if (deepVisual) {
       // Update social_media_audit ETA to reflect TRIBE v2 time
       const etaEl = document.getElementById('eta-social_media_audit');
-      if (etaEl) etaEl.textContent = '~20min (TRIBE v2)';
+      if (etaEl) etaEl.textContent = '(TRIBE v2 fMRI)';
     }
     startInsightsRotator();
   } catch (e) {
@@ -1218,40 +1740,27 @@ async function startAudit() {
 
     if (m.status === 'cache_hit') {
       _fromCache = true;
-      AGENTS.forEach(([k]) => setAgent(k, 'done', '—'));
+      _setPhase('synthesizing');
+      _plLog('⚡', 'var(--amber)', 'Cache hit — loading results instantly', '');
       document.getElementById('a-prog').style.width = '100%';
 
     } else if (m.status === 'gathering') {
-      // Phase 1: parallel data gathering
-      AGENTS.forEach(([k]) => {
-        var ic = document.getElementById('ic-' + k);
-        var st = document.getElementById('st-' + k);
-        if (ic) { ic.innerHTML = '<span style="color:var(--border)">○</span>'; ic.style.color = 'var(--border)'; }
-        if (st) { st.textContent = 'Queued'; st.style.color = 'var(--muted)'; }
-      });
+      _setPhase('gathering');
+      _plLog('·', 'var(--muted)', 'Scraping brand data across sources…', '');
 
     } else if (m.status === 'running') {
+      _setPhase('analyzing');
       setAgent(m.key, 'running');
 
     } else if (m.status === 'phase3_start') {
-      // Feature 4: show 4 parallel pulsing dots
+      _setPhase('analyzing');
+      _plLog('⟳', 'var(--amber)', '6 agents analyzing in parallel…', '');
       setPhase3Running();
 
     } else if (m.status === 'phase3_done') {
-      // All 6 parallel agents done — tick any that haven't been individually ticked yet
-      var p3keys = ['content_catalog', 'performance_ads', 'geo_visibility', 'store_cro', 'research', 'social_profile'];
-      p3keys.forEach(function(k) {
-        restorePhase3AgentName(k);
-        setAgent(k, 'done');
-      });
+      _plLog('✓', 'var(--green)', '6 parallel agents complete', '');
       if (m.progress_pct != null)
         document.getElementById('a-prog').style.width = m.progress_pct + '%';
-      // Show finding cards for all 6 parallel agents (agents array now always present)
-      if (m.agents) {
-        m.agents.forEach(function(a) {
-          if (a.preview) addFindingCard(a.key, a.preview.label, a.preview);
-        });
-      }
       // Increment counter for all 6 parallel agents
       _dataPoints += (AGENT_DATA_COUNTS.content_catalog || 0)
         + (AGENT_DATA_COUNTS.performance_ads || 0)
@@ -1303,14 +1812,23 @@ async function startAudit() {
             var wrapper = document.createElement('div');
             wrapper.setAttribute('data-agent', key);
             wrapper.innerHTML = '<div style="margin:.75rem 0;padding:.85rem 1rem;'
-              + 'background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;'
-              + 'color:#6b7280;font-size:.82rem">&#9888; Section failed to load'
+              + 'background:#1d1b18;border:1px solid #2d2a26;border-radius:10px;'
+              + 'color:#6b6560;font-size:.82rem">&#9888; Section failed to load'
               + ' — <a href="/report/' + id + '" target="_blank" style="color:var(--blue)">open full report</a></div>';
             ls.appendChild(wrapper);
           });
       })(m.key, auditId);
 
     } else if (m.status === 'complete') {
+      _setPhase('synthesizing');
+      // Mark synthesizing done after brief delay
+      setTimeout(function() {
+        var d = document.getElementById('phd-synthesizing');
+        if (d) d.className = 'pl-phase-dot done';
+        var l2 = document.getElementById('phl-2');
+        if (l2) l2.classList.add('done');
+      }, 600);
+      _plLog('★', 'var(--green)', '<strong>Audit complete</strong> — report ready', '');
       document.getElementById('a-prog').style.width = '100%';
       updateDataCounter(true);
       stopInsightsRotator();
@@ -1409,6 +1927,20 @@ const VIRALITY_EXAMPLES = [
 
 let _examples = null;
 
+function switchDemoVideo(which, btn) {
+  // No-op — new layout has brain dominant with reel as a fixed pip. No toggling needed.
+}
+
+function toggleDemoMute() {
+  const brain = document.getElementById('demo-vid-brain');
+  const reel  = document.getElementById('demo-vid-reel');
+  const btn   = document.getElementById('demo-unmute-btn');
+  if (!brain) return;
+  const muting = !brain.muted;
+  brain.muted = muting; if (reel) reel.muted = muting;
+  btn.textContent = muting ? 'Unmute' : 'Mute';
+}
+
 async function loadViralityExample(idx) {
   const ex    = VIRALITY_EXAMPLES[idx];
   const card  = document.getElementById('exc-' + idx);
@@ -1502,25 +2034,35 @@ const DIM_KEYS = [
 ];
 
 function renderVirality(data) {
-  // If there's a pre-rendered server report (e.g. TRIBE v2), show it in an iframe
+  // If there's a pre-rendered server report, open it full-page in a new tab
   if (data.virality_card_url) {
-    const url = data.virality_card_url;
+    const reportUrl = data.virality_card_url;
+    const fullUrl   = data.virality_card_url;  // open without embed for full experience
     document.getElementById('v-result').innerHTML =
-      `<div style="display:flex;align-items:center;justify-content:flex-end;gap:.5rem;margin-bottom:.5rem">
-         <a href="${url}" target="_blank"
-            style="font-size:.78rem;padding:.3rem .75rem;border-radius:6px;
-                   background:#1e1e1e;border:1px solid #333;color:#aaa;text-decoration:none">
-           ↗ Open full page
-         </a>
-         <button onclick="document.getElementById('vc-frame').contentWindow.print()"
-            style="font-size:.78rem;padding:.3rem .75rem;border-radius:6px;
-                   background:#7c3aed;border:none;color:#fff;cursor:pointer;font-weight:600">
-           ⬇ Download PDF
-         </button>
+      `<div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;
+              padding:.85rem 1.1rem;background:#111;border:1px solid #222;
+              border-radius:12px;margin-bottom:.75rem;flex-wrap:wrap">
+         <div style="display:flex;align-items:center;gap:.6rem">
+           <span style="font-size:.9rem">✅</span>
+           <span style="font-size:.84rem;font-weight:600;color:#e0e0e0">
+             Virality report ready
+             ${data.score ? ' · <span style="color:#CAFF4B;font-weight:800">' + data.score + '/100</span>' : ''}
+             ${data.grade ? ' · ' + data.grade : ''}
+           </span>
+         </div>
+         <div style="display:flex;gap:.5rem">
+           <a href="${fullUrl}" target="_blank"
+              style="font-size:.78rem;padding:.35rem .85rem;border-radius:8px;
+                     background:#1e1e1e;border:1px solid #333;color:#aaa;
+                     text-decoration:none;font-weight:600">
+             ↗ Open Full Report
+           </a>
+         </div>
        </div>
-       <iframe id="vc-frame" src="${url}" frameborder="0"
-        style="width:100%;height:82vh;min-height:600px;border:1px solid #1e1e1e;
-               border-radius:10px;background:#0a0a0a;display:block"></iframe>`;
+       <iframe id="vc-frame" src="${reportUrl}" frameborder="0"
+        style="width:100%;height:220vh;min-height:1200px;border:1px solid #1e1e1e;
+               border-radius:12px;background:#0d0d0d;display:block"
+        onload="this.style.height=(this.contentDocument.body.scrollHeight+120)+'px'"></iframe>`;
     return;
   }
   const score    = data.score || 0;
@@ -1793,67 +2335,182 @@ async function startVideoAnalysis() {
 }
 
 function renderVideoAnalysis(d) {
-  const score    = d.neural_engagement_score;
-  const tier     = d.tier || '';
-  const tierColor = tier === 'High' ? 'var(--green)' : tier === 'Medium' ? 'var(--amber)' : 'var(--red)';
-  const nePct    = score != null ? Math.round(score) : 0;
-  const bmSrc    = d.brain_map_source || '';
-  const srcLabel = bmSrc === 'tribe_v2' ? 'Meta TRIBE v2 · fMRI' : 'Estimated';
-  const srcColor = bmSrc === 'tribe_v2' ? 'var(--green)' : 'var(--amber)';
-
-  let html = '<div class="card">';
+  const score     = d.neural_engagement_score;
+  const tier      = d.tier || '';
+  const nePct     = score != null ? Math.round(score) : 0;
+  const bmSrc     = d.brain_map_source || '';
+  const srcLabel  = bmSrc === 'tribe_v2' ? 'Meta TRIBE v2 · fMRI' : 'Estimated';
+  const srcColor  = bmSrc === 'tribe_v2' ? 'var(--green)' : 'var(--amber)';
+  const tierColor = tier === 'High' ? '#4ade80' : tier === 'Medium' ? '#e8a84c' : '#f87171';
+  const barColor  = tier === 'High'   ? 'linear-gradient(90deg,#22c55e,#4ade80)' :
+                    tier === 'Medium' ? 'linear-gradient(90deg,#b45309,#e8a84c)' :
+                                        'linear-gradient(90deg,#dc2626,#f87171)';
 
   if (d.error && score == null) {
-    html += '<div style="color:var(--red);font-size:.85rem;padding:.5rem">⚠ ' + esc(d.error) + '</div>';
-  } else {
-    html +=
-      '<div style="display:flex;align-items:baseline;gap:.55rem;margin-bottom:.75rem">' +
-        '<span style="font-size:2.6rem;font-weight:900;line-height:1;color:' + tierColor + '">' + nePct + '</span>' +
-        '<span style="font-size:.85rem;color:var(--muted)">/100 Neural Engagement</span>' +
-        (tier ? '<span style="display:inline-block;padding:.18rem .65rem;border-radius:999px;' +
-          'font-size:.75rem;font-weight:700;background:' + tierColor + ';color:#000">' + esc(tier) + '</span>' : '') +
+    document.getElementById('nv-result').innerHTML =
+      '<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:1rem 1.25rem;color:#f87171;font-size:.85rem">⚠ ' + esc(d.error) + '</div>';
+    return;
+  }
+
+  let html =
+    '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden">' +
+
+    // Header strip
+    '<div style="padding:.85rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:.75rem">' +
+      '<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)">Neural Engagement Analysis</div>' +
+      '<div style="margin-left:auto;display:flex;align-items:center;gap:.45rem">' +
+        (bmSrc === 'tribe_v2'
+          ? '<span style="font-size:.63rem;font-weight:700;padding:.14rem .55rem;border-radius:4px;background:rgba(74,222,128,.08);color:#4ade80;border:1px solid rgba(74,222,128,.2)">META TRIBE v2</span>'
+          : '') +
+        '<span style="font-size:.63rem;font-weight:700;padding:.14rem .55rem;border-radius:4px;background:rgba(107,114,128,.1);color:var(--muted);border:1px solid var(--border)">fMRI</span>' +
       '</div>' +
-      '<div class="dim-bg" style="margin-bottom:.75rem">' +
-        '<div class="dim-fill" style="width:' + nePct + '%;background:' + tierColor + '"></div>' +
+    '</div>' +
+
+    // Body
+    '<div style="padding:1.5rem 1.25rem 1.25rem">' +
+
+    // Score hero
+    '<div style="display:flex;align-items:flex-end;gap:.85rem;margin-bottom:1rem">' +
+      '<div>' +
+        '<div style="font-size:3.25rem;font-weight:900;line-height:1;color:' + tierColor + ';font-variant-numeric:tabular-nums">' + nePct + '</div>' +
+        '<div style="font-size:.72rem;color:var(--muted);margin-top:.2rem">/ 100 Neural Engagement</div>' +
       '</div>' +
-      (d.consistency_score != null
-        ? '<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.65rem">' +
-            '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:var(--muted)">' +
-              'Consistency ' + d.consistency_score + '%</span>' +
-            (d.n_trs_analyzed
-              ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:#1e1e1e;color:var(--muted)">' + d.n_trs_analyzed + ' TRs</span>'
-              : '') +
-            (d.early_hook_strong
-              ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:rgba(34,197,94,.1);color:var(--green)">Strong opening hook</span>'
-              : (d.early_hook_ratio != null && d.early_hook_ratio < 0.85
-                ? '<span style="font-size:.71rem;padding:.16rem .48rem;border-radius:5px;background:rgba(239,68,68,.08);color:var(--red)">Weak opening hook</span>'
-                : '')) +
-          '</div>'
+      (tier
+        ? '<span style="display:inline-block;padding:.28rem .85rem;border-radius:999px;font-size:.78rem;font-weight:700;background:' + tierColor + ';color:#000;margin-bottom:.35rem">' + esc(tier) + ' Engagement</span>'
         : '') +
-      (d.interpretation
-        ? '<div style="font-size:.8rem;color:#cbd5e1;line-height:1.55;padding:.55rem .75rem;' +
-            'background:#0f172a;border-radius:7px;border-left:2px solid ' + tierColor + ';margin-bottom:.75rem">' +
-            esc(d.interpretation) + '</div>'
-        : '');
+    '</div>' +
 
-    if (d.brain_map_svg) {
-      html +=
-        '<div class="sh" style="margin-top:.5rem">Brain Activation Map' +
-          '<span style="font-size:.62rem;color:var(--muted);font-weight:400;margin-left:.35rem">' +
-            '· Source: <span style="color:' + srcColor + '">' + srcLabel + '</span></span>' +
-        '</div>' +
-        '<div style="margin:.5rem 0 .5rem">' + d.brain_map_svg + '</div>';
-    }
+    // Progress bar
+    '<div style="height:5px;background:var(--border);border-radius:999px;margin-bottom:1.25rem;overflow:hidden">' +
+      '<div style="height:100%;width:' + nePct + '%;background:' + barColor + ';border-radius:999px;transition:width .6s ease"></div>' +
+    '</div>' +
 
+    // 3-cell metric grid
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1.1rem">' +
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem">' +
+        '<div style="font-size:1.45rem;font-weight:800;color:' + tierColor + ';line-height:1">' + nePct + '</div>' +
+        '<div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">NE Score</div>' +
+      '</div>' +
+      (d.n_trs_analyzed != null
+        ? '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem">' +
+            '<div style="font-size:1.45rem;font-weight:800;color:var(--text);line-height:1">' + d.n_trs_analyzed + '</div>' +
+            '<div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">TRs Analysed</div>' +
+          '</div>'
+        : '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem;opacity:.4">' +
+            '<div style="font-size:1.45rem;font-weight:800;color:var(--muted);line-height:1">—</div>' +
+            '<div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">TRs Analysed</div>' +
+          '</div>') +
+      (d.consistency_score != null
+        ? '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem">' +
+            '<div style="font-size:1.45rem;font-weight:800;color:var(--text);line-height:1">' + d.consistency_score + '<span style="font-size:.85rem;color:var(--muted)">%</span></div>' +
+            '<div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Consistency</div>' +
+          '</div>'
+        : '<div style="background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.75rem .9rem;opacity:.4">' +
+            '<div style="font-size:1.45rem;font-weight:800;color:var(--muted);line-height:1">—</div>' +
+            '<div style="font-size:.68rem;color:var(--muted);margin-top:.2rem">Consistency</div>' +
+          '</div>') +
+    '</div>' +
+
+    // Hook badge
+    ((d.early_hook_strong || (d.early_hook_ratio != null && d.early_hook_ratio < 0.85))
+      ? '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem">' +
+          (d.early_hook_strong
+            ? '<span style="font-size:.7rem;padding:.18rem .55rem;border-radius:5px;background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)">✓ Strong opening hook</span>'
+            : '<span style="font-size:.7rem;padding:.18rem .55rem;border-radius:5px;background:rgba(248,113,113,.08);color:#f87171;border:1px solid rgba(248,113,113,.2)">⚠ Weak opening hook</span>') +
+        '</div>'
+      : '') +
+
+    // Interpretation
+    (d.interpretation
+      ? '<div style="font-size:.82rem;color:#cbd5e1;line-height:1.6;padding:.7rem .9rem;background:#0f172a;border-radius:8px;border-left:2px solid ' + tierColor + ';margin-bottom:1rem">' +
+          esc(d.interpretation) +
+        '</div>'
+      : '');
+
+  // Brain frames — synchronized video + frame-by-frame brain display
+  if (d.brain_frames && d.brain_frames.length > 0 && d.reel_video_url) {
+    const frames = d.brain_frames;
     html +=
-      '<div style="font-size:.62rem;color:#374151;margin-top:.5rem;padding-top:.5rem;border-top:1px solid #1e1e1e">' +
-        'Powered by Meta TRIBE v2 · CC-BY-NC-4.0 (non-commercial research use only) · ' +
-        '<a href="/brain-map" target="_blank" style="color:#475569">Brain map explainer</a>' +
+      '<div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">' +
+      '<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem">' +
+        'Synchronized Brain Activation' +
+        '<span style="font-weight:400;text-transform:none;color:' + srcColor + '">' + srcLabel + '</span>' +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">' +
+        '<div>' +
+          '<div style="font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.35rem">Original Video</div>' +
+          '<video id="nv-sync-video" src="' + d.reel_video_url + '" controls muted loop playsinline ' +
+            'style="width:100%;border-radius:8px;background:#000;display:block;max-height:280px;object-fit:contain"></video>' +
+        '</div>' +
+        '<div>' +
+          '<div style="font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.35rem">Brain Activation <span id="nv-tr-label" style="color:' + srcColor + '">t=0s</span></div>' +
+          '<div id="nv-brain-container">' + frames[0].svg + '</div>' +
+          '<div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.5rem">' +
+            frames.map((f, i) =>
+              '<button onclick="nv_jump_to_frame(' + i + ')" id="nv-fb-' + i + '" ' +
+                'style="font-size:.65rem;padding:.18rem .5rem;border-radius:4px;border:1px solid var(--border);' +
+                'background:' + (i === 0 ? 'var(--surface2)' : 'transparent') + ';color:var(--text2);cursor:pointer">' +
+                f.t + 's' +
+              '</button>'
+            ).join('') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '</div>';
+  } else if (d.brain_map_svg) {
+    html +=
+      '<div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:.25rem">' +
+      '<div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.65rem;display:flex;align-items:center;gap:.5rem">' +
+        'Brain Activation Map' +
+        '<span style="font-weight:400;text-transform:none;color:' + srcColor + '">' + srcLabel + '</span>' +
+      '</div>' +
+      d.brain_map_svg +
       '</div>';
   }
 
-  html += '</div>';
+  // Close body + footer
+  html +=
+    '</div>' +
+    '<div style="padding:.55rem 1.25rem;border-top:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:.5rem">' +
+      '<span style="font-size:.62rem;color:var(--muted)">Powered by Meta TRIBE v2 · CC-BY-NC-4.0 (non-commercial research use only)</span>' +
+      '<a href="/brain-map" target="_blank" style="font-size:.62rem;color:var(--muted);margin-left:auto;text-decoration:underline">Brain map explainer →</a>' +
+    '</div>' +
+    '</div>';
+
   document.getElementById('nv-result').innerHTML = html;
+
+  // Wire up synchronized video + brain frame display
+  if (d.brain_frames && d.brain_frames.length > 0 && d.reel_video_url) {
+    window._nv_frames = d.brain_frames;
+    window._nv_cur_frame = 0;
+    var vid = document.getElementById('nv-sync-video');
+    if (vid) {
+      vid.addEventListener('timeupdate', function() {
+        var t = vid.currentTime;
+        var frames = window._nv_frames;
+        var best = 0;
+        for (var i = 0; i < frames.length; i++) {
+          if (frames[i].t <= t) best = i;
+        }
+        if (best !== window._nv_cur_frame) nv_jump_to_frame(best);
+      });
+    }
+  }
+}
+
+function nv_jump_to_frame(idx) {
+  var frames = window._nv_frames;
+  if (!frames || idx >= frames.length) return;
+  window._nv_cur_frame = idx;
+  var container = document.getElementById('nv-brain-container');
+  var label = document.getElementById('nv-tr-label');
+  if (container) container.innerHTML = frames[idx].svg;
+  if (label) label.textContent = 't=' + frames[idx].t + 's';
+  // Update frame button active state
+  for (var i = 0; i < frames.length; i++) {
+    var btn = document.getElementById('nv-fb-' + i);
+    if (btn) btn.style.background = (i === idx) ? 'var(--surface2)' : 'transparent';
+  }
 }
 
 function showErr(id, msg) {
@@ -2358,6 +3015,11 @@ app.add_middleware(
 
 try:
     app.mount("/static", StaticFiles(directory="static"), name="static")
+except Exception:
+    pass
+
+try:
+    app.mount("/tribe_videos", StaticFiles(directory="cache/tribe_videos"), name="tribe_videos")
 except Exception:
     pass
 
@@ -3339,6 +4001,17 @@ async def _run_audit_bg(audit_id: int, deep_visual: bool = False) -> None:
             except Exception:
                 pass  # best-effort; report endpoint generates on-demand as fallback
 
+    # Notify Mastra dashboard that audit is complete (fire-and-forget)
+    if _MASTRA_ENABLED:
+        try:
+            with S(engine) as _s:
+                _a = _s.get(AuditRun, audit_id)
+                _brand = _a.url if _a else ""
+                _bname = (_parse_json(_a.brand_basics) or {}).get("analysis", {}).get("brand_name", "") if _a else ""
+            asyncio.create_task(_notify_mastra_complete(audit_id, _brand, _bname, results))
+        except Exception:
+            pass
+
     # If deep_visual was requested, spin up TRIBE v2 in the background now
     # that the main audit HTML is already saved and the user can see the report.
     if deep_visual:
@@ -3360,49 +4033,71 @@ def _extract_preview(agent_key: str, result: dict) -> dict:
             return item.get("fix") or item.get("action") or fallback
         return str(item) if item else fallback
 
+    def _score_type(score, high=7, low=5):
+        """Map a numeric score to a severity type string."""
+        try:
+            s = float(score)
+            return "strength" if s >= high else "critical" if s < low else "warning"
+        except (TypeError, ValueError):
+            return "info"
+
+    pdp_score = analysis.get("pdp_quality_score")
+    geo_score  = analysis.get("geo_score")
+    mobile_spd = (result.get("pagespeed") or {}).get("mobile_score")
+    social_sc  = result.get("social_presence_score")
+    audit_sc   = (result.get("scores") or {}).get("overall")
+
     previews = {
         "brand_basics": {
             "headline": f"{analysis.get('brand_name', 'Brand')} — {', '.join((analysis.get('core_categories') or [''])[:1])}",
             "stat": f"Founded {analysis.get('founding_year', '?')} · {analysis.get('tone_of_voice', '?')} tone",
             "insight": analysis.get("brand_positioning") or "Positioning detected",
+            "type": "info",
         },
         "content_catalog": {
-            "headline": f"PDP Quality: {analysis.get('pdp_quality_score', '?')}/10",
+            "headline": f"PDP Quality: {pdp_score}/10",
             "stat": f"Homepage: {analysis.get('homepage_score', '?')}/10",
             "insight": _first(analysis.get("pdp_weaknesses"), "Content analysed"),
+            "type": _score_type(pdp_score),
         },
         "performance_ads": {
             "headline": f"{analysis.get('estimated_active_ads', '?')} active ads detected",
             "stat": f"Hook strength: {analysis.get('hook_strength_score', '?')}/10",
             "insight": _first(analysis.get("top_3_ad_quick_wins"), "Ad strategy analysed"),
+            "type": "info",
         },
         "geo_visibility": {
-            "headline": f"GEO Score: {analysis.get('geo_score', '?')}/100",
+            "headline": f"GEO Score: {geo_score}/100",
             "stat": f"AI citation likelihood: {analysis.get('ai_citation_likelihood', '?')}",
             "insight": _first(analysis.get("top_5_content_topics_for_ai_citation"), "GEO analysed"),
+            "type": _score_type(geo_score, high=60, low=40),
         },
         "store_cro": {
-            "headline": f"Mobile Speed: {(result.get('pagespeed') or {}).get('mobile_score', '?')}/100",
+            "headline": f"Mobile Speed: {mobile_spd}/100",
             "stat": f"Desktop: {(result.get('pagespeed') or {}).get('desktop_score', '?')}/100",
             "insight": _first(analysis.get("top_5_cro_fixes"), "Store analysed"),
+            "type": _score_type(mobile_spd, high=70, low=50),
         },
         "research": {
             "headline": f"{len(analysis.get('top_competitors') or [])} competitors identified",
             "stat": "Market position mapped",
             "insight": _first(analysis.get("whitespace_opportunities"), "Research complete"),
+            "type": "info",
         },
         "social_profile": {
-            "headline": f"Social presence score: {result.get('social_presence_score', '?')}/10",
+            "headline": f"Social presence score: {social_sc}/10",
             "stat": f"Instagram: {(result.get('instagram') or {}).get('followers', 0):,} followers",
             "insight": _first(result.get("top_3_social_improvements"), "Social presence mapped"),
+            "type": _score_type(social_sc),
         },
         "social_media_audit": {
-            "headline": f"Social audit score: {(result.get('scores') or {}).get('overall', '?')}/10",
+            "headline": f"Social audit score: {audit_sc}/10",
             "stat": f"IG: {(result.get('platforms') or {}).get('instagram', {}).get('followers', 0):,} · YT: {(result.get('platforms') or {}).get('youtube', {}).get('subscribers', 0):,}",
             "insight": _first(result.get("top_3_recommendations"), "Multi-platform audit complete"),
+            "type": _score_type(audit_sc),
         },
     }
-    p = previews.get(agent_key, {"headline": "Analysed", "stat": "", "insight": ""})
+    p = previews.get(agent_key, {"headline": "Analysed", "stat": "", "insight": "", "type": "info"})
     p["label"] = _AGENT_LABELS.get(agent_key, agent_key)
     return p
 
@@ -3555,8 +4250,45 @@ async def _sse_gen(audit_id: int, deep_visual: bool = False) -> AsyncGenerator[s
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
-async def ui():
+async def landing_page():
+    """Main product landing page."""
+    import pathlib
+    p = pathlib.Path(__file__).parent / "reports" / "templates" / "audit_landing.html"
+    return HTMLResponse(p.read_text())
+
+
+def _ui_with_tab(tab: str) -> str:
+    """Return UI_HTML with a script appended to auto-switch to the given tab on load."""
+    return UI_HTML + f'<script>document.addEventListener("DOMContentLoaded",function(){{var btn=document.querySelector(\'.tab[onclick*=\\"{tab}\\"]\');showTab("{tab}",btn);}});</script>'
+
+
+@app.get("/app", response_class=HTMLResponse)
+async def ui_app():
+    """Full app — default Audit tab."""
     return HTMLResponse(UI_HTML)
+
+
+@app.get("/audit", response_class=HTMLResponse)
+async def ui_audit():
+    return HTMLResponse(_ui_with_tab("audit"))
+
+
+@app.get("/virality", response_class=HTMLResponse)
+async def ui_virality():
+    return HTMLResponse(_ui_with_tab("virality"))
+
+
+@app.get("/compare", response_class=HTMLResponse)
+async def ui_compare():
+    return HTMLResponse(_ui_with_tab("compare"))
+
+
+@app.get("/landing", response_class=HTMLResponse)
+async def audit_landing():
+    """Alias for /"""
+    import pathlib
+    p = pathlib.Path(__file__).parent / "reports" / "templates" / "audit_landing.html"
+    return HTMLResponse(p.read_text())
 
 
 @app.get("/health")
@@ -3670,10 +4402,10 @@ async def start_audit(
     session.commit()
     session.refresh(audit)
 
-    # Try Mastra first; fall back to Python orchestrator if unavailable
-    mastra_started = await _try_mastra_audit(audit.id, url, brand_name)
-    if not mastra_started:
-        background_tasks.add_task(_run_audit_bg, audit.id, request.deep_visual)
+    # Python LangGraph always runs. Mastra gets a fire-and-forget start notification
+    # for dashboard visibility — never blocks or replaces Python execution.
+    background_tasks.add_task(_run_audit_bg, audit.id, request.deep_visual)
+    asyncio.create_task(_notify_mastra_start(audit.id, url, brand_name))
 
     return {
         "audit_id":     audit.id,
@@ -3681,7 +4413,7 @@ async def start_audit(
         "stream_url":   f"/audit/stream/{audit.id}",
         "status":       "queued",
         "from_cache":   False,
-        "orchestrator": "mastra" if mastra_started else "python",
+        "orchestrator": "python+mastra" if _MASTRA_ENABLED else "python",
     }
 
 
@@ -4319,23 +5051,39 @@ async def get_virality_report(run_id: int, session: Session = Depends(get_sessio
 
 # ── Mastra integration helpers ────────────────────────────────────────────────
 
-async def _try_mastra_audit(audit_id: int, url: str, brand_name: str) -> bool:
-    """Fire the Mastra auditWorkflow. Returns True if accepted, False if Mastra is unavailable.
+async def _notify_mastra_start(audit_id: int, url: str, brand_name: str) -> None:
+    """Fire-and-forget: tell Mastra dashboard an audit started.
 
-    Skips immediately if MASTRA_URL env var is not set — no connection attempt.
+    Never blocks Python execution. Python LangGraph always runs regardless.
+    Mastra uses this purely for dashboard visibility / run history.
     """
     if not _MASTRA_ENABLED:
-        return False
+        return
     import httpx as _httpx
     try:
-        async with _httpx.AsyncClient(timeout=4.0) as client:
-            r = await client.post(
+        async with _httpx.AsyncClient(timeout=3.0) as client:
+            await client.post(
                 f"{_MASTRA_URL}/api/workflows/auditWorkflow/execute",
                 json={"inputData": {"audit_id": audit_id, "url": url, "brand_name": brand_name}},
             )
-            return r.status_code < 400
     except Exception:
-        return False
+        pass  # Mastra down → silent, Python continues
+
+
+async def _notify_mastra_complete(audit_id: int, url: str, brand_name: str, results: dict) -> None:
+    """Fire-and-forget: push completed audit results to Mastra dashboard."""
+    if not _MASTRA_ENABLED:
+        return
+    import httpx as _httpx
+    try:
+        async with _httpx.AsyncClient(timeout=5.0) as client:
+            await client.put(
+                f"{_MASTRA_URL}/api/audits/{audit_id}/complete",
+                json={"audit_id": audit_id, "url": url, "brand_name": brand_name, "results": results},
+                headers={"X-Internal-Key": _os.getenv("INTERNAL_SECRET_KEY", "dev-internal-key-change-in-prod")},
+            )
+    except Exception:
+        pass  # best-effort only
 
 
 # ── Internal endpoints — called by Mastra, not exposed to end users ────────────
@@ -4642,7 +5390,7 @@ async def analyze_video(req: VideoAnalyzeRequest):
     direct .mp4/.webm links, and any yt-dlp-supported platform.
 
     Returns neural engagement score (0-100), brain activation heatmap SVG,
-    network scores, and interpretation. Processing takes ~10-30 min on CPU.
+    network scores, and interpretation.
     """
     try:
         from agents.neural_engagement import NeuralEngagementAnalyzer
@@ -4665,19 +5413,38 @@ async def analyze_video(req: VideoAnalyzeRequest):
 
         if preds is not None:
             import numpy as _np
+            from agents.brain_map import tribe_preds_to_network_scores_per_tr
             preds_arr = _np.array(preds)
             network_scores = tribe_preds_to_network_scores(preds_arr)
             brain_map_svg = generate_activation_heatmap(
                 network_scores, is_real_tribe=True, ad_label=label
             )
             brain_map_source = "tribe_v2"
+            # Per-frame brain SVGs for synchronized video display (max 6 frames)
+            per_tr = tribe_preds_to_network_scores_per_tr(preds_arr, max_frames=6)
+            brain_frames = [
+                {
+                    "t": f["t"],
+                    "svg": generate_activation_heatmap(
+                        f["scores"], is_real_tribe=True, ad_label=f"TR {i}"
+                    ),
+                }
+                for i, f in enumerate(per_tr)
+            ]
         else:
-            # No preds (error path) — use empty scores so we still return a map
             network_scores = {k: 0.0 for k in ["visual","motor","attention","limbic","default","control","reward"]}
             brain_map_svg = generate_activation_heatmap(
                 network_scores, is_real_tribe=False, ad_label=label
             )
             brain_map_source = "error"
+            brain_frames = []
+
+        # Reel video URL (served via /tribe_videos/ if persisted)
+        import hashlib as _hl
+        _url_hash = _hl.md5(req.video_url.encode()).hexdigest()[:12]
+        _reel_fname = f"{_url_hash}_reel.mp4"
+        _reel_cached = _os.path.join("cache", "tribe_videos", _reel_fname)
+        reel_video_url = f"/tribe_videos/{_reel_fname}" if _os.path.exists(_reel_cached) else None
 
         return {
             **score_dict,
@@ -4686,6 +5453,8 @@ async def analyze_video(req: VideoAnalyzeRequest):
             "brain_map_svg": brain_map_svg,
             "brain_map_source": brain_map_source,
             "brain_network_scores": network_scores,
+            "brain_frames": brain_frames,
+            "reel_video_url": reel_video_url,
         }
 
     except asyncio.TimeoutError:
